@@ -19,8 +19,7 @@ void free_uri(struct uri** uriPtrPtr) //<<<
 	struct uri*			uri = *uriPtrPtr;
 
 	replace_tclobj(&uri->scheme,	NULL);
-	replace_tclobj(&uri->user,		NULL);
-	replace_tclobj(&uri->password,	NULL);
+	replace_tclobj(&uri->userinfo,	NULL);
 	replace_tclobj(&uri->host,		NULL);
 	replace_tclobj(&uri->port,		NULL);
 	replace_tclobj(&uri->path,		NULL);
@@ -66,8 +65,7 @@ static void dup_internal_rep_uri(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 	memset(dup_uri, 0, sizeof *dup_uri);
 
 	replace_tclobj(&dup_uri->scheme,	uri->scheme);
-	replace_tclobj(&dup_uri->user,		uri->user);
-	replace_tclobj(&dup_uri->password,	uri->password);
+	replace_tclobj(&dup_uri->userinfo,	uri->userinfo);
 	replace_tclobj(&dup_uri->host,		uri->host);
 	replace_tclobj(&dup_uri->port,		uri->port);
 	replace_tclobj(&dup_uri->path,		uri->path);
@@ -122,12 +120,8 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 		Tcl_DStringAppend(ds, "://", 3);
 	}
 
-	if (uri->user) {
-		APPEND_PART(uri->user);
-		if (uri->password) {
-			Tcl_DStringAppend(ds, ":", 1);
-			APPEND_PART(uri->password);
-		}
+	if (uri->userinfo) {
+		APPEND_PART(uri->userinfo);
 		Tcl_DStringAppend(ds, "@", 1);
 	}
 

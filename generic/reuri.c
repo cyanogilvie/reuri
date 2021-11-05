@@ -5,8 +5,7 @@
 // Must be kept in sync with reuri_part
 const char*	reuri_part_str[] = {
 	"scheme",
-	"user",
-	"password",
+	"userinfo",
 	"host",
 	"port",
 	"path",
@@ -89,8 +88,7 @@ int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part par
 
 	switch (part) {
 		case REURI_SCHEME:		res = uri->scheme;		break;
-		case REURI_USER:		res = uri->user;		break;
-		case REURI_PASSWORD:	res = uri->password;	break;
+		case REURI_USERINFO:	res = uri->userinfo;	break;
 		case REURI_HOST:		res = uri->host;		break;
 		case REURI_PORT:		res = uri->port;		break;
 		case REURI_PATH:		res = uri->path;		break;
@@ -146,8 +144,7 @@ int Reuri_URIObjGetAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res) //<<<
 			Dedup_NewStringObj(l->dedup_pool, k, -1), v));
 
 	ADD_PART("scheme",    uri->scheme);
-	ADD_PART("user",      uri->user);
-	ADD_PART("password",  uri->password);
+	ADD_PART("userinfo",  uri->userinfo);
 	ADD_PART("host",      uri->host);
 	ADD_PART("port",      uri->port);
 	ADD_PART("path",      uri->path);

@@ -81,7 +81,7 @@ void parse_uri(struct parse_context* pc, const char* str, int len)
     end { goto finally; }
     uri {
 		replace_tclobj(&pc->uri->scheme, Dedup_NewStringObj(l->dedup_pool, s1, (int)(s2-s1)));
-        //if (u1) fprintf(stderr, "  userinfo: %.*s\n", (int)(u2 - u1), u1);
+		if (u1) replace_tclobj(&pc->uri->userinfo,	Dedup_NewStringObj(l->dedup_pool, u1, (int)(u2-u1)));
 
 		if (h1) {
 			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h1, (int)(h2 - h1)));

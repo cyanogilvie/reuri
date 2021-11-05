@@ -12,8 +12,7 @@ extern "C" {
 // Must be kept in sync with reuri_part_str
 enum reuri_part {
 	REURI_SCHEME,
-	REURI_USER,
-	REURI_PASSWORD,
+	REURI_USERINFO,
 	REURI_HOST,
 	REURI_PORT,
 	REURI_PATH,

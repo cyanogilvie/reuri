@@ -9,15 +9,23 @@ test reuri-1.1 {} -setup { #<<<
 	set uri http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
 } -body {
 	set start	[clock microseconds]
-	foreach v {scheme host port path query fragment} {
-		lappend res $v [reuri::uri get $uri $v]
+	try {
+		list \
+			scheme		[reuri::uri get $uri scheme] \
+			userinfo	[reuri::uri get $uri userinfo] \
+			host		[reuri::uri get $uri host] \
+			port		[reuri::uri get $uri port] \
+			path		[reuri::uri get $uri path] \
+			query		[reuri::uri get $uri query] \
+			fragment	[reuri::uri get $uri fragment]
+	} finally {
+		puts stderr "Extracting parts from uri took [expr {[clock microseconds]-$start}] usec"
 	}
-	puts stderr "Extracting parts from uri took [expr {[clock microseconds]-$start}] usec"
-	set res
 } -cleanup {
-	unset -nocomplain uri v res start
+	unset -nocomplain uri start
 } -result [list \
 	scheme		http \
+	userinfo	foo:bar \
 	host		localhost \
 	port		81 \
 	path		/one/two \
@@ -38,6 +46,7 @@ test reuri-2.1 {Get all parts as a dict} -setup { #<<<
 	unset -nocomplain uri start
 } -result [list \
 	scheme		http \
+	userinfo	foo:bar \
 	host		localhost \
 	port		81 \
 	path		/one/two \

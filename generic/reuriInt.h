@@ -26,8 +26,7 @@ struct param {
 
 struct uri {
 	Tcl_Obj*			scheme;
-	Tcl_Obj*			user;
-	Tcl_Obj*			password;
+	Tcl_Obj*			userinfo;
 	Tcl_Obj*			host;
 	enum reuri_hosttype	hosttype;
 	Tcl_Obj*			port;

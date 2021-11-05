@@ -109,14 +109,13 @@ The named parts of URIs that are accessible in this package are:
 
   - **scheme**  
     The part before the first `:` like `http` in `http://github.com`
-  - **user**  
-    The user part: `bob` in `http://bob@example.com`
-  - **password**  
-    The password part: `secret` in `http://admin:secret@example.com`
+  - **userinfo**  
+    The userinfo part: `admin:secret` in
+    `http://admin:secret@example.com`
   - **host**  
     The host part of the authority section: `google.com` in
-    https://google.com, `127.0.0.1` in `http://127.0.0.1:8080`, `::1` in
-    `http://[::1]:8080`, and `/tmp/myserv.80` in
+    `https://google.com`, `127.0.0.1` in `http://127.0.0.1:8080`, `::1`
+    in `http://[::1]:8080`, and `/tmp/myserv.80` in
     `http://[/tmp/myserv.80]/foo`. This last example isn’t valid by RFC
     3986 but is one of the common ways to refer to the socket in
     HTTP-over-unix sockets.
@@ -179,9 +178,9 @@ TODO: complete
     A pointer to the URI value. Must be unshared for those calls that
     change its value.
   - enum reuri\_part *part*  
-    One of **REURI\_SCHEME**, **REURI\_USER**, **REURI\_PASSWORD**,
-    **REURI\_HOST**, **REURI\_PORT**, **REURI\_PATH**,
-    **REURI\_PATHLIST**, **REURI\_QUERY** or **REURI\_FRAGMENT**.
+    One of **REURI\_SCHEME**, **REURI\_USERINFO**, **REURI\_HOST**,
+    **REURI\_PORT**, **REURI\_PATH**, **REURI\_PATHLIST**,
+    **REURI\_QUERY** or **REURI\_FRAGMENT**.
   - Tcl\_Obj *\*defaultPtr*  
     A pointer to the default value to be returned if the requested
     element isn’t present on the URI. Can be NULL if no default value is

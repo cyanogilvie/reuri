@@ -1,0 +1,85 @@
+if {"bench" ni [info commands bench]} {
+	package require bench
+	namespace import bench::*
+}
+
+package require reuri
+package require uri
+
+uri::setQuirkOption NoInitialSlash false
+
+proc main {} {
+	bench reuri-1.1 {Parse a uri} -batch auto -setup { #<<<
+		set uri_a http://foo:bar@localhost:81
+		set uri_b /one/two?three=3&four=4#endbit
+		set uri		$uri_a$uri_b
+		reuri::uri get $uri scheme
+	} -compare {
+		reuri_parse {
+			reuri::uri get $uri_a$uri_b fragment
+		}
+		reuri_reuse {
+			reuri::uri get $uri fragment
+		}
+		uri {
+			dict get [uri::split $uri_a$uri_b] fragment
+		}
+	} -cleanup {
+		unset -nocomplain uri_a uri_b uri
+	} -result endbit
+	#>>>
+	bench reuri-2.1 {Parse a uri} -batch auto -setup { #<<<
+		set uri_a http://foo:bar@localhost:81
+		set uri_b /one/two?three=3&four=4#endbit
+		set uri		$uri_a$uri_b
+		reuri::uri get $uri scheme
+	} -compare {
+		reuri_reparse {
+			set newuri	$uri_a$uri_b
+			list \
+				[reuri::uri get $newuri scheme] \
+				[reuri::uri get $newuri host] \
+				[reuri::uri get $newuri port 80] \
+				[reuri::uri get $newuri path]
+		}
+		reuri_reuse {
+			list \
+				[reuri::uri get $uri scheme] \
+				[reuri::uri get $uri host] \
+				[reuri::uri get $uri port 80] \
+				[reuri::uri get $uri path]
+		}
+		reuri_dict_reparse {
+			set parts	[reuri::uri get $uri_a$uri_b]
+			list \
+				[dict get $parts scheme] \
+				[dict get $parts host] \
+				[dict get $parts port] \
+				[dict get $parts path]
+		}
+		reuri_dict_reuse {
+			set parts	[reuri::uri get $uri]
+			list \
+				[dict get $parts scheme] \
+				[dict get $parts host] \
+				[dict get $parts port] \
+				[dict get $parts path]
+		}
+		uri {
+			set parts	[uri::split $uri_a$uri_b]
+			list \
+				[dict get $parts scheme] \
+				[dict get $parts host] \
+				[dict get $parts port] \
+				[dict get $parts path]
+		}
+	} -cleanup {
+		unset -nocomplain uri_a uri_b newuri uri parts
+	} -result {http localhost 81 /one/two}
+	#>>>
+}
+
+main
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4
+

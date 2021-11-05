@@ -1,0 +1,55 @@
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+package require reuri
+
+test reuri-1.1 {} -setup { #<<<
+	set uri http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
+} -body {
+	set start	[clock microseconds]
+	foreach v {scheme host port path query fragment} {
+		lappend res $v [reuri::uri get $uri $v]
+	}
+	puts stderr "Extracting parts from uri took [expr {[clock microseconds]-$start}] usec"
+	set res
+} -cleanup {
+	unset -nocomplain uri v res start
+} -result [list \
+	scheme		http \
+	host		localhost \
+	port		81 \
+	path		/one/two \
+	query		three=3&four=4 \
+	fragment	endbit \
+]
+#>>>
+test reuri-2.1 {Get all parts as a dict} -setup { #<<<
+	set uri http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
+} -body {
+	set start	[clock microseconds]
+	try {
+		reuri::uri get $uri
+	} finally {
+		puts stderr "Extracting parts as dict from uri took [expr {[clock microseconds]-$start}] usec"
+	}
+} -cleanup {
+	unset -nocomplain uri start
+} -result [list \
+	scheme		http \
+	host		localhost \
+	port		81 \
+	path		/one/two \
+	query		three=3&four=4 \
+	fragment	endbit \
+	querylist	{} \
+]
+#>>>
+
+
+# cleanup
+::tcltest::cleanupTests
+return
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

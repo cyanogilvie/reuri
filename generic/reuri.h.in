@@ -1,0 +1,44 @@
+#include <tcl.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef BUILD_reuri
+#undef TCL_STORAGE_CLASS
+#define TCL_STORAGE_CLASS DLLEXPORT
+#endif
+
+// Must be kept in sync with reuri_part_str
+enum reuri_part {
+	REURI_SCHEME,
+	REURI_USER,
+	REURI_PASSWORD,
+	REURI_HOST,
+	REURI_PORT,
+	REURI_PATH,
+	REURI_PATHLIST,
+	REURI_QUERY,
+	REURI_FRAGMENT
+};
+
+typedef struct ReuriData {
+	const char*	name;
+} ReuriData;
+
+/* Stubs exported API */
+
+#ifdef USE_REURI_STUBS
+extern const char* ReuriInitializeStubs(Tcl_Interp* interp);
+#define Reuri_InitStubs(interp)	ReuriInitializeStubs((interp))
+#else
+#define Reuri_InitStubs(interp)	Tcl_PkgRequire((interp), "@PACKAGE_NAME@", "@PACKAGE_VERSION@", 0)
+#endif
+
+#include "reuriDecls.h"
+
+EXTERN int Reuri_Init _ANSI_ARGS_((Tcl_Interp * interp));
+
+#ifdef __cplusplus
+}
+#endif

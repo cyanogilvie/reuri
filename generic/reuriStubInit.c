@@ -7,6 +7,7 @@ const ReuriStubs reuriStubs = {
     0,
     Reuri_URIObjGetPart, /* 0 */
     Reuri_URIObjGetAll, /* 1 */
+    Reuri_PercentEncodeObj, /* 2 */
 };
 
 /* !END!: Do not edit above this line. */

@@ -7,11 +7,18 @@ const char*	reuri_part_str[] = {
 	"scheme",
 	"userinfo",
 	"host",
+	"hosttype",
 	"port",
 	"path",
-	"pathlist",
 	"query",
 	"fragment",
+	NULL				// NULL here so we can point Tcl_GetIndexFromObj at this
+};
+
+const char* reuri_encode_mode_str[] = {
+	"query",
+	"path",
+	"host",
 	NULL				// NULL here so we can point Tcl_GetIndexFromObj at this
 };
 
@@ -72,7 +79,10 @@ static void free_interp_cx(ClientData cdata, Tcl_Interp* interp) //<<<
 //>>>
 int ReuriGetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* part) //<<<
 {
-	return Tcl_GetIndexFromObj(interp, partObj, reuri_part_str, "part", TCL_EXACT, (int*)part);
+	int			ipart, code;
+	code = Tcl_GetIndexFromObj(interp, partObj, reuri_part_str, "part", TCL_EXACT, &ipart);
+	*part = ipart;
+	return code;
 }
 
 //>>>
@@ -92,7 +102,6 @@ int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part par
 		case REURI_HOST:		res = uri->host;		break;
 		case REURI_PORT:		res = uri->port;		break;
 		case REURI_PATH:		res = uri->path;		break;
-		case REURI_PATHLIST:	res = uri->pathlist;	break;
 		case REURI_QUERY:		res = uri->query;		break;
 		case REURI_FRAGMENT:	res = uri->fragment;	break;
 		default: THROW_ERROR_LABEL(finally, code, "Invalid part");
@@ -162,6 +171,18 @@ finally:
 }
 
 //>>>
+Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode, Tcl_Obj* objPtr) //<<<
+{
+	switch (mode) {
+		case REURI_ENCODE_QUERY: return percent_encode_query(interp, objPtr, REURI_ENCODE_QUERY);
+		case REURI_ENCODE_PATH:  return percent_encode_query(interp, objPtr, REURI_ENCODE_PATH);
+		case REURI_ENCODE_HOST:  return percent_encode_query(interp, objPtr, REURI_ENCODE_HOST);
+	}
+	Tcl_Panic("Invalid encode mode: %d", mode);
+	return NULL;	// Unreachable, pacify compiler
+}
+
+//>>>
 // Stubs API >>>
 // Script API <<<
 static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
@@ -172,7 +193,11 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		"exists",
 		"set",
 		"valid",
-		"query",
+		"context",
+		"resolve",
+		"absolute",
+		"encode",
+		"decode",
 		NULL
 	};
 	enum {
@@ -180,7 +205,11 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		M_EXISTS,
 		M_SET,
 		M_VALID,
-		M_QUERY
+		M_CONTEXT,
+		M_RESOLVE,
+		M_ABSOLUTE,
+		M_ENCODE,
+		M_DECODE
 	};
 	int	methodidx;
 
@@ -247,7 +276,210 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			}
 			break;
 			//>>>
-		case M_QUERY: //<<<
+		case M_CONTEXT: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_RESOLVE: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_ABSOLUTE: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_ENCODE: //<<<
+			{
+				enum args {
+					A_METHOD = 1,
+					A_MODE,
+					A_VAL,
+					A_objc
+				};
+				int						imode;
+				enum reuri_encode_mode	mode;
+				Tcl_Obj*	res = NULL;
+
+				if (objc != A_objc) {
+					Tcl_WrongNumArgs(interp, 2, objv, "mode value");
+					code = TCL_ERROR;
+					goto finally;
+				}
+
+				TEST_OK_LABEL(finally, code,
+						Tcl_GetIndexFromObj(interp, objv[A_MODE], reuri_encode_mode_str,
+							"mode", TCL_EXACT, &imode));
+				mode = imode;
+
+				replace_tclobj(&res, Reuri_PercentEncodeObj(interp, mode, objv[A_VAL]));
+				Tcl_SetObjResult(interp, res);
+				replace_tclobj(&res, NULL);
+			}
+			break;
+			//>>>
+		case M_DECODE: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		default: Tcl_Panic("Invalid method index: %d", methodidx);
+	}
+
+finally:
+	return code;
+}
+
+//>>>
+static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
+{
+	int			code = TCL_OK;
+	static const char*	methods[] = {
+		"get",
+		"values",
+		"add",
+		"exists",
+		"set",
+		"unset",
+		"names",
+		"reorder",
+		NULL
+	};
+	enum {
+		M_GET,
+		M_VALUES,
+		M_ADD,
+		M_EXISTS,
+		M_SET,
+		M_UNSET,
+		M_NAMES,
+		M_REORDER
+	};
+	int	methodidx;
+
+	if (objc < 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "method ?arg ...?");
+		code = TCL_ERROR;
+		goto finally;
+	}
+
+	TEST_OK_LABEL(finally, code, Tcl_GetIndexFromObj(interp, objv[1], methods, "method", TCL_EXACT, &methodidx));
+
+	switch (methodidx) {
+		case M_GET: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_VALUES: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_ADD: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_EXISTS: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_SET: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_UNSET: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_NAMES: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_REORDER: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		default: Tcl_Panic("Invalid method index: %d", methodidx);
+	}
+
+finally:
+	return code;
+}
+
+//>>>
+static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
+{
+	int			code = TCL_OK;
+	static const char*	methods[] = {
+		"split",
+		"join",
+		"resolve",
+		NULL
+	};
+	enum {
+		M_SPLIT,
+		M_JOIN,
+		M_RESOLVE
+	};
+	int	methodidx;
+
+	if (objc < 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "method ?arg ...?");
+		code = TCL_ERROR;
+		goto finally;
+	}
+
+	TEST_OK_LABEL(finally, code, Tcl_GetIndexFromObj(interp, objv[1], methods, "method", TCL_EXACT, &methodidx));
+
+	switch (methodidx) {
+		case M_SPLIT: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_JOIN: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_RESOLVE: //<<<
 			{
 				// TODO: implement
 				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
@@ -269,6 +501,8 @@ struct cmd {
 	Tcl_ObjCmdProc*	proc;
 } cmds[] = {
 	{NS "::uri",	UriObjCmd},
+	{NS "::query",	QueryObjCmd},
+	{NS "::path",	PathObjCmd},
 	{NULL,			NULL}
 };
 // Script API >>>

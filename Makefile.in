@@ -173,7 +173,7 @@ VALGRIND	= valgrind
 VALGRINDARGS	= --tool=memcheck --num-callers=8 --leak-resolution=high \
 		  --leak-check=yes --show-reachable=yes -v
 
-RE2CARGS = --utf-8 --case-ranges -W
+RE2CARGS = --case-ranges -W -Wno-nondeterministic-tags -Wno-match-empty-string --conditions
 PGO=
 
 .SUFFIXES: .c .$(OBJEXT)

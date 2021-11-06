@@ -1,0 +1,79 @@
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+package require reuri
+
+set testchars   ""
+for {set i 0} {$i < 255} {incr i} {
+    append testchars    [format %c $i]
+}
+append testchars    \u306f
+
+set here    [file dirname [file normalize [info script]]]
+source [file join $here ../ref/urlencode-1.0.tm]
+package provide urlencode 1.0
+
+set refchars_query  [urlencode::rfc_urlencode -part query -charset utf-8 -- $testchars]
+set refchars_path   [urlencode::rfc_urlencode -part path  -charset utf-8 -- $testchars]
+
+test percent_encoding-1.1 {Encode a query-string portion: completely unreserved} -body { #<<<
+    reuri::uri encode query foo
+} -result foo
+#>>>
+test percent_encoding-2.1 {Encode a query-string portion: one reserved, start} -body { #<<<
+    reuri::uri encode query =foo
+} -result %3dfoo
+#>>>
+test percent_encoding-2.2 {Encode a query-string portion: one reserved, middle} -body { #<<<
+    reuri::uri encode query f=oo
+} -result f%3doo
+#>>>
+test percent_encoding-2.3 {Encode a query-string portion: one reserved, end} -body { #<<<
+    reuri::uri encode query foo=
+} -result foo%3d
+#>>>
+test percent_encoding-3.1 {Encode a query-string portion: two reserved, start} -body { #<<<
+    reuri::uri encode query =f=oo
+} -result %3df%3doo
+#>>>
+test percent_encoding-3.2 {Encode a query-string portion: two reserved, middle} -body { #<<<
+    reuri::uri encode query f==oo
+} -result f%3d%3doo
+#>>>
+test percent_encoding-3.3 {Encode a query-string portion: two reserved, end} -body { #<<<
+    reuri::uri encode query fo=o=
+} -result fo%3do%3d
+#>>>
+test percent_encoding-4.1 {Encode a query-string portion: \0, start} -body { #<<<
+    reuri::uri encode query \x00foo
+} -result %00foo
+#>>>
+test percent_encoding-4.2 {Encode a query-string portion: \0, middle} -body { #<<<
+    reuri::uri encode query f\x00oo
+} -result f%00oo
+#>>>
+test percent_encoding-4.3 {Encode a query-string portion: \0, end} -body { #<<<
+    reuri::uri encode query foo\0
+} -result foo%00
+#>>>
+test percent_encoding-20.1 {Encode testchars, mode query} -body { #<<<
+    reuri::uri encode query $testchars
+} -result $refchars_query
+#>>>
+test percent_encoding-20.2 {Encode testchars, mode path} -body { #<<<
+    reuri::uri encode path $testchars
+} -result $refchars_path
+#>>>
+test percent_encoding-20.3 {Encode testchars, mode host} -body { #<<<
+    reuri::uri encode host $testchars
+} -result $refchars_path
+#>>>
+
+# cleanup
+::tcltest::cleanupTests
+return
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4
+

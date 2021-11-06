@@ -14,16 +14,20 @@ enum reuri_part {
 	REURI_SCHEME,
 	REURI_USERINFO,
 	REURI_HOST,
+	REURI_HOSTTYPE,
 	REURI_PORT,
 	REURI_PATH,
-	REURI_PATHLIST,
 	REURI_QUERY,
 	REURI_FRAGMENT
 };
 
-typedef struct ReuriData {
-	const char*	name;
-} ReuriData;
+// Must be kept in sync with reuri_encode_mode_str
+enum reuri_encode_mode {
+	REURI_ENCODE_QUERY,
+	REURI_ENCODE_PATH,
+	REURI_ENCODE_HOST
+};
+
 
 /* Stubs exported API */
 

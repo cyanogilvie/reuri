@@ -2,7 +2,17 @@
 
 #include "reuriInt.h"
 
-void parse_uri(struct parse_context* pc, const char* str, int len)
+/*!types:re2c*/
+
+/*!rules:re2c:common
+
+    alpha       = [a-zA-Z];
+    digit       = [0-9];
+    hexdigit    = [0-9a-fA-F];
+	end			= "\x00";
+*/
+
+void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
 {
 	struct interp_cx*	l = Tcl_GetAssocData(pc->interp, "reuri", NULL);
     const char
@@ -11,22 +21,19 @@ void parse_uri(struct parse_context* pc, const char* str, int len)
 	const char*			s = str;
 	const char*			YYMARKER;
 	Tcl_DString			val;
-	/*!stags:re2c format = "const char *@@{tag}; "; */
+	/*!stags:re2c:parse_uri format = "const char *@@{tag}; "; */
 
 	Tcl_DStringInit(&val);
 
-	/*!re2c
+	/*!local:re2c:parse_uri
     re2c:api:style             = free-form;
     re2c:define:YYCTYPE        = "char";
     re2c:define:YYCURSOR       = s;
 	re2c:yyfill:enable         = 0;
 	re2c:flags:tags            = 1;
 
-    end = "\x00";
+	!use:common;
 
-    alpha       = [a-zA-Z];
-    digit       = [0-9];
-    hexdigit    = [0-9a-fA-F];
     unreserved  = alpha | digit | [-._~];
     pct_encoded = "%" hexdigit{2};
     sub_delims  = [!$&'()*+,;=];
@@ -95,7 +102,7 @@ void parse_uri(struct parse_context* pc, const char* str, int len)
 			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h5, (int)(h6 - h5)));
 			pc->uri->hosttype = REURI_HOST_HOSTNAME;
 		}
-		// TODO: Add unix domain sockets extension, record host type in struct uri
+		// TODO: Add unix domain sockets extension
 
 		if (r1) replace_tclobj(&pc->uri->port,     Dedup_NewStringObj(l->dedup_pool, r1, (int)(r2 - r1)));
 		if (p1) replace_tclobj(&pc->uri->path,     Dedup_NewStringObj(l->dedup_pool, p1, (int)(p2 - p1)));
@@ -116,5 +123,108 @@ finally:
 	Tcl_DStringFree(&val);
 }
 
+//>>>
+Tcl_Obj* percent_encode_query(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_mode mode) //<<<
+{
+	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
+	Tcl_Obj*				res = NULL;
+	const unsigned char*	u;
+	const unsigned char*	str = NULL;	// CESU-8
+	const unsigned char*	s;
+	int						strlen;
+	int						c = yycstart;
+	Tcl_DString				val;
+	/*!stags:re2c:percent_encode format = "const unsigned char *@@{tag}; "; */
+
+	u = s = str = (const unsigned char*)Tcl_GetStringFromObj(objPtr, &strlen);
+
+	Tcl_DStringInit(&val);
+
+	/*!local:re2c:percent_encode
+    re2c:api:style             = free-form;
+    re2c:define:YYCTYPE        = "unsigned char";
+    re2c:define:YYCURSOR       = s;
+	re2c:yyfill:enable         = 0;
+	re2c:flags:tags            = 1;
+	re2c:define:YYGETCONDITION = "c";
+	re2c:define:YYSETCONDITION = "c = @@;";
+
+	!use:common;
+
+	cesu8null         = "\xc0" "\x80";
+
+	mark              = [-_.!~*'()];
+	unreserved_query  = alpha | digit | mark;
+	reserved_query    = ([^] \ end) \ unreserved_query;
+
+	<start> unreserved_query* / end {
+		res = objPtr;
+		goto finally;
+	}
+	<start> unreserved_query* / reserved_query {
+		if (yych == '/' && mode == REURI_ENCODE_QUERY)
+			goto yyc_start;
+
+		if (s>str)
+			Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
+
+		u = s;
+		c = yycmixed;
+		goto yyc_mixed;
+	}
+	<start> unreserved_query* / cesu8null {
+		if (s>str)
+			Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
+
+		u = s;
+		c = yycmixed;
+		goto yyc_mixed;
+	}
+	<mixed> cesu8null {
+		Tcl_DStringAppend(&val, "%00", 3);
+		u = s;
+		goto yyc_mixed;
+	}
+	<mixed> reserved_query {
+		if (yych == '/' && mode == REURI_ENCODE_QUERY) {
+			Tcl_DStringAppend(&val, "/", 1);
+		} else {
+			char buf[4];
+
+			sprintf(buf, "%%%02x", yych);
+			Tcl_DStringAppend(&val, buf, 3);
+		}
+		u = s;
+		goto yyc_mixed;
+	}
+	<mixed> unreserved_query+ {
+		Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
+		u = s;
+		goto yyc_mixed;
+	}
+	<mixed> end {
+		res = Dedup_NewStringObj(l->dedup_pool, \
+				Tcl_DStringValue(&val), Tcl_DStringLength(&val));
+		goto finally;
+	}
+
+	<*> *	{
+		if (0 && yych == 0xc0 && *s == 0x80) {
+			// Have to handle this here - can't match the sequence \xc0 \x80 otherwise
+			Tcl_DStringAppend(&val, "%00", 3);
+			s++;
+			u = s;
+			goto yyc_mixed;
+		}
+		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-str), *s);
+	}
+	*/
+
+finally:
+	Tcl_DStringFree(&val);
+	return res;
+}
+
+//>>>
 
 // vim: ft=c foldmethod=marker foldmarker=<<<,>>>

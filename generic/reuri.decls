@@ -7,5 +7,8 @@ declare 0 generic {
 declare 1 generic {
 	int Reuri_URIObjGetAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res)
 }
+declare 2 generic {
+    Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode, Tcl_Obj* objPtr)
+}
 
 # vim: ft=tcl foldmethod=marker foldmarker=<<<,>>>

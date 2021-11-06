@@ -6,29 +6,28 @@ reuri - URI Manipulation for Tcl
 
 **package require reuri** ?0.1?
 
-**reuri::uri** **get** *uri* ?*part* ?*default*??
+**reuri::uri** **get** *uri* ?*part* ?*default*??  
+**reuri::uri** **exists** *uri* *part*  
+**reuri::uri** **set** *variable* *part* *value*  
+**reuri::uri** **valid** *uri*  
+**reuri::uri** **context** *uri* *script*  
+**reuri::uri** **resolve** *uri*  
+**reuri::uri** **absolute** *uri*  
+**reuri::uri** **encode** **query**|**path**|**host** *value*  
+**reuri::uri** **decode** *value*
 
-**reuri::uri** **exists** *uri* *part*
+**reuri::query** **get** *query* ?*param* ?*default*??  
+**reuri::query** **values** *query* *param*  
+**reuri::query** **add** *variable* *param* *value*  
+**reuri::query** **exists** *query* *param*  
+**reuri::query** **set** *variable* *param* *value* ?*offset*?  
+**reuri::query** **unset** *variable* *param* ?*offset*?  
+**reuri::query** **names** *query*  
+**reuri::query** **reorder** *variable* *params*
 
-**reuri::uri** **set** *varable* *part* *value*
-
-**reuri::uri** **valid** *uri*
-
-**reuri::uri** **query** **get** *uri* ?*param* ?*default*??
-
-**reuri::uri** **query** **values** *uri* *param*
-
-**reuri::uri** **query** **add** *uri* *param* *value*
-
-**reuri::uri** **query** **exists** *uri* *param*
-
-**reuri::uri** **query** **set** *uri* *param* *value* ?*offset*?
-
-**reuri::uri** **query** **unset** *uri* *param* ?*offset*?
-
-**reuri::uri** **query** **names** *uri*
-
-**reuri::uri** **query** **reorder** *uri* *params*
+**reuri::path** **split** *path*  
+**reuri::path** **join** *segments*  
+**reuri::path** **resolve** *path*
 
 # DESCRIPTION
 
@@ -42,9 +41,15 @@ the parsed parts.
 This package serves a similar purpose to the **uri** module of tcllib,
 but is much faster. Where splitting a typical http url using the tcllib
 module might take half a millisecond typically, parsing and extracting a
-part with this package would typically be 100 times faster, which
+part with this package is on the order of 100 times faster, which
 matters if hundreds of URLs have to be manipulated in the time budget of
 serving a hit on a website.
+
+While this package is in the 0 major version series this API is not
+stable and will change in backwards-incompatible ways. Starting with a 1
+series release the API will preserve backwards compatibility within a
+major version number sequence. <span style="color:red;">**USING THE 0
+SERIES VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
 
 # COMMANDS
 
@@ -64,44 +69,71 @@ serving a hit on a website.
   - **reuri::uri** **valid** *uri*  
     Return true if *uri* is a syntactically valid URI and can be parsed
     by this package.
-  - **reuri::uri** **query** **get** *uri* ?*param* ?*default*??  
-    Retrieve the value for the named *param* in the *uri* query part. If
+  - **reuri::uri** **context** *uri* *script*  
+    Evaluate *script* in the current call frame but treat *uri* as the
+    context for resolving any relative references that occur while
+    processing *script*. The return state of *script* is transparently
+    propagated to the return state of this command, including exceptions
+    and return codes like break and continue. This command can be
+    nested, with each successive call creating an inner scope with a
+    reference URI that is resolved relative to its context.
+  - **reuri::uri** **resolve** *uri*  
+    Return a URI by resolving the possibly-relative *uri* in the context
+    of any **resolve::uri** **context** calls on the callstack.
+  - **reuri::uri** **absolute** *uri*  
+    Return true if *uri* is absolute (ie. not a relative URI).
+  - **reuri::uri** **encode** **query**|**path**|**host** *value*  
+    Percent-encode the UTF-8 representation of *value*, suitable for
+    inclusion as component of the part given by **query**, **path** or
+    **host**.
+  - **reuri::uri** **decode** *value*  
+    Percent decode *value*, the inverse of **reuri::uri** **encode**.
+  - **reuri::query** **get** *query* ?*param* ?*default*??  
+    Retrieve the value for the named *param* in the *query* part. If
     *param* occurs multiple times in the query part, returns the value
     for the last instance. If *param* doesn’t exist and *default* is
     supplied, return that in its place, otherwise throw the **REURI**
     **PARAM\_NOT\_SET** exception. If *param* is not supplied, return
     all of the query parameters as a list of alternating parameter names
-    and their values, in the order they appear in *uri* (similar to a
+    and their values, in the order they appear in *query* (similar to a
     dictionary but multiple instances of the same param name can occur).
-  - **reuri::uri** **query** **values** *uri* *param*  
-    Return a list of all of the values for *param* in the query part of
-    *uri*, in the order they appear in the URI.
-  - **reuri::uri** **query** **add** *variable* *param* *value*  
-    Append the query *param* with *value* to the query part of the URI
-    contained in the variable *variable*. If *param* already exists in
-    the query part, append the new instance, leaving existing instances
-    in place.
-  - **reuri::uri** **query** **exists** *uri* *param*  
-    Return true if *param* exists in the query part of *uri*.
-  - **reuri::uri** **query** **set** *uri* *param* *value* ?*offset*?  
-    Replace any instances of *param* in *uri* with a single instance
-    containing *value*. If *offset* is specified, then replace only that
-    instance of *param* in *uri*, or throw exception **REURI**
-    **BAD\_OFFSET** if the offset isn’t valid.
-  - **reuri::uri** **query** **unset** *variable* *param* ?*offset*?  
-    Remove all instances of *param* in *uri*, unless *offset* is
+  - **reuri::query** **values** *query* *param*  
+    Return a list of all of the values for *param* in the *query*, in
+    the order they appear in the URI.
+  - **reuri::query** **add** *variable* *param* *value*  
+    Append the query *param* with *value* to the query part contained in
+    the variable *variable*. If *param* already exists in the query
+    part, append the new instance, leaving existing instances in place.
+  - **reuri::query** **exists** *query* *param*  
+    Return true if *param* exists in *query*.
+  - **reuri::query** **set** *variable* *param* *value* ?*offset*?  
+    Replace any instances of *param* in the query part stored in
+    *variable* with a single instance containing *value*. If *offset* is
+    specified, then replace only that instance of *param* in *variable*,
+    or throw exception **REURI** **BAD\_OFFSET** if the offset isn’t
+    valid.
+  - **reuri::query** **unset** *variable* *param* ?*offset*?  
+    Remove all instances of *param* in *variable*, unless *offset* is
     specified in which case only remove the specified instance, or throw
     **REURI** **BAD\_OFFSET** if the offset isn’t valid.
-  - **reuri::uri** **query** **names** *uri*  
-    Return a list of all of the param names that appear in *uri*, in the
-    order they appear. If multiple instances occur then the result
+  - **reuri::query** **names** *query*  
+    Return a list of all of the param names that appear in *query*, in
+    the order they appear. If multiple instances occur then the result
     contains multiple instances in the corresponding positions.
-  - **reuri::uri** **query** **reorder** *variable* *names*  
+  - **reuri::query** **reorder** *variable* *names*  
     Reorder the query part so that the params occur in the order given
     by *names*, with any that weren’t specified in *names* occuring
     after all those that were. If any duplicate param names exist on the
     URI, all their instances are placed in the position given in
     *names*, with the instances preserving their relative positions.
+  - **reuri::path** **split** *path*  
+    Return a fully decoded list of path segments in *path*.
+  - **reuri::path** **join** *segments*  
+    Produce a properly encoded URI path part given the list of
+    *segments*.
+  - **reuri::path** **resolve** *path*  
+    Return *path* resolved in the context of all the URIs on the
+    callstack from **reuri::uri** **context** calls.
 
 # PARTS
 
@@ -124,9 +156,6 @@ The named parts of URIs that are accessible in this package are:
     `http://localhost:1234/foo`.
   - **path**  
     `/foo/bar` in `http://localhost/foo/bar?quux=123`.
-  - **pathlist**  
-    As for **path**, but fully decoded as a Tcl list of path elements
-    (`/` as the first element if the path started with `/`).
   - **query**  
     `thing=foo&other=bar` in
     `http://localhost/path?thing=foo&other=bar#frag`

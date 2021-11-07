@@ -461,8 +461,22 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_DECODE: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				enum {
+					A_METHOD=1,
+					A_QUERY,
+					A_objc
+				};
+				Tcl_Obj*	res = NULL;
+
+				if (objc != A_objc) {
+					Tcl_WrongNumArgs(interp, 2, objv, "query");
+					code = TCL_ERROR;
+					goto finally;
+				}
+
+				TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, objv[A_QUERY], &res, NULL));
+				Tcl_SetObjResult(interp, res);
+				replace_tclobj(&res, NULL);
 			}
 			break;
 			//>>>

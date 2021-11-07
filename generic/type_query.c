@@ -91,8 +91,8 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 		ir = Tcl_FetchIntRep(query, &query_objtype);
 	}
 
-	replace_tclobj(params, ir->twoPtrValue.ptr1);
-	replace_tclobj(index,  ir->twoPtrValue.ptr2);
+	if (params) replace_tclobj(params, PARAMS(ir));
+	if (index)  replace_tclobj(index,  INDEX(ir));
 
 finally:
 	return code;

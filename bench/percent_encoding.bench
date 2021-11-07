@@ -86,8 +86,6 @@ proc main {} {
 	} -cleanup {
 		unset -nocomplain params
 	} -result ?lane=jewelry&q=estate&ipp=180&page=3&style=4
-	if 0 {
-	}
 	#>>>
 	bench percent_encoding-10.2 {Encode a query string, substitutions} -batch auto -setup { #<<<
 		set params	{lane a&c q {estate rings} ipp 180 page 3 +style 4}
@@ -99,6 +97,32 @@ proc main {} {
 	} -cleanup {
 		unset -nocomplain params
 	} -result ?lane=a%26c&q=estate%20rings&ipp=180&page=3&%2Bstyle=4
+	#>>>
+	bench percent_encoding-20.1 {Encode a query string, no substitutions} -batch auto -setup { #<<<
+		set query		lane=jewelry&q=estate&ipp=180&page=3&style=4
+		set q1			[string range $query 0 10]
+		set q2			[string range $query 11 end]
+	} -compare {
+		urlencode_reparse { urlencode::decode_query $q1$q2 }
+		urlencode_reuse   { urlencode::decode_query $query }
+		reuri_reparse     { reuri::query decode     $q1$q2 }
+		reuri_reuse       { reuri::query decode     $query }
+	} -cleanup {
+		unset -nocomplain query q1 q2
+	} -result {lane jewelry q estate ipp 180 page 3 style 4}
+	#>>>
+	bench percent_encoding-20.2 {Encode a query string, substitutions} -batch auto -setup { #<<<
+		set query	lane=a%26c&q=estate%20rings&ipp=180&page=3&%2Bstyle=4
+		set q1			[string range $query 0 10]
+		set q2			[string range $query 11 end]
+	} -compare {
+		urlencode_reparse { urlencode::decode_query $q1$q2 }
+		urlencode_reuse   { urlencode::decode_query $query }
+		reuri_reparse     { reuri::query decode     $q1$q2 }
+		reuri_reuse       { reuri::query decode     $query }
+	} -cleanup {
+		unset -nocomplain query q1 q2
+	} -result {lane a&c q {estate rings} ipp 180 page 3 +style 4}
 	#>>>
 }
 

@@ -64,5 +64,6 @@ int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist, unsigned
 
 // type_query internal API
 int query_add_index(Tcl_Interp* interp, Tcl_Obj* index, Tcl_Obj* name, const int pnum);
+int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, Tcl_Obj** index);
 
 #endif

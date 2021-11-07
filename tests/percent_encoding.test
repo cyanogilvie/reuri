@@ -103,6 +103,66 @@ test percent_encoding-32.2 {query encode, multiple args, substitutions} -body { 
 	reuri::query encode { foo} b=ar b?az "q&uux\u306f "
 } -result {?%20foo=b%3Dar&b%3Faz=q%26uux%E3%81%AF%20}
 #>>>
+test percent_encoding-40.1 {query decode, empty} -body { #<<<
+	reuri::query decode {}
+} -result {}
+#>>>
+test percent_encoding-40.2 {query decode, empty with ? prefix} -body { #<<<
+	reuri::query decode {?}
+} -result {}
+#>>>
+test percent_encoding-41.1 {query decode, single param, no value, no prefix} -body { #<<<
+	reuri::query decode {foo}
+} -result {foo {}}
+#>>>
+test percent_encoding-41.2 {query decode, single param, no value, ? prefix} -body { #<<<
+	reuri::query decode {?foo}
+} -result {foo {}}
+#>>>
+test percent_encoding-41.3 {query decode, single param, no value, no prefix, encoded} -body { #<<<
+	reuri::query decode {f%3Doo}
+} -result {f=oo {}}
+#>>>
+test percent_encoding-41.4 {query decode, single param, no value, ? prefix, encoded} -body { #<<<
+	reuri::query decode {?f%3Doo}
+} -result {f=oo {}}
+#>>>
+test percent_encoding-42.1 {query decode, single param, with value, no prefix} -body { #<<<
+	reuri::query decode {foo=bar}
+} -result {foo bar}
+#>>>
+test percent_encoding-42.2 {query decode, single param, with value, ? prefix} -body { #<<<
+	reuri::query decode {?foo=bar}
+} -result {foo bar}
+#>>>
+test percent_encoding-42.3 {query decode, single param, with value, no prefix, encoded} -body { #<<<
+	reuri::query decode {f%3Doo=ba%26r}
+} -result {f=oo ba&r}
+#>>>
+test percent_encoding-42.4 {query decode, multi param, with value, ? prefix, encoded} -body { #<<<
+	reuri::query decode {?f%3Doo=ba%26r}
+} -result {f=oo ba&r}
+#>>>
+test percent_encoding-43.1 {query decode, multi param, no value, no prefix} -body { #<<<
+	reuri::query decode {foo=bar&baz}
+} -result {foo bar baz {}}
+#>>>
+test percent_encoding-43.1 {query decode, multi param, with value, no prefix} -body { #<<<
+	reuri::query decode {foo=bar&baz=quux}
+} -result {foo bar baz quux}
+#>>>
+test percent_encoding-43.2 {query decode, multi param, with value, ? prefix} -body { #<<<
+	reuri::query decode {?foo=bar&baz=quux}
+} -result {foo bar baz quux}
+#>>>
+test percent_encoding-43.3 {query decode, multi param, with value, no prefix, encoded} -body { #<<<
+	reuri::query decode {f%3Doo=ba%26r&baz=q+uux}
+} -result {f=oo ba&r baz {q uux}}
+#>>>
+test percent_encoding-43.4 {query decode, multi param, with value, ? prefix, encoded} -body { #<<<
+	reuri::query decode {?f%3Doo=ba%26r&baz=q+uux}
+} -result {f=oo ba&r baz {q uux}}
+#>>>
 
 # cleanup
 ::tcltest::cleanupTests

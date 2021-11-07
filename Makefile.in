@@ -171,8 +171,8 @@ COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) \
 GDB		= gdb
 VALGRIND	= valgrind
 VALGRINDARGS	= --tool=memcheck --num-callers=8 --leak-resolution=high \
-		  --leak-check=yes --show-reachable=yes -v
-
+		  --leak-check=yes -v --suppressions=suppressions --keep-debuginfo=yes \
+		  --trace-children=yes
 RE2CARGS = --case-ranges -W -Wno-nondeterministic-tags -Wno-match-empty-string --conditions
 PGO=
 

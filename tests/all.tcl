@@ -60,5 +60,8 @@ foreach file [lsort [::tcltest::getMatchingFiles]] {
 # cleanup
 puts $chan "\nTests ended at [eval $timeCmd]"
 ::tcltest::cleanupTests 1
+
+puts stderr "Unloading $::reuri::libfile"
+unload $::reuri::libfile
 return
 

@@ -612,10 +612,10 @@ DLLEXPORT int Reuri_SafeInit(Tcl_Interp* interp) //<<<
 }
 
 //>>>
-DLLEXPORT int Reuri_UnLoad(Tcl_Interp* interp, int flags) //<<<
+DLLEXPORT int Reuri_Unload(Tcl_Interp* interp, int flags) //<<<
 {
-	int				code = TCL_OK;
-	Tcl_Namespace*	ns = Tcl_FindNamespace(interp, NS, NULL, TCL_GLOBAL_ONLY);
+	int					code = TCL_OK;
+	Tcl_Namespace*		ns = Tcl_FindNamespace(interp, NS, NULL, TCL_GLOBAL_ONLY);
 
 	if (ns) {
 		Tcl_DeleteNamespace(ns);
@@ -631,7 +631,7 @@ DLLEXPORT int Reuri_UnLoad(Tcl_Interp* interp, int flags) //<<<
 DLLEXPORT int Reuri_SafeUnload(Tcl_Interp* interp, int flags) //<<<
 {
 	// No unsafe features
-	return Reuri_UnLoad(interp, flags);
+	return Reuri_Unload(interp, flags);
 }
 
 //>>>

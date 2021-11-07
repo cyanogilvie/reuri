@@ -52,7 +52,6 @@ test reuri-2.1 {Get all parts as a dict} -setup { #<<<
 	path		/one/two \
 	query		three=3&four=4 \
 	fragment	endbit \
-	querylist	{} \
 ]
 #>>>
 

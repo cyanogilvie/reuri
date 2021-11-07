@@ -133,18 +133,8 @@ int Reuri_URIObjGetAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res) //<<<
 	struct uri*			uri = NULL;
 	Tcl_Obj*			d = NULL;
 	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
-	Tcl_Obj*			querylist = NULL;
-	struct param*		p = NULL;
 
 	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri));
-
-	replace_tclobj(&querylist, Tcl_NewListObj(0, NULL));
-	p = uri->first_param;
-	while (p) {
-		TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, querylist, p->name));
-		TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, querylist, p->value));
-		p = p->next;
-	}
 
 	replace_tclobj(&d, Tcl_NewDictObj());
 
@@ -157,16 +147,13 @@ int Reuri_URIObjGetAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res) //<<<
 	ADD_PART("host",      uri->host);
 	ADD_PART("port",      uri->port);
 	ADD_PART("path",      uri->path);
-	ADD_PART("pathlist",  uri->pathlist);
 	ADD_PART("query",     uri->query);
 	ADD_PART("fragment",  uri->fragment);
-	ADD_PART("querylist", querylist);
 
 	replace_tclobj(res, d);
 
 finally:
 	replace_tclobj(&d, NULL);
-	replace_tclobj(&querylist, NULL);
 	return code;
 }
 
@@ -238,6 +225,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 					case 3:	// Return all parts in a dict
 						TEST_OK_LABEL(finally, code, Reuri_URIObjGetAll(interp, objv[A_URI], &res));
 						Tcl_SetObjResult(interp, res);
+						replace_tclobj(&res, NULL);
 						goto finally;
 
 					case 4:							break;

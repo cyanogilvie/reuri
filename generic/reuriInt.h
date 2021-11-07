@@ -31,10 +31,8 @@ struct uri {
 	enum reuri_hosttype	hosttype;
 	Tcl_Obj*			port;
 	Tcl_Obj*			path;
-	Tcl_Obj*			pathlist;
 	Tcl_Obj*			query;
 	Tcl_Obj*			fragment;
-	struct param*		first_param;
 };
 
 struct parse_context {

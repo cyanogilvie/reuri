@@ -222,8 +222,8 @@ TODO: complete
     change its value.
   - enum reuri\_part *part*  
     One of **REURI\_SCHEME**, **REURI\_USERINFO**, **REURI\_HOST**,
-    **REURI\_PORT**, **REURI\_PATH**, **REURI\_PATHLIST**,
-    **REURI\_QUERY** or **REURI\_FRAGMENT**.
+    **REURI\_PORT**, **REURI\_PATH**, **REURI\_QUERY** or
+    **REURI\_FRAGMENT**.
   - Tcl\_Obj *\*defaultPtr*  
     A pointer to the default value to be returned if the requested
     element isn’t present on the URI. Can be NULL if no default value is

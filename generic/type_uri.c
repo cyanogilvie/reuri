@@ -20,7 +20,6 @@ Tcl_ObjType uri_objtype = {
 
 void free_uri(struct uri** uriPtrPtr) //<<<
 {
-	struct param*		p = NULL;
 	struct uri*			uri = *uriPtrPtr;
 
 	replace_tclobj(&uri->scheme,	NULL);
@@ -28,21 +27,8 @@ void free_uri(struct uri** uriPtrPtr) //<<<
 	replace_tclobj(&uri->host,		NULL);
 	replace_tclobj(&uri->port,		NULL);
 	replace_tclobj(&uri->path,		NULL);
-	replace_tclobj(&uri->pathlist,	NULL);
 	replace_tclobj(&uri->query,		NULL);
-
-	p = uri->first_param;
-	uri->first_param = NULL;
-	while (p) {
-		struct param* fp = p;
-
-		replace_tclobj(&p->name,  NULL);
-		replace_tclobj(&p->value, NULL);
-
-		p = fp->next;
-		ckfree(fp);
-		fp = NULL;
-	}
+	replace_tclobj(&uri->fragment,	NULL);
 
 	ckfree(uri);
 	*uriPtrPtr = NULL;
@@ -63,8 +49,6 @@ static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(src, &uri_objtype);
 	Tcl_ObjIntRep		newir;
 	struct uri*			uri = (struct uri*)ir->twoPtrValue.ptr1;
-	struct param*		p = NULL;
-	struct param**		last_next = NULL;
 	struct uri*			dup_uri = ckalloc(sizeof *dup_uri);
 
 	memset(dup_uri, 0, sizeof *dup_uri);
@@ -74,22 +58,7 @@ static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 	replace_tclobj(&dup_uri->host,		uri->host);
 	replace_tclobj(&dup_uri->port,		uri->port);
 	replace_tclobj(&dup_uri->path,		uri->path);
-	replace_tclobj(&dup_uri->pathlist,	uri->pathlist);
 	replace_tclobj(&dup_uri->query,		uri->query);
-
-	last_next = &dup_uri->first_param;
-	p = uri->first_param;
-	while (p) {
-		struct param*	dup_p = ckalloc(sizeof *dup_p);
-
-		memset(dup_p, 0, sizeof *dup_p);
-		replace_tclobj(&dup_p->name, p->name);
-		replace_tclobj(&dup_p->value, p->value);
-
-		p = p->next;
-		*last_next = dup_p;
-		last_next = &dup_p->next;
-	}
 
 	newir.twoPtrValue.ptr1 = dup_uri;
 	Tcl_StoreIntRep(dup, &uri_objtype, &newir);

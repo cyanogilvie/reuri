@@ -246,7 +246,7 @@ Tcl\_Obj *\*uriPtr*
 
 enum reuri\_part *part*
 :   One of **REURI_SCHEME**, **REURI_USERINFO**, **REURI_HOST**,
-    **REURI_PORT**, **REURI_PATH**, **REURI_PATHLIST**, **REURI_QUERY** or **REURI_FRAGMENT**.
+    **REURI_PORT**, **REURI_PATH**, **REURI_QUERY** or **REURI_FRAGMENT**.
 
 Tcl\_Obj *\*defaultPtr*
 :   A pointer to the default value to be returned if the requested element isn't

@@ -24,7 +24,21 @@
 	Tcl
 	Memcheck:Leak
 	...
+	fun:TclCreateLiteral
+	...
+}
+{
+	Tcl
+	Memcheck:Leak
+	...
 	fun:Tcl_CompileCmdLiteral
+	...
+}
+{
+	Tcl
+	Memcheck:Leak
+	...
+	fun:CompileCmdLiteral
 	...
 }
 {

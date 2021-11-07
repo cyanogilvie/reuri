@@ -353,6 +353,8 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 		"unset",
 		"names",
 		"reorder",
+		"encode",
+		"decode",
 		NULL
 	};
 	enum {
@@ -363,7 +365,9 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 		M_SET,
 		M_UNSET,
 		M_NAMES,
-		M_REORDER
+		M_REORDER,
+		M_ENCODE,
+		M_DECODE
 	};
 	int	methodidx;
 
@@ -426,6 +430,36 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			break;
 			//>>>
 		case M_REORDER: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_ENCODE: //<<<
+			{
+				Tcl_Obj* const*	ov = NULL;
+				int				oc;
+				Tcl_Obj*		res = NULL;
+
+				switch (objc) {
+					case 3:
+						TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, objv[2], &oc, (Tcl_Obj***)&ov));
+						break;
+					default:
+						ov = objv+2;
+						oc = objc-2;
+						break;
+				}
+
+				TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, oc, ov, &res));
+
+				Tcl_SetObjResult(interp, res);
+				replace_tclobj(&res, NULL);
+			}
+			break;
+			//>>>
+		case M_DECODE: //<<<
 			{
 				// TODO: implement
 				THROW_ERROR_LABEL(finally, code, "Not implemented yet");

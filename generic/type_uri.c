@@ -1,15 +1,20 @@
 #include "reuriInt.h"
 #include "tip445.h"
 
-static void free_internal_rep_uri(Tcl_Obj* obj);
-static void dup_internal_rep_uri(Tcl_Obj* src, Tcl_Obj* dup);
-static void update_string_rep_uri(Tcl_Obj* obj);
+/* Intrep:
+ *	twoPtrValue.ptr1:	struct uri*
+ *	twoPtrValue.ptr2:	Not used
+ */
+
+static void free_internal_rep(Tcl_Obj* obj);
+static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup);
+static void update_string_rep(Tcl_Obj* obj);
 
 Tcl_ObjType uri_objtype = {
 	"Reuri",
-	free_internal_rep_uri,
-	dup_internal_rep_uri,
-	update_string_rep_uri,
+	free_internal_rep,
+	dup_internal_rep,
+	update_string_rep,
 	NULL
 };
 
@@ -44,7 +49,7 @@ void free_uri(struct uri** uriPtrPtr) //<<<
 }
 
 //>>>
-static void free_internal_rep_uri(Tcl_Obj* obj) //<<<
+static void free_internal_rep(Tcl_Obj* obj) //<<<
 {
 	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &uri_objtype);
 	struct uri*			uri = (struct uri*)ir->twoPtrValue.ptr1;
@@ -53,7 +58,7 @@ static void free_internal_rep_uri(Tcl_Obj* obj) //<<<
 }
 
 ///>>>
-static void dup_internal_rep_uri(Tcl_Obj* src, Tcl_Obj* dup) //<<<
+static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 {
 	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(src, &uri_objtype);
 	Tcl_ObjIntRep		newir;
@@ -91,7 +96,7 @@ static void dup_internal_rep_uri(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 }
 
 //>>>
-static void update_string_rep_uri(Tcl_Obj* obj) //<<<
+static void update_string_rep(Tcl_Obj* obj) //<<<
 {
 	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &uri_objtype);
 	struct uri*			uri = (struct uri*)ir->twoPtrValue.ptr1;

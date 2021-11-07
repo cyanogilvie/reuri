@@ -76,7 +76,7 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-REURI_ADD_SOURCES([reuri.c lexers/parse.c type_uri.c reuriStubInit.c])
+REURI_ADD_SOURCES([reuri.c lexers/parse.c type_uri.c type_query.c type_path.c reuriStubInit.c])
 TEA_ADD_HEADERS([generic/reuri.h generic/reuriDecls.h])
 TEA_ADD_INCLUDES([-Igeneric ${dedup_INCLUDE_SPEC}])
 TEA_ADD_LIBS([])

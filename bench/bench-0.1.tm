@@ -408,6 +408,11 @@ proc run_benchmarks {dir args} { #<<<
 		lassign [apply $consume_args 1] next
 
 		switch -- $next {
+			-load {
+				lassign [apply $consume_args 1] load_script
+				namespace eval :: $load_script
+			}
+
 			-match {
 				lassign [apply $consume_args 1] match
 			}

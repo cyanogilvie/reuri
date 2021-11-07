@@ -23,7 +23,9 @@ reuri - URI Manipulation for Tcl
 **reuri::query** **set** *variable* *param* *value* ?*offset*?  
 **reuri::query** **unset** *variable* *param* ?*offset*?  
 **reuri::query** **names** *query*  
-**reuri::query** **reorder** *variable* *params*
+**reuri::query** **reorder** *variable* *params*  
+**reuri::query** **encode** *params*|?*param* *value* …?  
+**reuri::query** **decode** *query*
 
 **reuri::path** **split** *path*  
 **reuri::path** **join** *segments*  
@@ -126,6 +128,15 @@ SERIES VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
     after all those that were. If any duplicate param names exist on the
     URI, all their instances are placed in the position given in
     *names*, with the instances preserving their relative positions.
+  - **reuri::query** **encode** *params*|?*param* *value* …?  
+    Percent-encode the supplied *params* (as a list with pairs of param
+    and value), or in the *param* and *value* arguments and return a
+    properly formatted query string. If the supplied parameter set is
+    empty then the result is a blank string, otherwise it will have a
+    “?” character prefixed. Parameters with an empty corresponding
+    value are encoded without an “=”.
+  - **reuri::query** **decode** *query*  
+    Decode *query* into a list of params and their values.
   - **reuri::path** **split** *path*  
     Return a fully decoded list of path segments in *path*.
   - **reuri::path** **join** *segments*  
@@ -182,6 +193,9 @@ specified part isn’t valid, or some other assumption was violated:
     supplied URI value, and no default was provided.
   - **REURI** **BAD\_OFFSET** *param* *offset*  
     The specified *offset* wasn’t valid for *param* in the supplied URI.
+  - **REURI** **UNBALANCED\_PARAMS**  
+    The supplied set of parameters isn’t even. Each parameter name must
+    have a matching value.
 
 # C API
 

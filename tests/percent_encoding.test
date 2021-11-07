@@ -15,6 +15,16 @@ set here    [file dirname [file normalize [info script]]]
 source [file join $here ../ref/urlencode-1.0.tm]
 package provide urlencode 1.0
 
+# Hack urlencode to use uppercase % encoding to match reuri
+foreach v {
+	uri_charmap
+	uri_charmap_compat
+	uri_charmap_path
+	uri_charmap_path_compat
+} {
+	set ::urlencode::_uri::$v [lmap t [set ::urlencode::_uri::$v] {if {[string length $t] > 1} {string toupper $t} else {set t}}]
+}
+
 set refchars_query  [urlencode::rfc_urlencode -part query -charset utf-8 -- $testchars]
 set refchars_path   [urlencode::rfc_urlencode -part path  -charset utf-8 -- $testchars]
 
@@ -24,27 +34,27 @@ test percent_encoding-1.1 {Encode a query-string portion: completely unreserved}
 #>>>
 test percent_encoding-2.1 {Encode a query-string portion: one reserved, start} -body { #<<<
     reuri::uri encode query =foo
-} -result %3dfoo
+} -result %3Dfoo
 #>>>
 test percent_encoding-2.2 {Encode a query-string portion: one reserved, middle} -body { #<<<
     reuri::uri encode query f=oo
-} -result f%3doo
+} -result f%3Doo
 #>>>
 test percent_encoding-2.3 {Encode a query-string portion: one reserved, end} -body { #<<<
     reuri::uri encode query foo=
-} -result foo%3d
+} -result foo%3D
 #>>>
 test percent_encoding-3.1 {Encode a query-string portion: two reserved, start} -body { #<<<
     reuri::uri encode query =f=oo
-} -result %3df%3doo
+} -result %3Df%3Doo
 #>>>
 test percent_encoding-3.2 {Encode a query-string portion: two reserved, middle} -body { #<<<
     reuri::uri encode query f==oo
-} -result f%3d%3doo
+} -result f%3D%3Doo
 #>>>
 test percent_encoding-3.3 {Encode a query-string portion: two reserved, end} -body { #<<<
     reuri::uri encode query fo=o=
-} -result fo%3do%3d
+} -result fo%3Do%3D
 #>>>
 test percent_encoding-4.1 {Encode a query-string portion: \0, start} -body { #<<<
     reuri::uri encode query \x00foo
@@ -69,6 +79,29 @@ test percent_encoding-20.2 {Encode testchars, mode path} -body { #<<<
 test percent_encoding-20.3 {Encode testchars, mode host} -body { #<<<
     reuri::uri encode host $testchars
 } -result $refchars_path
+#>>>
+test percent_encoding-30.1 {query encode, no args} -body { #<<<
+	# Do nothing gracefully - this naturally arises from [reuri::query encode
+	# {*}$params], in which case the appropriate result is an empty string when
+	# $params is a 0 length list.
+	reuri::query encode
+} -result {}
+#>>>
+test percent_encoding-31.1 {query encode, single list arg, no substitutions} -body { #<<<
+	reuri::query encode "foo bar baz quux"
+} -result {?foo=bar&baz=quux}
+#>>>
+test percent_encoding-31.2 {query encode, single list arg, substitutions} -body { #<<<
+	reuri::query encode "{ foo} b=ar b?az {q&uux\u306f }"
+} -result {?%20foo=b%3Dar&b%3Faz=q%26uux%E3%81%AF%20}
+#>>>
+test percent_encoding-32.1 {query encode, multiple args, no substitutions} -body { #<<<
+	reuri::query encode foo bar baz quux
+} -result {?foo=bar&baz=quux}
+#>>>
+test percent_encoding-32.2 {query encode, multiple args, substitutions} -body { #<<<
+	reuri::query encode { foo} b=ar b?az "q&uux\u306f "
+} -result {?%20foo=b%3Dar&b%3Faz=q%26uux%E3%81%AF%20}
 #>>>
 
 # cleanup

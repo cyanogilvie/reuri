@@ -9,7 +9,10 @@
     alpha       = [a-zA-Z];
     digit       = [0-9];
     hexdigit    = [0-9a-fA-F];
+    pct_encoded = "%" hexdigit{2};
 	end			= "\x00";
+	cesu8null   = "\xc0" "\x80";
+
 */
 
 void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
@@ -35,7 +38,6 @@ void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
 	!use:common;
 
     unreserved  = alpha | digit | [-._~];
-    pct_encoded = "%" hexdigit{2};
     sub_delims  = [!$&'()*+,;=];
     pchar       = unreserved | pct_encoded | sub_delims | [:@];
 
@@ -151,17 +153,15 @@ Tcl_Obj* percent_encode_query(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_en
 
 	!use:common;
 
-	cesu8null         = "\xc0" "\x80";
+	mark        = [-_.!~*'()];
+	unreserved  = alpha | digit | mark;
+	reserved    = ([^] \ end) \ unreserved;
 
-	mark              = [-_.!~*'()];
-	unreserved_query  = alpha | digit | mark;
-	reserved_query    = ([^] \ end) \ unreserved_query;
-
-	<start> unreserved_query* / end {
+	<start> unreserved* / end {
 		res = objPtr;
 		goto finally;
 	}
-	<start> unreserved_query* / reserved_query {
+	<start> unreserved* / reserved {
 		if (yych == '/' && mode == REURI_ENCODE_QUERY)
 			goto yyc_start;
 
@@ -172,7 +172,7 @@ Tcl_Obj* percent_encode_query(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_en
 		c = yycmixed;
 		goto yyc_mixed;
 	}
-	<start> unreserved_query* / cesu8null {
+	<start> unreserved* / cesu8null {
 		if (s>str)
 			Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
 
@@ -180,24 +180,25 @@ Tcl_Obj* percent_encode_query(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_en
 		c = yycmixed;
 		goto yyc_mixed;
 	}
+
 	<mixed> cesu8null {
 		Tcl_DStringAppend(&val, "%00", 3);
 		u = s;
 		goto yyc_mixed;
 	}
-	<mixed> reserved_query {
+	<mixed> reserved {
 		if (yych == '/' && mode == REURI_ENCODE_QUERY) {
 			Tcl_DStringAppend(&val, "/", 1);
 		} else {
 			char buf[4];
 
-			sprintf(buf, "%%%02x", yych);
+			sprintf(buf, "%%%02X", yych);
 			Tcl_DStringAppend(&val, buf, 3);
 		}
 		u = s;
 		goto yyc_mixed;
 	}
-	<mixed> unreserved_query+ {
+	<mixed> unreserved+ {
 		Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
 		u = s;
 		goto yyc_mixed;
@@ -209,13 +210,6 @@ Tcl_Obj* percent_encode_query(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_en
 	}
 
 	<*> *	{
-		if (0 && yych == 0xc0 && *s == 0x80) {
-			// Have to handle this here - can't match the sequence \xc0 \x80 otherwise
-			Tcl_DStringAppend(&val, "%00", 3);
-			s++;
-			u = s;
-			goto yyc_mixed;
-		}
 		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-str), *s);
 	}
 	*/
@@ -223,6 +217,295 @@ Tcl_Obj* percent_encode_query(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_en
 finally:
 	Tcl_DStringFree(&val);
 	return res;
+}
+
+//>>>
+void percent_encode_ds(enum reuri_encode_mode mode, Tcl_DString* ds, const char* str) //<<<
+{
+	const unsigned char*	base = (const unsigned char*)str;
+	const unsigned char*	s = base;
+	const unsigned char*	u = NULL;
+	char					buf[4];
+	/*!stags:re2c:percent_encode_ds format = "const unsigned char *@@{tag}; "; */
+
+top:
+	/*!local:re2c:percent_encode_ds
+    re2c:api:style             = free-form;
+    re2c:define:YYCTYPE        = "unsigned char";
+    re2c:define:YYCURSOR       = s;
+	re2c:yyfill:enable         = 0;
+	re2c:flags:tags            = 1;
+
+	!use:common;
+
+	mark        = [-_.!~*'()];
+	unreserved  = alpha | digit | mark;
+	reserved    = ([^] \ end) \ unreserved;
+
+	end {
+		return;
+	}
+	@u unreserved+ {
+		Tcl_DStringAppend(ds, (const char*)u, (int)(s-u));
+		goto top;
+	}
+	cesu8null {
+		Tcl_DStringAppend(ds, "%00", 3);
+		goto top;
+	}
+	reserved {
+		if (yych == '/' && mode == REURI_ENCODE_QUERY) {
+			Tcl_DStringAppend(ds, "/", 1);
+		} else {
+			sprintf(buf, "%%%02X", yych);
+			Tcl_DStringAppend(ds, buf, 3);
+		}
+		goto top;
+	}
+	* {
+		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-base), *s);
+	}
+	*/
+}
+
+//>>>
+static int _add_name(Tcl_Interp* interp, struct interp_cx* l, Tcl_DString* ds, Tcl_Obj* res_params, Tcl_Obj* res_index, const int pnum) //<<<
+{
+	int				code = TCL_OK;
+	Tcl_Obj*		nameObj = NULL;
+
+	replace_tclobj(&nameObj, Dedup_NewStringObj(l->dedup_pool, Tcl_DStringValue(ds), Tcl_DStringLength(ds)));
+
+	// Append the name to params
+	TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, nameObj));
+
+	// Add this instance of name at pnum to the index
+	TEST_OK_LABEL(finally, code, query_add_index(interp, res_index, nameObj, pnum));
+
+finally:
+	Tcl_DStringSetLength(ds, 0);
+	replace_tclobj(&nameObj, NULL);
+
+	return code;
+}
+
+//>>>
+static int _add_value(Tcl_Interp* interp, struct interp_cx* l, Tcl_DString* ds, Tcl_Obj* res_params) //<<<
+{
+	int				code = TCL_OK;
+	Tcl_Obj*		valueObj = NULL;
+
+	replace_tclobj(&valueObj, Dedup_NewStringObj(l->dedup_pool, Tcl_DStringValue(ds), Tcl_DStringLength(ds)));
+
+	TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, valueObj));
+
+finally:
+	Tcl_DStringSetLength(ds, 0);
+	replace_tclobj(&valueObj, NULL);
+
+	return code;
+}
+
+//>>>
+int parse_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj** index) //<<<
+{
+	int						code = TCL_OK;
+	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
+	const unsigned char*	base = (const unsigned char*)str;
+	const unsigned char*	s = base;
+	int						pnum = 0;
+	int						c = yycname;
+	const unsigned char*	YYMARKER;
+	const unsigned char*	start = NULL;
+	Tcl_Obj*				res_params = NULL;
+	Tcl_Obj*				res_index = NULL;
+	Tcl_DString				acc;
+	/*!stags:re2c:percent_encode_ds format = "const unsigned char *@@{tag}; "; */
+
+	Tcl_DStringInit(&acc);
+
+	replace_tclobj(&res_params, Tcl_NewListObj(0, NULL));
+	replace_tclobj(&res_index,  Tcl_NewDictObj());
+
+	if (*s == '?') s++;				/* Accept optional leading ? */
+	if (s[0] == 0) goto finally;	/* Do nothing gracefully */
+
+top:
+	/*!local:re2c:parse_query
+    re2c:api:style             = free-form;
+    re2c:define:YYCTYPE        = "unsigned char";
+    re2c:define:YYCURSOR       = s;
+	re2c:yyfill:enable         = 0;
+	re2c:flags:tags            = 1;
+	re2c:define:YYGETCONDITION = "c";
+	re2c:define:YYSETCONDITION = "c = @@;";
+
+	!use:common;
+
+	mark        = [-_.!~*'()];
+	unreserved  = alpha | digit | mark | "/";
+	reserved    = ([^] \ end) \ unreserved;
+
+	<*> @start unreserved+ {
+		Tcl_DStringAppend(&acc, (const char*)start, (int)(s-start));
+		goto top;
+	}
+	<*> "+" {
+		Tcl_DStringAppend(&acc, " ", 1);
+		goto top;
+	}
+	<*> pct_encoded {
+		const unsigned char	buf[3] = {s[-2], s[-1], 0};
+		unsigned char		byte = strtol((const char*)buf, NULL, 16);
+
+		if (byte) {
+			Tcl_DStringAppend(&acc, (const char*)&byte, 1);
+		} else {
+			Tcl_DStringAppend(&acc, "\xc0\x80", 2);
+		}
+		goto top;
+	}
+	
+	<name> "=" {
+		TEST_OK_LABEL(finally, code, _add_name(interp, l, &acc, res_params, res_index, pnum++));
+		c = yycvalue;
+		goto yyc_value;
+	}
+	<name> end {
+		if (Tcl_DStringLength(&acc)) {
+			TEST_OK_LABEL(finally, code, _add_name(interp, l, &acc, res_params, res_index, pnum++));
+			TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, Dedup_NewStringObj(l->dedup_pool, "", 0)));
+		}
+		goto finally;
+	}
+
+	<value> "&" {
+		TEST_OK_LABEL(finally, code, _add_value(interp, l, &acc, res_params));
+		c = yycname;
+		goto yyc_name;
+	}
+	<value> end {
+		TEST_OK_LABEL(finally, code, _add_value(interp, l, &acc, res_params));
+		goto finally;
+	}
+
+	<*> * {
+		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-base), *s);
+	}
+	*/
+
+finally:
+	if (code == TCL_OK) {
+		replace_tclobj(params, res_params);
+		replace_tclobj(index,  res_index);
+	}
+
+	replace_tclobj(&res_params,	NULL);
+	replace_tclobj(&res_index,	NULL);
+	Tcl_DStringFree(&acc);
+	return code;
+}
+
+//>>>
+static int _add_path(Tcl_Interp* interp, struct interp_cx* l, Tcl_DString* ds, Tcl_Obj* res_pathlist) //<<<
+{
+	int				code = TCL_OK;
+	Tcl_Obj*		valueObj = NULL;
+
+	replace_tclobj(&valueObj, Dedup_NewStringObj(l->dedup_pool, Tcl_DStringValue(ds), Tcl_DStringLength(ds)));
+
+	TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_pathlist, valueObj));
+
+finally:
+	Tcl_DStringSetLength(ds, 0);
+	replace_tclobj(&valueObj, NULL);
+
+	return code;
+}
+
+//>>>
+int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist, unsigned long* absolute) //<<<
+{
+	int						code = TCL_OK;
+	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
+	const unsigned char*	base = (const unsigned char*)str;
+	const unsigned char*	s = base;
+	const unsigned char*	YYMARKER;
+	const unsigned char*	start = NULL;
+	Tcl_Obj*				res_pathlist = NULL;
+	long					res_absolute;
+	Tcl_DString				acc;
+	/*!stags:re2c:percent_encode_ds format = "const unsigned char *@@{tag}; "; */
+
+	Tcl_DStringInit(&acc);
+
+	replace_tclobj(&res_pathlist, Tcl_NewListObj(0, NULL));
+
+	res_absolute = s[0] == '/';
+	if (res_absolute) s++;
+	if (s[0] == 0) goto finally;	/* Do nothing gracefully */
+
+top:
+	/*!local:re2c:parse_path
+    re2c:api:style             = free-form;
+    re2c:define:YYCTYPE        = "unsigned char";
+    re2c:define:YYCURSOR       = s;
+	re2c:yyfill:enable         = 0;
+	re2c:flags:tags            = 1;
+
+	!use:common;
+
+	mark        = [-_.!~*'()];
+	unreserved  = alpha | digit | mark | [=&];
+	reserved    = ([^] \ end) \ unreserved;
+
+	@start unreserved+ {
+		Tcl_DStringAppend(&acc, (const char*)start, (int)(s-start));
+		goto top;
+	}
+	"+" {
+		// Not sure about this
+		Tcl_DStringAppend(&acc, " ", 1);
+		goto top;
+	}
+	pct_encoded {
+		const unsigned char	buf[3] = {s[-2], s[-1], 0};
+		unsigned char		byte = strtol((const char*)buf, NULL, 16);
+
+		if (byte) {
+			Tcl_DStringAppend(&acc, (const char*)&byte, 1);
+		} else {
+			Tcl_DStringAppend(&acc, "\xc0\x80", 2);
+		}
+		goto top;
+	}
+	
+	"/" {
+		TEST_OK_LABEL(finally, code, _add_path(interp, l, &acc, res_pathlist));
+		goto top;
+	}
+	end {
+		if (Tcl_DStringLength(&acc)) {
+			// TODO: Might have to unconditionally add even empty elements to preserve trailing /
+			TEST_OK_LABEL(finally, code, _add_path(interp, l, &acc, res_pathlist));
+		}
+		goto finally;
+	}
+
+	* {
+		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-base), *s);
+	}
+	*/
+
+finally:
+	if (code == TCL_OK) {
+		replace_tclobj(pathlist, res_pathlist);
+		*absolute = res_absolute;
+	}
+
+	replace_tclobj(&res_pathlist, NULL);
+	Tcl_DStringFree(&acc);
+	return code;
 }
 
 //>>>

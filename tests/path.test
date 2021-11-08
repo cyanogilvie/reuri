@@ -1,0 +1,22 @@
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+package require reuri
+
+set t	path_split
+test $t-1.0 {empty}			{ reuri::path split {}				} {}
+test $t-1.1 {abs}			{ reuri::path split /one/two		} {/ one two}
+test $t-1.2 {rel}			{ reuri::path split one/two			} {one two}
+test $t-1.3 {leading //}	{ reuri::path split //one/two		} {/ {} one two}	;# differs from [file split]
+test $t-1.4 {mid //}		{ reuri::path split /one//two		} {/ one {} two}	;# differs from [file split]
+test $t-1.5 {trailing /}	{ reuri::path split /one/two/		} {/ one two {}}	;# differs from [file split]
+test $t-1.6 {bare /}		{ reuri::path split /				} {/}
+
+
+# cleanup
+::tcltest::cleanupTests
+return
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

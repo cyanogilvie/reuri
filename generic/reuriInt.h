@@ -58,7 +58,7 @@ void parse_uri(struct parse_context* pc, const char* str, int len);
 Tcl_Obj* percent_encode_query(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_mode mode);
 void percent_encode_ds(enum reuri_encode_mode mode, Tcl_DString* ds, const char* str);
 int parse_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj** index);
-int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist, unsigned long* absolute);
+int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist);
 
 // type_query internal API
 int query_add_index(Tcl_Interp* interp, Tcl_Obj* index, Tcl_Obj* name, const int pnum);

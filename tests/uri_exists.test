@@ -1,0 +1,47 @@
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+package require reuri
+
+interp alias {} uri {} ::reuri::uri
+
+set t	uri_exists
+test $t-1.1 {scheme, true}		{ uri exists http://localhost					scheme		}	1
+
+test $t-2.1 {userinfo, true}	{ uri exists http://foo:bar@localhost			userinfo	}	1
+test $t-2.2 {userinfo, false}	{ uri exists http://localhost					userinfo	}	0
+
+test $t-3.1 {host, hostname}	{ uri exists http://localhost:81				host		}	1
+test $t-3.2 {host, false}		{ uri exists http://:81							host		}	0
+test $t-3.3 {host, false: ?}	{ uri exists http://?							host		}	0
+test $t-3.4 {host, IPv4}		{ uri exists http://127.0.0.1					host		}	1
+test $t-3.5 {host, IPv4+port}	{ uri exists http://127.0.0.1:81				host		}	1
+test $t-3.6 {host, IPv6}		{ uri exists {http://[::1]}						host		}	1
+test $t-3.7 {host, IPv6+port}	{ uri exists {http://[::1]:81}					host		}	1
+test $t-3.8 {host, unix}		{ uri exists {http://[/tmp/mysock.80]}			host		}	1
+test $t-3.9 {host, unix+port}	{ uri exists {http://[/tmp/mysock.80]:81}		host		}	1
+
+test $t-4.1 {port, true}		{ uri exists http://localhost:81				port		}	1
+test $t-4.2 {port, false}		{ uri exists http://localhost					port		}	0
+
+test $t-5.1 {path, true}		{ uri exists http://localhost/one/two			path		}	1
+test $t-5.2 {path, no path}		{ uri exists http://localhost?three=3			path		}	0
+
+test $t-6.1 {query, path}		{ uri exists http://localhost/one?two=3&four=4	query		}	1
+test $t-6.2 {query, no path}	{ uri exists http://localhost?three=3&four=4	query		}	1
+test $t-6.3 {query, just port}	{ uri exists http://localhost:81?three=3&four=4	query		}	1
+test $t-6.4 {query, false}		{ uri exists http://localhost/one/two#endbit	query		}	0
+test $t-6.5 {query, just ?}		{ uri exists http://localhost/one/two?			query		}	1
+test $t-6.6 {query, just ?}		{ uri exists http://localhost/one/two?#endbit	query		}	1
+
+test $t-7.1 {fragment, true}	{ uri exists http://localhost#endbit			fragment	}	1
+test $t-7.2 {fragment, false}	{ uri exists http://localhost					fragment	}	0
+test $t-7.3 {fragment, empty}	{ uri exists http://localhost#					fragment	}	1
+
+# cleanup
+::tcltest::cleanupTests
+return
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

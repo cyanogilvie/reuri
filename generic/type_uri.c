@@ -123,6 +123,7 @@ int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri) //
 		memset(newuri, 0, sizeof *newuri);
 
 		parse_uri(&pc, uristr, uristr_len);
+		code = pc.rc;
 		if (pc.rc != TCL_OK) goto finally;
 
 		memset(&newir, 0, sizeof newir);

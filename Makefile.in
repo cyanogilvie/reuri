@@ -334,7 +334,7 @@ $(PKG_STUB_LIB_FILE): $(PKG_STUB_OBJECTS)
 
 VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macosx:$(srcdir)/lexers
 
-$(filter lexers/%,$(PKG_SOURCES)): lexers/%.c: generic/%.re tools
+$(filter lexers/%,$(PKG_SOURCES)): lexers/%.c: generic/%.re generic/parse.h tools/bin/re2c
 	mkdir -p lexers
 	@echo "Building lexer $@ from $<"
 	tools/bin/re2c $(RE2CARGS) $< -o $@

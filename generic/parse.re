@@ -2,25 +2,15 @@
 
 #include "reuriInt.h"
 
-/*!types:re2c*/
-
-/*!rules:re2c:common
-
-    alpha       = [a-zA-Z];
-    digit       = [0-9];
-    hexdigit    = [0-9a-fA-F];
-    pct_encoded = "%" hexdigit{2};
-	end			= "\x00";
-	cesu8null   = "\xc0" "\x80";
-
-*/
+/*!include:re2c "parse.h"*/
 
 void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
 {
 	struct interp_cx*	l = Tcl_GetAssocData(pc->interp, "reuri", NULL);
     const char
         *s1, *u1, *h1, *h3, *h5, *r1, *p1, *p3, *q1, *f1,
-        *s2, *u2, *h2, *h4, *h6, *r2, *p2, *p4, *q2, *f2;
+        *s2, *u2, *h2, *h4, *h6, *h7, *h8, *r2, *p2, *p4,
+		*q2, *f2;
 	const char*			s = str;
 	const char*			YYMARKER;
 	Tcl_DString			val;
@@ -65,10 +55,12 @@ void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
     ipvfuture   = "v" hexdigit+ "." (unreserved | sub_delims | ":" )+;
     ip_literal  = "[" ( ipv6address | ipvfuture ) "]";
     reg_name    = (unreserved | pct_encoded | sub_delims)*;
+	unix_socket = ("[" | "[v0.local:") "/" pchar+ ("/" pchar+)* "]";
     host
         = @h1 ip_literal  @h2
         | @h3 ipv4address @h4
-        | @h5 reg_name    @h6;
+        | @h5 reg_name    @h6
+		| @h7 unix_socket @h8;
     port      = @r1 digit* @r2;
     authority = (userinfo "@")? host (":" port)?;
     path_abempty  = ("/" pchar*)*;
@@ -83,7 +75,13 @@ void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
     uri = scheme ":" hier_part ("?" query)? ("#" fragment)?;
 
     *   {
-		pc->fail_ofs = (int)(s-str);
+		Tcl_Obj*	ofsObj = NULL;
+
+		pc->fail_ofs = (int)(s-1-str);
+		replace_tclobj(&ofsObj, Tcl_NewIntObj(pc->fail_ofs));
+		Tcl_SetErrorCode(pc->interp, "REURI", "PARSE", str, Tcl_GetString(ofsObj), NULL);
+		replace_tclobj(&ofsObj, NULL);
+		Tcl_SetObjResult(pc->interp, Tcl_ObjPrintf("URI parse error at offset %d", pc->fail_ofs));
 		pc->rc = TCL_ERROR;
 		goto finally;
 	}
@@ -100,15 +98,19 @@ void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
 			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h3, (int)(h4 - h3)));
 			pc->uri->hosttype = REURI_HOST_IPV4;
 		}
-		if (h5) {
+		if (h5 && h6 > h5) {
 			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h5, (int)(h6 - h5)));
 			pc->uri->hosttype = REURI_HOST_HOSTNAME;
+		}
+		if (h7) {
+			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h7, (int)(h8 - h7)));
+			pc->uri->hosttype = REURI_HOST_UNIX;
 		}
 		// TODO: Add unix domain sockets extension
 
 		if (r1) replace_tclobj(&pc->uri->port,     Dedup_NewStringObj(l->dedup_pool, r1, (int)(r2 - r1)));
-		if (p1) replace_tclobj(&pc->uri->path,     Dedup_NewStringObj(l->dedup_pool, p1, (int)(p2 - p1)));
-		if (p3) replace_tclobj(&pc->uri->path,     Dedup_NewStringObj(l->dedup_pool, p3, (int)(p4 - p3)));
+		if (p1 && p2>p1) replace_tclobj(&pc->uri->path,     Dedup_NewStringObj(l->dedup_pool, p1, (int)(p2 - p1)));
+		if (p3 && p4>p3) replace_tclobj(&pc->uri->path,     Dedup_NewStringObj(l->dedup_pool, p3, (int)(p4 - p3)));
 		if (q1) replace_tclobj(&pc->uri->query,    Dedup_NewStringObj(l->dedup_pool, q1, (int)(q2 - q1)));
 		if (f1) replace_tclobj(&pc->uri->fragment, Dedup_NewStringObj(l->dedup_pool, f1, (int)(f2 - f1)));
 		if ((int)(s-str) < len) {
@@ -424,7 +426,7 @@ finally:
 }
 
 //>>>
-int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist, unsigned long* absolute) //<<<
+int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist) //<<<
 {
 	int						code = TCL_OK;
 	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
@@ -433,7 +435,6 @@ int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist, unsigned
 	const unsigned char*	YYMARKER;
 	const unsigned char*	start = NULL;
 	Tcl_Obj*				res_pathlist = NULL;
-	long					res_absolute;
 	Tcl_DString				acc;
 	/*!stags:re2c:percent_encode_ds format = "const unsigned char *@@{tag}; "; */
 
@@ -441,8 +442,6 @@ int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist, unsigned
 
 	replace_tclobj(&res_pathlist, Tcl_NewListObj(0, NULL));
 
-	res_absolute = s[0] == '/';
-	if (res_absolute) s++;
 	if (s[0] == 0) goto finally;	/* Do nothing gracefully */
 
 top:
@@ -481,12 +480,12 @@ top:
 	}
 	
 	"/" {
+		if (s == base+1) Tcl_DStringAppend(&acc, "/", 1);
 		TEST_OK_LABEL(finally, code, _add_path(interp, l, &acc, res_pathlist));
 		goto top;
 	}
 	end {
-		if (Tcl_DStringLength(&acc)) {
-			// TODO: Might have to unconditionally add even empty elements to preserve trailing /
+		if (s > base+2) {
 			TEST_OK_LABEL(finally, code, _add_path(interp, l, &acc, res_pathlist));
 		}
 		goto finally;
@@ -500,7 +499,6 @@ top:
 finally:
 	if (code == TCL_OK) {
 		replace_tclobj(pathlist, res_pathlist);
-		*absolute = res_absolute;
 	}
 
 	replace_tclobj(&res_pathlist, NULL);

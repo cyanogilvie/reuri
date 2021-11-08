@@ -41,6 +41,15 @@
 		return TCL_ERROR;												\
 	}
 
+#define CHECK_ARGS_LABEL(label, rc, msg) \
+	do { \
+		if (objc != A_objc) { \
+			Tcl_WrongNumArgs(interp, A_cmd+1, objv, "method ?arg ...?"); \
+			rc = TCL_ERROR; \
+			goto label; \
+		} \
+	} while(0);
+
 
 // A rather frivolous macro that just enhances readability for a common case
 #define TEST_OK( cmd )		\

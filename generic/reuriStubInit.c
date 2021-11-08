@@ -11,6 +11,9 @@ const ReuriStubs reuriStubs = {
     Reuri_NewQueryObj, /* 3 */
     Reuri_CompileQuery, /* 4 */
     Reuri_CompilePath, /* 5 */
+    Reuri_URIObjPartExists, /* 6 */
+    0, /* 7 */
+    Reuri_GetPathFromObj, /* 8 */
 };
 
 /* !END!: Do not edit above this line. */

@@ -27,7 +27,15 @@ EXTERN int		Reuri_CompileQuery(Tcl_Interp*interp, Tcl_DString*ds,
 				Tcl_Obj*params);
 /* 5 */
 EXTERN int		Reuri_CompilePath(Tcl_Interp*interp, Tcl_DString*ds,
-				Tcl_Obj*pathListPtr, unsigned long absolute);
+				Tcl_Obj*pathListPtr);
+/* 6 */
+EXTERN int		Reuri_URIObjPartExists(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, enum reuri_part part,
+				int*existsPtr);
+/* Slot 7 is reserved */
+/* 8 */
+EXTERN int		Reuri_GetPathFromObj(Tcl_Interp*interp,
+				Tcl_Obj*pathPtr, Tcl_Obj**pathlistPtrPtr);
 
 typedef struct ReuriStubs {
     int magic;
@@ -38,7 +46,10 @@ typedef struct ReuriStubs {
     Tcl_Obj* (*reuri_PercentEncodeObj) (Tcl_Interp*interp, enum reuri_encode_mode mode, Tcl_Obj*objPtr); /* 2 */
     int (*reuri_NewQueryObj) (Tcl_Interp*interp, int objc, Tcl_Obj* const objv[], Tcl_Obj**res); /* 3 */
     int (*reuri_CompileQuery) (Tcl_Interp*interp, Tcl_DString*ds, Tcl_Obj*params); /* 4 */
-    int (*reuri_CompilePath) (Tcl_Interp*interp, Tcl_DString*ds, Tcl_Obj*pathListPtr, unsigned long absolute); /* 5 */
+    int (*reuri_CompilePath) (Tcl_Interp*interp, Tcl_DString*ds, Tcl_Obj*pathListPtr); /* 5 */
+    int (*reuri_URIObjPartExists) (Tcl_Interp*interp, Tcl_Obj*uriPtr, enum reuri_part part, int*existsPtr); /* 6 */
+    void (*reserved7)(void);
+    int (*reuri_GetPathFromObj) (Tcl_Interp*interp, Tcl_Obj*pathPtr, Tcl_Obj**pathlistPtrPtr); /* 8 */
 } ReuriStubs;
 
 extern const ReuriStubs *reuriStubsPtr;
@@ -65,6 +76,11 @@ extern const ReuriStubs *reuriStubsPtr;
 	(reuriStubsPtr->reuri_CompileQuery) /* 4 */
 #define Reuri_CompilePath \
 	(reuriStubsPtr->reuri_CompilePath) /* 5 */
+#define Reuri_URIObjPartExists \
+	(reuriStubsPtr->reuri_URIObjPartExists) /* 6 */
+/* Slot 7 is reserved */
+#define Reuri_GetPathFromObj \
+	(reuriStubsPtr->reuri_GetPathFromObj) /* 8 */
 
 #endif /* defined(USE_REURI_STUBS) */
 

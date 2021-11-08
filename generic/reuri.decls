@@ -17,7 +17,13 @@ declare 4 generic {
 	int Reuri_CompileQuery(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* params)
 }
 declare 5 generic {
-	int Reuri_CompilePath(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* pathListPtr, unsigned long absolute)
+	int Reuri_CompilePath(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* pathListPtr)
+}
+declare 6 generic {
+	int Reuri_URIObjPartExists(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, int* existsPtr)
+}
+declare 8 generic {
+	int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlistPtrPtr)
 }
 
 # vim: ft=tcl foldmethod=marker foldmarker=<<<,>>>

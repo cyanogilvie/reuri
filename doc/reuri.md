@@ -12,30 +12,37 @@ reuri - URI Manipulation for Tcl
 
 **package require reuri** ?0.1?
 
-**reuri::uri** **get** *uri* ?*part* ?*default*??  
-**reuri::uri** **exists** *uri* *part*  
-**reuri::uri** **set** *variable* *part* *value*  
-**reuri::uri** **valid** *uri*  
-**reuri::uri** **context** *uri* *script*  
-**reuri::uri** **resolve** *uri*  
-**reuri::uri** **absolute** *uri*  
-**reuri::uri** **encode** **query**|**path**|**host** *value*  
-**reuri::uri** **decode** *value*  
+**reuri::uri** **get** *uri* ?*part* ?*default*??\
+**reuri::uri** **exists** *uri* *part*\
+?? **reuri::uri** **set** *variable* *part* *value*\
+?? **reuri::uri** **valid** *uri*\
+?? **reuri::uri** **context** *uri* *script*\
+?? **reuri::uri** **resolve** *uri*\
+?? **reuri::uri** **absolute** *uri*\
+**reuri::uri** **encode** **query**|**path**|**host** *value*\
+?? **reuri::uri** **decode** *value*
 
-**reuri::query** **get** *query* ?*param* ?*default*??  
-**reuri::query** **values** *query* *param*  
-**reuri::query** **add** *variable* *param* *value*  
-**reuri::query** **exists** *query* *param*  
-**reuri::query** **set** *variable* *param* *value* ?*offset*?  
-**reuri::query** **unset** *variable* *param* ?*offset*?  
-**reuri::query** **names** *query*  
-**reuri::query** **reorder** *variable* *params*  
-**reuri::query** **encode** *params*|?*param* *value* ...?  
-**reuri::query** **decode** *query*  
+?? **reuri::query** **get** *query* ?*param* ?*default*??\
+?? **reuri::query** **values** *query* *param*\
+?? **reuri::query** **add** *variable* *param* *value*\
+?? **reuri::query** **exists** *query* *param*\
+?? **reuri::query** **set** *variable* *param* *value* ?*offset*?\
+?? **reuri::query** **unset** *variable* *param* ?*offset*?\
+?? **reuri::query** **names** *query*\
+?? **reuri::query** **reorder** *variable* *params*\
+**reuri::query** **encode** *params*|?*param* *value* ...?\
+**reuri::query** **decode** *query*
 
-**reuri::path** **split** *path*  
-**reuri::path** **join** *segments*  
-**reuri::path** **resolve** *path*  
+?? **reuri::path** **split** *path*\
+?? **reuri::path** **join** *segments*\
+?? **reuri::path** **get** *path* *index*\
+?? **reuri::path** **set** *variable* *index* *value*\
+?? **reuri::path** **unset** *variable* *index*\
+?? **reuri::path** **resolve** *path*
+
+### Note
+Commands marked up as "?? **reuri::foo**" are not yet implemented, or only
+partially implemented.
 
 
 # DESCRIPTION
@@ -55,7 +62,7 @@ have to be manipulated in the time budget of serving a hit on a website.
 While this package is in the 0 major version series this API is not stable and
 will change in backwards-incompatible ways.  Starting with a 1 series release
 the API will preserve backwards compatibility within a major version number
-sequence.  <span style="color:red;">**USING THE 0 SERIES VERSIONS IN PRODUCTION
+sequence.  <span color="red">**USING THE 0 SERIES VERSIONS IN PRODUCTION
 CODE IS NOT RECOMMENDED.**</span>
 
 
@@ -67,7 +74,7 @@ CODE IS NOT RECOMMENDED.**</span>
     defined in *uri* (but is a valid part name) and a *default* is given, that will be
     returned instead.  If *part* isn't specified, return a dictionary containing all
     parts.  See **PARTS** below for valid parts, and **EXCEPTIONS** for the
-    exceptions that might be thrown.  
+    exceptions that might be thrown.
 
 **reuri::uri** **exists** *uri* *part*
 :	Return true if *uri* contains *part*, false otherwise.
@@ -157,6 +164,12 @@ CODE IS NOT RECOMMENDED.**</span>
 
 **reuri::path** **split** *path*
 :   Return a fully decoded list of path segments in *path*.
+
+**reuri::path** **set** *variable* *index* *value*
+:   
+
+**reuri::path** **unset** *variable* *index*
+:   
 
 **reuri::path** **join** *segments*
 :   Produce a properly encoded URI path part given the list of *segments*.
@@ -405,6 +418,29 @@ Please report any bugs to the github issue tracker: https://github.com/cyanogilv
 
 The uri module of tcllib.
 
+
+# TODO
+- [ ] Implement http://[/tmp/mysock.80]/foo style unix domain sockets support
+- [ ] Implement **reuri::uri set**
+- [ ] Implement **reuri::uri valid**
+- [ ] Implement **reuri::uri context**
+- [ ] Implement **reuri::uri resolve**
+- [ ] Implement **reuri::uri absolute**
+- [ ] Implement **reuri::uri decode**
+- [ ] Implement **reuri::query get**
+- [ ] Implement **reuri::query values**
+- [ ] Implement **reuri::query add**
+- [ ] Implement **reuri::query exists**
+- [ ] Implement **reuri::query set**
+- [ ] Implement **reuri::query unset**
+- [ ] Implement **reuri::query names**
+- [ ] Implement **reuri::query reorder**
+- [x] Implement **reuri::path split**
+- [ ] Implement **reuri::path get**
+- [ ] Implement **reuri::path set**
+- [ ] Implement **reuri::path unset**
+- [ ] Implement **reuri::path join**
+- [ ] Implement **reuri::path resolve**
 
 # LICENSE
 

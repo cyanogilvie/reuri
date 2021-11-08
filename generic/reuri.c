@@ -127,6 +127,34 @@ finally:
 }
 
 //>>>
+int Reuri_URIObjPartExists(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, int* existsPtr) //<<<
+{
+	int			code = TCL_OK;
+	struct uri*	uri = NULL;
+	Tcl_Obj*	res = NULL;
+
+	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri));
+
+	switch (part) {
+		case REURI_SCHEME:		res = uri->scheme;		break;
+		case REURI_USERINFO:	res = uri->userinfo;	break;
+		case REURI_HOST:		res = uri->host;		break;
+		case REURI_PORT:		res = uri->port;		break;
+		case REURI_PATH:		res = uri->path;		break;
+		case REURI_QUERY:		res = uri->query;		break;
+		case REURI_FRAGMENT:	res = uri->fragment;	break;
+		default: THROW_ERROR_LABEL(finally, code, "Invalid part");
+	}
+
+	*existsPtr = res != NULL;
+
+	res = NULL;
+
+finally:
+	return code;
+}
+
+//>>>
 int Reuri_URIObjGetAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res) //<<<
 {
 	int					code = TCL_OK;
@@ -245,8 +273,24 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			//>>>
 		case M_EXISTS: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				enum {
+					A_METHOD=1,
+					A_URI,
+					A_PART,
+					A_objc
+				};
+				int				res;
+				enum reuri_part	part;
+
+				if (objc != A_objc) {
+					Tcl_WrongNumArgs(interp, 2, objv, "uri part");
+					code = TCL_ERROR;
+					goto finally;
+				}
+
+				TEST_OK_LABEL(finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
+				TEST_OK_LABEL(finally, code, Reuri_URIObjPartExists(interp, objv[A_URI], part, &res));
+				Tcl_SetObjResult(interp, Tcl_NewIntObj(res));
 			}
 			break;
 			//>>>
@@ -481,12 +525,18 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 	int			code = TCL_OK;
 	static const char*	methods[] = {
 		"split",
-		"join",
+		"get",
+		"set",
+		"unset",
+		 "join",
 		"resolve",
 		NULL
 	};
 	enum {
 		M_SPLIT,
+		M_GET,
+		M_SET,
+		M_UNSET,
 		M_JOIN,
 		M_RESOLVE
 	};
@@ -502,6 +552,37 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 
 	switch (methodidx) {
 		case M_SPLIT: //<<<
+			{
+				enum {
+					A_cmd=1,
+					A_PATH,
+					A_objc
+				};
+				Tcl_Obj*	res = NULL;
+
+				CHECK_ARGS_LABEL(finally, code, "path");
+
+				TEST_OK_LABEL(finally, code, Reuri_GetPathFromObj(interp, objv[A_PATH], &res));
+				Tcl_SetObjResult(interp, res);
+				replace_tclobj(&res, NULL);
+			}
+			break;
+			//>>>
+		case M_GET: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_SET: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_UNSET: //<<<
 			{
 				// TODO: implement
 				THROW_ERROR_LABEL(finally, code, "Not implemented yet");

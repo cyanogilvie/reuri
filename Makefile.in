@@ -522,8 +522,8 @@ tags:
 
 pgo:
 	rm -rf prof
-	make -C . PGO="-fprofile-generate=prof" clean all benchmark
-	make -C . PGO="-fprofile-use=prof -fprofile-partial-training" clean all
+	make -C . PGO="-fprofile-generate=prof" clean binaries libraries benchmark
+	make -C . PGO="-fprofile-use=prof -fprofile-partial-training" clean binaries libraries
 
 .PHONY: all binaries clean depend distclean doc install libraries test
 .PHONY: gdb gdb-test valgrind valgrindshell genstubs lexers tools tags

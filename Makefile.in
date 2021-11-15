@@ -176,6 +176,8 @@ VALGRINDARGS	= --tool=memcheck --num-callers=8 --leak-resolution=high \
 		  --trace-children=yes
 PACKCCARGS	= --lines
 RE2CARGS = --case-ranges -W -Wno-nondeterministic-tags -Wno-match-empty-string --conditions
+PGOGEN_BUILD = -fprofile-generate=prof
+PGO_BUILD = @PGO_BUILD@
 PGO=
 
 CFLAGS		= @CFLAGS@ $(PGO)
@@ -522,8 +524,8 @@ tags:
 
 pgo:
 	rm -rf prof
-	make -C . PGO="-fprofile-generate=prof" clean binaries libraries benchmark
-	make -C . PGO="-fprofile-use=prof -fprofile-partial-training" clean binaries libraries
+	make -C . PGO="$(PGOGEN_BUILD)" clean binaries libraries benchmark
+	make -C . PGO="$(PGO_BUILD)" clean binaries libraries
 
 .PHONY: all binaries clean depend distclean doc install libraries test
 .PHONY: gdb gdb-test valgrind valgrindshell genstubs lexers tools tags

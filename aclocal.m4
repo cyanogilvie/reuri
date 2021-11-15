@@ -10,6 +10,7 @@ builtin(include,tclconfig/tcl.m4)
 
 builtin(include,ax_gcc_builtin.m4)
 builtin(include,ax_cc_for_build.m4)
+builtin(include,ax_check_compile_flag.m4)
 
 # We need a modified version of TEA_ADD_SOURCES because some of those files will be
 # generated *after* the macro runs, so it can't test for existence:

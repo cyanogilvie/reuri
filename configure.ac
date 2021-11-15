@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([reuri], [0.2])
+AC_INIT([reuri], [0.2.1])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -160,6 +160,12 @@ DEDUP_STUBS
 # can produce binaries that run on the build host rather than the
 # target / host when cross-compiling
 AX_CC_FOR_BUILD
+
+# Test for -fprofile-partial-training, introduced in GCC 10
+AX_CHECK_COMPILE_FLAG([-fprofile-partial-training],
+					  [AC_SUBST(PGO_BUILD,"-fprofile-use=prof -fprofile-partial-traning")],
+					  [AC_SUBST(PGO_BUILD,"-fprofile-use=prof")],
+					  [-Werror])
 
 #--------------------------------------------------------------------
 # Set the default compiler switches based on the --enable-symbols option.

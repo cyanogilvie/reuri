@@ -1,7 +1,9 @@
 [submodule "tools/re2c"]
 	path = tools/re2c
 	url = https://github.com/skvadrik/re2c
+	shallow = true
 [submodule "tools/packcc"]
 	path = tools/packcc
 	url = https://github.com/arithy/packcc
 	branch = "feature/#55-lines"
+	shallow = true

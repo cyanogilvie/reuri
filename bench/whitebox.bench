@@ -1,0 +1,35 @@
+if {"bench" ni [info commands bench]} {
+	package require bench
+	namespace import bench::*
+}
+
+package require reuri
+
+proc main {} {
+	bench parse_index-1.0 {Parse an index: simple} -batch auto -setup { #<<<
+		set idx	end-1
+	} -compare {
+		packcc { reuri::_test parse_index_packcc $idx }
+		re2c   { reuri::_test parse_index_re2c $idx   }
+	} -cleanup {
+		unset -nocomplain idx
+	} -result {}
+	#>>>
+	bench parse_index-1.1 {Parse an index: complex} -batch auto -setup { #<<<
+		set idx	end-3..end-1,-1..2,5,end+1
+	} -compare {
+		packcc { reuri::_test parse_index_packcc $idx }
+		re2c   { reuri::_test parse_index_re2c $idx   }
+	} -cleanup {
+		unset -nocomplain idx
+	} -result {}
+	#>>>
+}
+
+if {[llength [info commands ::reuri::_test]] > 0} {
+	main
+} else {
+	puts stderr "Skipping whitebox benchmarks because build is not -DDEBUG=1"
+}
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

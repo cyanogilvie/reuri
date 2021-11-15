@@ -27,6 +27,9 @@ AC_INIT([reuri], [0.1])
 # as well as PKG_LIB_FILE and PKG_STUB_LIB_FILE.
 #--------------------------------------------------------------------
 
+#AC_PROG_AWK
+CHECK_TESTMODE
+
 touch generic/reuri.h
 
 TEA_INIT()
@@ -76,7 +79,7 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-REURI_ADD_SOURCES([reuri.c lexers/parse.c type_uri.c type_query.c type_path.c reuriStubInit.c])
+REURI_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c parsers/packcc_index.c type_uri.c type_query.c type_path.c type_index.c testmode.c reuriStubInit.c])
 TEA_ADD_HEADERS([generic/reuri.h generic/reuriDecls.h])
 TEA_ADD_INCLUDES([-Igeneric ${dedup_INCLUDE_SPEC}])
 TEA_ADD_LIBS([])
@@ -96,7 +99,7 @@ TEA_ADD_TCL_SOURCES([])
 # TEA_ADD_* any platform specific compiler/build info here.
 #--------------------------------------------------------------------
 
-CLEANFILES="$CLEANFILES lexers/*"
+CLEANFILES="$CLEANFILES parsers/*.c parsers/*.h lexers/*"
 #CLEANFILES="$CLEANFILES lexers/* tools/bin/*"
 if test "${TEA_PLATFORM}" = "windows" ; then
     # Ensure no empty if clauses
@@ -151,6 +154,12 @@ TEA_CONFIG_CFLAGS
 # Check for required polyfill
 TIP445
 DEDUP_STUBS
+
+# Build tools needed on the build host to produce some of the source
+# files.  This macro attempts to set CC_FOR_BUILD to a compiler that
+# can produce binaries that run on the build host rather than the
+# target / host when cross-compiling
+AX_CC_FOR_BUILD
 
 #--------------------------------------------------------------------
 # Set the default compiler switches based on the --enable-symbols option.

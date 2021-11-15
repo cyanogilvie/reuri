@@ -1,5 +1,7 @@
-#!/usr/bin/env cfkit8.6
+#!/usr/bin/env tclsh
 # vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4
+
+set ::env(REURI_TESTMODE)	1
 
 set big	[string repeat a [expr {int(1e8)}]]	;# Allocate 100MB to pre-expand the zippy pool
 unset big
@@ -7,38 +9,14 @@ unset big
 set here	[file dirname [file normalize [info script]]]
 tcl::tm::path add $here
 
-package require platform
 package require bench
 
-proc with_chan {var create use} {
-	upvar 1 $var h
-	set h	[uplevel 1 [list if 1 $create]]
-	try {
-		uplevel 1 [list if 1 $use]
-	} on return {r o} - on break {r o} - on continue {r o} {
-		dict incr o -level 1
-		return -options $o $r
-	} finally {
-		if {[info exists h] && $h in [chan names]} {
-			catch {close $h}
-		}
-	}
-}
-
-proc readtext fn { with_chan h {open $fn r} {read $h} }
-
-
-proc benchmark_mode script {
-	uplevel 1 $script
-}
 
 proc main {} {
 	try {
 		set here	[file dirname [file normalize [info script]]]
-		benchmark_mode {
-			puts "[string repeat - 80]\nStarting benchmarks\n"
-			bench::run_benchmarks $here {*}$::argv
-		}
+		puts "[string repeat - 80]\nStarting benchmarks\n"
+		bench::run_benchmarks $here {*}$::argv
 	} on ok {} {
 		exit 0
 	} trap {BENCH BAD_RESULT} {errmsg options} {

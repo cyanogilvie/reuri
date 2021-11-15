@@ -522,13 +522,14 @@ finally:
 //>>>
 static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
-	int			code = TCL_OK;
+	int					code = TCL_OK;
+	struct interp_cx*	l = (struct interp_cx*)cdata;
 	static const char*	methods[] = {
 		"split",
 		"get",
 		"set",
 		"unset",
-		 "join",
+		"join",
 		"resolve",
 		NULL
 	};
@@ -570,8 +571,55 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 			//>>>
 		case M_GET: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				enum {
+					A_cmd=1,
+					A_PATH,
+					A_INDEX,
+					A_objc
+				};
+				Tcl_Obj*	pathlist = NULL;
+				int			i;
+				Tcl_Obj*	idxlist = NULL;
+				Tcl_Obj*	res = NULL;
+				Tcl_Obj**	pathv;
+				int			pathc;
+				Tcl_Obj**	idxv;
+				int			idxc;
+
+				CHECK_ARGS_LABEL(finally, code, "path index");
+
+				TEST_OK_LABEL(finally, code, Reuri_GetPathFromObj(interp, objv[A_PATH], &pathlist));
+				TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, pathlist, &pathc, &pathv));
+				TEST_OK_LABEL(finally, code, Reuri_ResolveIndex(interp, objv[A_INDEX], pathc, &idxlist));
+
+				fprintf(stderr, "Given pathlist: %s\n\tindex %s resolves to: %s\n",
+						Tcl_GetString(pathlist),
+						Tcl_GetString(objv[A_INDEX]),
+						Tcl_GetString(idxlist));
+
+				TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
+
+				replace_tclobj(&res, Tcl_NewListObj(0, NULL));
+
+				for (i=0; i<idxc; i++) {
+					int			idx;
+					Tcl_Obj*	picked = NULL;
+
+					TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
+					if (idx < 0 || idx >= pathc) {
+						picked = Dedup_NewStringObj(l->dedup_pool, "", 0);
+					} else {
+						picked = pathv[idx];
+					}
+					TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, picked));
+					picked = NULL;
+				}
+
+				replace_tclobj(&pathlist, NULL);
+				replace_tclobj(&idxlist, NULL);
+
+				Tcl_SetObjResult(interp, res);
+				replace_tclobj(&res, NULL);
 			}
 			break;
 			//>>>
@@ -613,7 +661,7 @@ finally:
 //>>>
 
 #define NS	"::reuri"
-struct cmd {
+static struct cmd {
 	char*			name;
 	Tcl_ObjCmdProc*	proc;
 } cmds[] = {
@@ -624,7 +672,7 @@ struct cmd {
 };
 // Script API >>>
 
-extern const TclStubs* const reuriConstStubsPtr;
+extern const ReuriStubs* const reuriConstStubsPtr;
 
 #ifdef __cplusplus
 extern "C" {
@@ -653,6 +701,7 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 	memset(l, 0, sizeof *l);
 
 	l->dedup_pool = Dedup_NewPool(interp);
+	l->typeInt = Tcl_GetObjType("int");
 
 	Tcl_SetAssocData(interp, "reuri", free_interp_cx, l);
 	// Set up interp_cx >>>
@@ -666,8 +715,11 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 		c++;
 	}
 
-	code = Tcl_PkgProvideEx(interp, PACKAGE_NAME, PACKAGE_VERSION, reuriConstStubsPtr);
-	if (code != TCL_OK) goto finally;
+#if TESTMODE
+	TEST_OK_LABEL(finally, code, testmode_init(interp, l));
+#endif
+
+	TEST_OK_LABEL(finally, code, Tcl_PkgProvideEx(interp, PACKAGE_NAME, PACKAGE_VERSION, reuriConstStubsPtr));
 
 finally:
 	return code;
@@ -681,29 +733,14 @@ DLLEXPORT int Reuri_SafeInit(Tcl_Interp* interp) //<<<
 }
 
 //>>>
-DLLEXPORT int Reuri_Unload(Tcl_Interp* interp, int flags) //<<<
-{
-	int					code = TCL_OK;
-	Tcl_Namespace*		ns = Tcl_FindNamespace(interp, NS, NULL, TCL_GLOBAL_ONLY);
 
-	if (ns) {
-		Tcl_DeleteNamespace(ns);
-		ns = NULL;
-	}
+/*
+ * No Reuri_Unload: Can't unload packages that use custom ObjTypes - the
+ * objects could still be around in literal tables for instance and when
+ * they're eventually freed it will segfault because the type handler points at
+ * invalid memory.
+ */
 
-	Tcl_DeleteAssocData(interp, "reuri");
-
-	return code;
-}
-
-//>>>
-DLLEXPORT int Reuri_SafeUnload(Tcl_Interp* interp, int flags) //<<<
-{
-	// No unsafe features
-	return Reuri_Unload(interp, flags);
-}
-
-//>>>
 #ifdef __cplusplus
 }
 #endif

@@ -96,6 +96,7 @@ INSTALL_LIBRARY	= ${INSTALL_DATA}
 PACKAGE_NAME	= @PACKAGE_NAME@
 PACKAGE_VERSION	= @PACKAGE_VERSION@
 CC		= @CC@
+CC_FOR_BUILD	= @CC_FOR_BUILD@
 CFLAGS_DEFAULT	= @CFLAGS_DEFAULT@
 CFLAGS_WARNING	= @CFLAGS_WARNING@
 EXEEXT		= @EXEEXT@
@@ -135,6 +136,7 @@ PKG_ENV		= @LD_LIBRARY_PATH_VAR@="$(EXTRA_PATH):$(@LD_LIBRARY_PATH_VAR@)" \
 
 TCLSH_PROG	= @TCLSH_PROG@
 TCLSH		= $(TCLSH_ENV) $(PKG_ENV) $(TCLSH_PROG)
+#AWK		= @AWK@
 
 #WISH_ENV	= TK_LIBRARY=`@CYGPATH@ $(TK_SRC_DIR)/library`
 #WISH_PROG	= @WISH_PROG@
@@ -162,7 +164,6 @@ CLEANFILES	= @CLEANFILES@
 CPPFLAGS	= @CPPFLAGS@
 LIBS		= @PKG_LIBS@ @LIBS@
 AR		= @AR@
-CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 LDFLAGS_DEFAULT			= @LDFLAGS_DEFAULT@
 COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) \
@@ -173,8 +174,11 @@ VALGRIND	= valgrind
 VALGRINDARGS	= --tool=memcheck --num-callers=8 --leak-resolution=high \
 		  --leak-check=yes -v --suppressions=suppressions --keep-debuginfo=yes \
 		  --trace-children=yes
+PACKCCARGS	= --lines
 RE2CARGS = --case-ranges -W -Wno-nondeterministic-tags -Wno-match-empty-string --conditions
 PGO=
+
+CFLAGS		= @CFLAGS@ $(PGO)
 
 .SUFFIXES: .c .$(OBJEXT)
 
@@ -199,7 +203,7 @@ all: binaries libraries doc
 # of the Makefile, in the "BINARIES" variable.
 #========================================================================
 
-binaries: lexers $(BINARIES)
+binaries: lexers parsers $(BINARIES)
 
 libraries:
 
@@ -260,15 +264,15 @@ shell: binaries libraries
 	@$(TCLSH) $(SCRIPT)
 
 vim-gdb: binaries libraries
-	#$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set foldlevel=100" -c "Termdebug -ex layout\ asm -ex layout\ regs -ex focus\ cmd --args $(TCLSH_PROG) tests/all.tcl $(TESTFLAGS) -singleproc 1 -load package\ ifneeded\ $(PACKAGE_NAME)\ $(PACKAGE_VERSION)\ [list\ load\ `@CYGPATH@ $(PKG_LIB_FILE)`\ [string\ totitle\ $(PACKAGE_NAME)]]" generic/reuri.c
 	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args $(TCLSH_PROG) tests/all.tcl $(TESTFLAGS) -singleproc 1 -load package\ ifneeded\ $(PACKAGE_NAME)\ $(PACKAGE_VERSION)\ [list\ load\ `@CYGPATH@ $(PKG_LIB_FILE)`\ [string\ totitle\ $(PACKAGE_NAME)]]" generic/reuri.c
 
+vim-gdb-packcc: tools/bin/packcc
+	vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args tools/bin/packcc $(PACKCCARGS) -o parsers/packcc_index generic/packcc_index.peg" tools/packcc/src/packcc.c
+
 vim-core:
-	#$(TCLSH_ENV) $(PKG_ENV) vim -c 'packadd termdebug' -c "Termdebug $(TCLSH_PROG) core" -c 'Winbar'
 	$(TCLSH_ENV) $(PKG_ENV) vim -c 'packadd termdebug' -c "set mouse=a" -c "set number" -c "set foldlevel=100" -c "Termdebug -ex layout\ asm -ex layout\ regs -ex focus\ cmd $(TCLSH_PROG) core" -c Winbar generic/reuri.c
 
 vim-gdb-benchmark: binaries libraries
-	#$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set foldlevel=100" -c "Termdebug -ex layout\ asm -ex layout\ regs -ex focus\ cmd --args $(TCLSH_PROG) tests/all.tcl $(TESTFLAGS) -singleproc 1 -load package\ ifneeded\ $(PACKAGE_NAME)\ $(PACKAGE_VERSION)\ [list\ load\ `@CYGPATH@ $(PKG_LIB_FILE)`\ [string\ totitle\ $(PACKAGE_NAME)]]" generic/reuri.c
 	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args $(TCLSH_PROG) bench/run.tcl $(TESTFLAGS) -load package\ ifneeded\ $(PACKAGE_NAME)\ $(PACKAGE_VERSION)\ [list\ load\ `@CYGPATH@ $(PKG_LIB_FILE)`\ [string\ totitle\ $(PACKAGE_NAME)]]" generic/reuri.c
 
 gdb:
@@ -288,12 +292,17 @@ valgrind: binaries libraries
 valgrindshell: binaries libraries
 	$(TCLSH_ENV) $(PKG_ENV) $(VALGRIND) $(VALGRINDARGS) $(TCLSH_PROG) $(SCRIPT)
 
+tools/bin/packcc: tools/packcc/src/packcc.c
+	mkdir -p tools/bin
+	#$(CC_FOR_BUILD) -march=native -O3 -g -o $@ $<
+	$(CC_FOR_BUILD) -DPURIFY -O0 -g -o $@ $<
+
 tools/bin/re2c:
 	mkdir -p tools/bin
-	(cd tools/re2c; ./autogen.sh && ./configure && make)
+	(cd tools/re2c; ./autogen.sh && ./configure CFLAGS="-march=native -O3" CC="$(CC_FOR_BUILD)" && make)
 	cp tools/re2c/re2c tools/bin
 
-tools: tools/bin/re2c
+tools: tools/bin/packcc tools/bin/re2c
 
 depend:
 
@@ -332,7 +341,16 @@ $(PKG_STUB_LIB_FILE): $(PKG_STUB_OBJECTS)
 # As necessary, add $(srcdir):$(srcdir)/compat:....
 #========================================================================
 
-VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macosx:$(srcdir)/lexers
+VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macosx:$(srcdir)/parsers:$(srcdir)/lexers
+
+$(filter parsers/%,$(PKG_SOURCES)): parsers/%.c: generic/%.peg tools/bin/packcc
+	@echo "Building parser $@ from $<"
+	mkdir -p parsers
+	tools/bin/packcc $(PACKCCARGS) -o "parsers/$*" "generic/$*.peg"
+	#echo "$$("@AWK@" '/^#$$/ {printf "#line %d \"%s\"\n",NR+1,FILENAME; next;} {print;}' "parsers/$*.c")" > "parsers/$*.c"
+	#echo "$$("@AWK@" '/^#$$/ {printf "#line %d \"%s\"\n",NR+1,FILENAME; next;} {print;}' "parsers/$*.h")" > "parsers/$*.h"
+
+parsers: $(filter parsers/%,$(PKG_SOURCES))
 
 $(filter lexers/%,$(PKG_SOURCES)): lexers/%.c: generic/%.re generic/parse.h tools/bin/re2c
 	mkdir -p lexers
@@ -341,8 +359,17 @@ $(filter lexers/%,$(PKG_SOURCES)): lexers/%.c: generic/%.re generic/parse.h tool
 
 lexers: $(filter lexers/%,$(PKG_SOURCES))
 
+$(patsubst parsers/%.c,%.@OBJEXT@,$(filter parsers/%,$(PKG_SOURCES))): %.@OBJEXT@: parsers/%.c
+	$(COMPILE) -I. -c `echo $<` -o $@
+
+$(patsubst lexers/%.c,%.@OBJEXT@,$(filter lexers/%,$(PKG_SOURCES))): %.@OBJEXT@: lexers/%.c
+	$(COMPILE) -I. -c `echo $<` -o $@
+
+$(patsubst %.c,%.@OBJEXT@,$(filter-out parsers/% lexers/%,$(PKG_SOURCES))): %.@OBJEXT@: %.c
+	$(COMPILE) -I. -c `echo $<` -o $@
+
 .c.@OBJEXT@:
-	$(COMPILE) -c `@CYGPATH@ $<` -o $@
+	$(COMPILE) -I. -c `@CYGPATH@ $<` -o $@
 
 #========================================================================
 # Distribution creation
@@ -493,9 +520,14 @@ genstubs: generic/reuri.decls
 tags:
 	ctags-exuberant generic/*
 
+pgo:
+	rm -rf prof
+	make -C . PGO="-fprofile-generate=prof" clean all benchmark
+	make -C . PGO="-fprofile-use=prof -fprofile-partial-training" clean all
+
 .PHONY: all binaries clean depend distclean doc install libraries test
 .PHONY: gdb gdb-test valgrind valgrindshell genstubs lexers tools tags
-.PHONY: vim-gdb vim-core vim-gdb-benchmark
+.PHONY: vim-gdb vim-core vim-gdb-benchmark pgo
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

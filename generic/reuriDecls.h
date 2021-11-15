@@ -36,6 +36,10 @@ EXTERN int		Reuri_URIObjPartExists(Tcl_Interp*interp,
 /* 8 */
 EXTERN int		Reuri_GetPathFromObj(Tcl_Interp*interp,
 				Tcl_Obj*pathPtr, Tcl_Obj**pathlistPtrPtr);
+/* 9 */
+EXTERN int		Reuri_ResolveIndex(Tcl_Interp*interp,
+				Tcl_Obj*indexObj, size_t length,
+				Tcl_Obj**elementsPtrPtr);
 
 typedef struct ReuriStubs {
     int magic;
@@ -50,6 +54,7 @@ typedef struct ReuriStubs {
     int (*reuri_URIObjPartExists) (Tcl_Interp*interp, Tcl_Obj*uriPtr, enum reuri_part part, int*existsPtr); /* 6 */
     void (*reserved7)(void);
     int (*reuri_GetPathFromObj) (Tcl_Interp*interp, Tcl_Obj*pathPtr, Tcl_Obj**pathlistPtrPtr); /* 8 */
+    int (*reuri_ResolveIndex) (Tcl_Interp*interp, Tcl_Obj*indexObj, size_t length, Tcl_Obj**elementsPtrPtr); /* 9 */
 } ReuriStubs;
 
 extern const ReuriStubs *reuriStubsPtr;
@@ -81,6 +86,8 @@ extern const ReuriStubs *reuriStubsPtr;
 /* Slot 7 is reserved */
 #define Reuri_GetPathFromObj \
 	(reuriStubsPtr->reuri_GetPathFromObj) /* 8 */
+#define Reuri_ResolveIndex \
+	(reuriStubsPtr->reuri_ResolveIndex) /* 9 */
 
 #endif /* defined(USE_REURI_STUBS) */
 

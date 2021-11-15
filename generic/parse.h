@@ -1,6 +1,4 @@
 
-/*!types:re2c*/
-
 /*!rules:re2c:common
 
     alpha       = [a-zA-Z];

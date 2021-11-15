@@ -70,7 +70,7 @@ proc _writefile {fn dat} { #<<<
 #>>>
 proc _run_if_set script { #<<<
 	if {$script eq ""} return
-	uplevel 2 [list if 1 $script]
+	uplevel 2 $script
 }
 
 #>>>
@@ -259,7 +259,7 @@ proc bench {name desc args} { #<<<
 				($elapsed < $opts(-max_time) && $cvmeans > $opts(-target_cv))
 			} {
 				set start [clock microseconds]
-				uplevel 1 [list if 1 $bscript]
+				uplevel 1 $bscript
 				set batchtime	[- [clock microseconds] $start]
 				lappend times [expr {
 					$batchtime / double($batch) - $overhead
@@ -445,7 +445,7 @@ proc run_benchmarks {dir args} { #<<<
 
 	set stats	{}
 	foreach f [glob -nocomplain -type f -dir $dir -tails *.bench] {
-		uplevel 1 [list if 1 [list source [file join $dir $f]]]
+		uplevel 1 [list source [file join $dir $f]]
 	}
 
 	set save {{save_fn run} {

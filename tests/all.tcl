@@ -7,6 +7,8 @@
 # Copyright (c) 1998-2000 by Scriptics Corporation.
 # All rights reserved.
 
+set ::env(REURI_TESTMODE)	1
+
 if {[lsearch [namespace children] ::tcltest] == -1} {
     package require tcltest
     namespace import ::tcltest::*
@@ -61,7 +63,10 @@ foreach file [lsort [::tcltest::getMatchingFiles]] {
 puts $chan "\nTests ended at [eval $timeCmd]"
 ::tcltest::cleanupTests 1
 
-puts stderr "Unloading $::reuri::libfile"
-unload $::reuri::libfile
+# Can't unload packages that use custom ObjTypes - the objects could still be around
+# in literal tables for instance and when they're eventually freed it will segfault
+# because the type handler points at invalid memory.
+#puts stderr "Unloading $::reuri::libfile"
+#unload $::reuri::libfile
 return
 

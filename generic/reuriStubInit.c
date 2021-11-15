@@ -14,6 +14,7 @@ const ReuriStubs reuriStubs = {
     Reuri_URIObjPartExists, /* 6 */
     0, /* 7 */
     Reuri_GetPathFromObj, /* 8 */
+    Reuri_ResolveIndex, /* 9 */
 };
 
 /* !END!: Do not edit above this line. */

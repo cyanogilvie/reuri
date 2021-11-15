@@ -27,7 +27,7 @@ reuri - URI Manipulation for Tcl
 **reuri::query** **encode** *params*|?*param* *value* …?  
 **reuri::query** **decode** *query*
 
-?? **reuri::path** **split** *path*  
+**reuri::path** **split** *path*  
 ?? **reuri::path** **join** *segments*  
 ?? **reuri::path** **get** *path* *index*  
 ?? **reuri::path** **set** *variable* *index* *value*  
@@ -414,7 +414,7 @@ The uri module of tcllib.
 
 # TODO
 
-  - [ ] Implement http://\[/tmp/mysock.80\]/foo style unix domain
+  - [x] Implement http://\[/tmp/mysock.80\]/foo style unix domain
     sockets support
   - [ ] Implement **reuri::uri set**
   - [ ] Implement **reuri::uri valid**

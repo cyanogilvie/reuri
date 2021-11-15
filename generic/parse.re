@@ -2,6 +2,7 @@
 
 #include "reuriInt.h"
 
+/*!types:re2c*/
 /*!include:re2c "parse.h"*/
 
 void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
@@ -485,14 +486,13 @@ top:
 		goto top;
 	}
 	end {
-		if (s > base+2) {
+		if (Tcl_DStringLength(&acc))
 			TEST_OK_LABEL(finally, code, _add_path(interp, l, &acc, res_pathlist));
-		}
 		goto finally;
 	}
 
 	* {
-		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-base), *s);
+		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-1-base), yych);
 	}
 	*/
 
@@ -508,4 +508,4 @@ finally:
 
 //>>>
 
-// vim: ft=c foldmethod=marker foldmarker=<<<,>>>
+

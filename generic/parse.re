@@ -129,7 +129,7 @@ finally:
 }
 
 //>>>
-Tcl_Obj* percent_encode_query(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_mode mode) //<<<
+Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_mode mode) //<<<
 {
 	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
 	Tcl_Obj*				res = NULL;
@@ -165,8 +165,10 @@ Tcl_Obj* percent_encode_query(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_en
 		goto finally;
 	}
 	<start> unreserved* / reserved {
-		if (yych == '/' && mode == REURI_ENCODE_QUERY)
+		if (yych == '/' && mode == REURI_ENCODE_QUERY) {
+			s++;
 			goto yyc_start;
+		}
 
 		if (s>str)
 			Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
@@ -323,7 +325,7 @@ int parse_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj**
 	Tcl_Obj*				res_params = NULL;
 	Tcl_Obj*				res_index = NULL;
 	Tcl_DString				acc;
-	/*!stags:re2c:percent_encode_ds format = "const unsigned char *@@{tag}; "; */
+	/*!stags:re2c:parse_query format = "const unsigned char *@@{tag}; "; */
 
 	Tcl_DStringInit(&acc);
 
@@ -437,7 +439,7 @@ int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist) //<<<
 	const unsigned char*	start = NULL;
 	Tcl_Obj*				res_pathlist = NULL;
 	Tcl_DString				acc;
-	/*!stags:re2c:percent_encode_ds format = "const unsigned char *@@{tag}; "; */
+	/*!stags:re2c:parse_path format = "const unsigned char *@@{tag}; "; */
 
 	Tcl_DStringInit(&acc);
 
@@ -508,4 +510,4 @@ finally:
 
 //>>>
 
-
+// vim: ft=c foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

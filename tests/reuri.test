@@ -5,6 +5,27 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 
 package require reuri
 
+set allchars_raw	{}
+set allchars_path	{}
+set allchars_query	{}
+for {set i 0} {$i < 0x80} {incr i} {
+	set c	[format %c $i]
+	append allchars_raw	$c
+	if {[regexp {^[-a-zA-Z0-9._~!$&'()*+,;=:@]$} $c]} {
+		append allchars_path	$c
+	} else {
+		append allchars_path	[format %%%02X $i]
+	}
+	if {[regexp {^[-a-zA-Z0-9._~!$'()*+,;:@/?]$} $c]} {
+		append allchars_query	$c
+	} else {
+		append allchars_query	[format %%%02X $i]
+	}
+
+}
+
+# TODO: test that a leading ":" in the first path segment is percent encoded in the no-scheme case
+
 test reuri-1.1 {} -setup { #<<<
 	set uri http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
 } -body {
@@ -53,6 +74,71 @@ test reuri-2.1 {Get all parts as a dict} -setup { #<<<
 	query		three=3&four=4 \
 	fragment	endbit \
 ]
+#>>>
+
+test reuri_encode-1.1 {encode query, all codepoints < 0x80} -body { #<<<
+	reuri::uri encode query $allchars_raw
+} -result $allchars_query
+#>>>
+test reuri_encode-2.1 {encode path, all codepoints < 0x80} -body { #<<<
+	reuri::uri encode path $allchars_raw
+} -result $allchars_path
+#>>>
+test reuri_encode-3.1 {encode query, no substs} -body { #<<<
+	reuri::uri encode query foo
+} -result foo
+#>>>
+test reuri_encode-3.2 {encode query, subst: #} -body { #<<<
+	reuri::uri encode query fo#o
+} -result fo%23o
+#>>>
+test reuri_encode-3.3 {encode query, subst: ?} -body { #<<<
+	reuri::uri encode query fo?o
+} -result fo%3Fo
+#>>>
+test reuri_encode-3.4 {encode query, subst: &} -body { #<<<
+	reuri::uri encode query fo&o
+} -result fo%26o
+#>>>
+test reuri_encode-3.5 {encode query, subst: =} -body { #<<<
+	reuri::uri encode query fo=o
+} -result fo%3Do
+#>>>
+test reuri_encode-3.6 {encode query, subst: /} -body { #<<<
+	reuri::uri encode query fo/o
+} -result fo/o
+#>>>
+test reuri_encode-3.7 {encode query, subst: \0} -body { #<<<
+	reuri::uri encode query fo\0o
+} -result fo%00o
+#>>>
+test reuri_encode-4.1 {encode path, no substs} -body { #<<<
+	reuri::uri encode path foo
+} -result foo
+#>>>
+test reuri_encode-4.2 {encode path, subst: #} -body { #<<<
+	reuri::uri encode path fo#o
+} -result fo%23o
+#>>>
+test reuri_encode-4.3 {encode path, subst: ?} -body { #<<<
+	reuri::uri encode path fo?o
+} -result fo%3Fo
+#>>>
+test reuri_encode-4.4 {encode path, subst: &} -body { #<<<
+	reuri::uri encode path fo&o
+} -result fo&o
+#>>>
+test reuri_encode-4.5 {encode path, subst: =} -body { #<<<
+	reuri::uri encode path fo=o
+} -result fo=o
+#>>>
+test reuri_encode-4.6 {encode path, subst: /} -body { #<<<
+	reuri::uri encode path fo/o
+} -result fo%2Fo
+#>>>
+test reuri_encode-4.7 {encode path, subst: \0} -body { #<<<
+	reuri::uri encode path fo\0o
+} -result fo%00o
 #>>>
 
 

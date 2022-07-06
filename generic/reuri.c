@@ -189,9 +189,9 @@ finally:
 Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode, Tcl_Obj* objPtr) //<<<
 {
 	switch (mode) {
-		case REURI_ENCODE_QUERY: return percent_encode_query(interp, objPtr, REURI_ENCODE_QUERY);
-		case REURI_ENCODE_PATH:  return percent_encode_query(interp, objPtr, REURI_ENCODE_PATH);
-		case REURI_ENCODE_HOST:  return percent_encode_query(interp, objPtr, REURI_ENCODE_HOST);
+		case REURI_ENCODE_QUERY: return percent_encode(interp, objPtr, REURI_ENCODE_QUERY);
+		case REURI_ENCODE_PATH:  return percent_encode(interp, objPtr, REURI_ENCODE_PATH);
+		case REURI_ENCODE_HOST:  return percent_encode(interp, objPtr, REURI_ENCODE_HOST);
 	}
 	Tcl_Panic("Invalid encode mode: %d", mode);
 	return NULL;	// Unreachable, pacify compiler

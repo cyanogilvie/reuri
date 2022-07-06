@@ -266,7 +266,7 @@ shell: binaries libraries
 	@$(TCLSH) $(SCRIPT)
 
 vim-gdb: binaries libraries
-	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args $(TCLSH_PROG) tests/all.tcl $(TESTFLAGS) -singleproc 1 -load package\ ifneeded\ $(PACKAGE_NAME)\ $(PACKAGE_VERSION)\ [list\ load\ `@CYGPATH@ $(PKG_LIB_FILE)`\ [string\ totitle\ $(PACKAGE_NAME)]]" generic/reuri.c
+	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug -ex set\ print\ pretty\ on --args $(TCLSH_PROG) tests/all.tcl $(TESTFLAGS) -singleproc 1 -load package\ ifneeded\ $(PACKAGE_NAME)\ $(PACKAGE_VERSION)\ [list\ load\ `@CYGPATH@ $(PKG_LIB_FILE)`\ [string\ totitle\ $(PACKAGE_NAME)]]" -c "1windo set nonumber" -c "2windo set nonumber" generic/reuri.c
 
 vim-gdb-packcc: tools/bin/packcc
 	vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args tools/bin/packcc $(PACKCCARGS) -o parsers/packcc_index generic/packcc_index.peg" tools/packcc/src/packcc.c
@@ -519,8 +519,8 @@ uninstall-binaries:
 genstubs: generic/reuri.decls
 	$(TCLSH_PROG) $(TCL_SRC_DIR)/tools/genStubs.tcl generic generic/reuri.decls
 
-tags:
-	ctags-exuberant generic/*
+tags: generic/*
+	ctags-exuberant --langmap=c:+.re generic/*
 
 pgo:
 	rm -rf prof

@@ -17,8 +17,10 @@ enum reuri_hosttype {
 	REURI_HOST_IPV6,			// IPv6 literal address: [::1]
 	REURI_HOST_IPV4,			// IPv4 literal address: 127.0.0.1
 	REURI_HOST_HOSTNAME,		// hostname: localhost
-	REURI_HOST_UNIX				// unix domain socket path: /tmp/myserv.80
+	REURI_HOST_UNIX,			// unix domain socket path: /tmp/myserv.80
+	REURI_HOST_SIZE				// Marker for the size of the set
 };
+extern const char* reuri_hosttype_str[];
 
 struct param {
 	Tcl_Obj*		name;
@@ -47,6 +49,7 @@ struct parse_context {
 struct interp_cx {
 	struct dedup_pool*	dedup_pool;
 	const Tcl_ObjType*	typeInt;
+	Tcl_Obj*			hosttype[REURI_HOST_SIZE];
 };
 
 // reuri.c internal API <<<

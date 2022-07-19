@@ -22,6 +22,16 @@ const char* reuri_encode_mode_str[] = {
 	NULL				// NULL here so we can point Tcl_GetIndexFromObj at this
 };
 
+// Must be kept in sync with reuri_hosttype
+const char* reuri_hosttype_str[] = {
+	"none",
+	"ipv6",			// IPv6 literal address: [::1]
+	"ipv4",			// IPv4 literal address: 127.0.0.1
+	"hostname",		// hostname: localhost
+	"local",		// unix domain socket path: /tmp/myserv.80
+	NULL
+};
+
 #if 0
 /*
  * Thread string dedup pool.  Incompatible with supporting unloading: when the
@@ -64,12 +74,16 @@ Tcl_Obj* thread_string(const char* bytes, int length) //<<<
 static void free_interp_cx(ClientData cdata, Tcl_Interp* interp) //<<<
 {
 	struct interp_cx*	l = (struct interp_cx*)cdata;
+	int					i;
 
 	if (l) {
 		if (l->dedup_pool) {
 			Dedup_FreePool(l->dedup_pool);
 			l->dedup_pool = NULL;
 		}
+
+		for (i=0; reuri_hosttype_str[i]; i++)
+			replace_tclobj(&l->hosttype[i], NULL);
 
 		ckfree(l);
 		l = NULL;
@@ -90,9 +104,10 @@ int ReuriGetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* p
 // Stubs API <<<
 int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* defaultPtr, Tcl_Obj** valuePtrPtr) //<<<
 {
-	int			code = TCL_OK;
-	struct uri*	uri = NULL;
-	Tcl_Obj*	res = NULL;
+	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
+	int					code = TCL_OK;
+	struct uri*			uri = NULL;
+	Tcl_Obj*			res = NULL;
 
 	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri));
 
@@ -104,6 +119,7 @@ int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part par
 		case REURI_PATH:		res = uri->path;		break;
 		case REURI_QUERY:		res = uri->query;		break;
 		case REURI_FRAGMENT:	res = uri->fragment;	break;
+		case REURI_HOSTTYPE:	res = l->hosttype[uri->hosttype];	break;
 		default: THROW_ERROR_LABEL(finally, code, "Invalid part");
 	}
 
@@ -173,6 +189,7 @@ int Reuri_URIObjGetAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res) //<<<
 	ADD_PART("scheme",    uri->scheme);
 	ADD_PART("userinfo",  uri->userinfo);
 	ADD_PART("host",      uri->host);
+	ADD_PART("hosttype",  l->hosttype[uri->hosttype]);
 	ADD_PART("port",      uri->port);
 	ADD_PART("path",      uri->path);
 	ADD_PART("query",     uri->query);
@@ -702,6 +719,11 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 
 	l->dedup_pool = Dedup_NewPool(interp);
 	l->typeInt = Tcl_GetObjType("int");
+	{
+		int i;
+		for (i=0; reuri_hosttype_str[i]; i++)
+			replace_tclobj(&l->hosttype[i], Dedup_NewStringObj(l->dedup_pool, reuri_hosttype_str[i], -1));
+	}
 
 	Tcl_SetAssocData(interp, "reuri", free_interp_cx, l);
 	// Set up interp_cx >>>

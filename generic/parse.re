@@ -56,12 +56,12 @@ void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
     ipvfuture   = "v" hexdigit+ "." (unreserved | sub_delims | ":" )+;
     ip_literal  = "[" ( ipv6address | ipvfuture ) "]";
     reg_name    = (unreserved | pct_encoded | sub_delims)*;
-	unix_socket = ("[" | "[v0.local:") "/" pchar+ ("/" pchar+)* "]";
+	unix_socket = ("[" | "[v0.local:") @h7 "/" pchar+ ("/" pchar+)* @h8 "]";
     host
         = @h1 ip_literal  @h2
         | @h3 ipv4address @h4
         | @h5 reg_name    @h6
-		| @h7 unix_socket @h8;
+		| unix_socket;
     port      = @r1 digit* @r2;
     authority = (userinfo "@")? host (":" port)?;
     path_abempty  = ("/" pchar*)*;
@@ -107,7 +107,6 @@ void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
 			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h7, (int)(h8 - h7)));
 			pc->uri->hosttype = REURI_HOST_UNIX;
 		}
-		// TODO: Add unix domain sockets extension
 
 		if (r1) replace_tclobj(&pc->uri->port,     Dedup_NewStringObj(l->dedup_pool, r1, (int)(r2 - r1)));
 		if (p1 && p2>p1) replace_tclobj(&pc->uri->path,     Dedup_NewStringObj(l->dedup_pool, p1, (int)(p2 - p1)));

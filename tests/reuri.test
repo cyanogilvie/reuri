@@ -48,6 +48,7 @@ test reuri-1.1 {} -setup { #<<<
 	scheme		http \
 	userinfo	foo:bar \
 	host		localhost \
+	hosttype	hostname \
 	port		81 \
 	path		/one/two \
 	query		three=3&four=4 \
@@ -69,7 +70,25 @@ test reuri-2.1 {Get all parts as a dict} -setup { #<<<
 	scheme		http \
 	userinfo	foo:bar \
 	host		localhost \
+	hosttype	hostname \
 	port		81 \
+	path		/one/two \
+	query		three=3&four=4 \
+	fragment	endbit \
+]
+#>>>
+test reuri-2.2 {Get all parts as a dict, local socket} -setup { #<<<
+	set uri {http://foo:bar@[/var/run/docker.sock]/one/two?three=3&four=4#endbit}
+} -body {
+	set start	[clock microseconds]
+	reuri::uri get $uri
+} -cleanup {
+	unset -nocomplain uri start
+} -result [list \
+	scheme		http \
+	userinfo	foo:bar \
+	host		/var/run/docker.sock \
+	hosttype	local \
 	path		/one/two \
 	query		three=3&four=4 \
 	fragment	endbit \

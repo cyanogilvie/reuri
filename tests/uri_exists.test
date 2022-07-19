@@ -40,6 +40,16 @@ test $t-7.1 {fragment, true}	{ uri exists http://localhost#endbit			fragment	}	1
 test $t-7.2 {fragment, false}	{ uri exists http://localhost					fragment	}	0
 test $t-7.3 {fragment, empty}	{ uri exists http://localhost#					fragment	}	1
 
+test $t-8.1 {hosttype, hostname}	{ uri exists http://localhost:81				hosttype }	1
+test $t-8.2 {hosttype, false}		{ uri exists http://:81							hosttype }	1
+test $t-8.3 {hosttype, false: ?}	{ uri exists http://?							hosttype }	1
+test $t-8.4 {hosttype, IPv4}		{ uri exists http://127.0.0.1					hosttype }	1
+test $t-8.5 {hosttype, IPv4+port}	{ uri exists http://127.0.0.1:81				hosttype }	1
+test $t-8.6 {hosttype, IPv6}		{ uri exists {http://[::1]}						hosttype }	1
+test $t-8.7 {hosttype, IPv6+port}	{ uri exists {http://[::1]:81}					hosttype }	1
+test $t-8.8 {hosttype, unix}		{ uri exists {http://[/tmp/mysock.80]}			hosttype }	1
+test $t-8.9 {hosttype, unix+port}	{ uri exists {http://[/tmp/mysock.80]:81}		hosttype }	1
+
 # cleanup
 ::tcltest::cleanupTests
 return

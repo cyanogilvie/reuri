@@ -146,9 +146,10 @@ finally:
 //>>>
 int Reuri_URIObjPartExists(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, int* existsPtr) //<<<
 {
-	int			code = TCL_OK;
-	struct uri*	uri = NULL;
-	Tcl_Obj*	res = NULL;
+	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
+	int					code = TCL_OK;
+	struct uri*			uri = NULL;
+	Tcl_Obj*			res = NULL;
 
 	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri));
 
@@ -160,6 +161,7 @@ int Reuri_URIObjPartExists(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part 
 		case REURI_PATH:		res = uri->path;		break;
 		case REURI_QUERY:		res = uri->query;		break;
 		case REURI_FRAGMENT:	res = uri->fragment;	break;
+		case REURI_HOSTTYPE:	res = l->hosttype[uri->hosttype];	break;
 		default: THROW_ERROR_LABEL(finally, code, "Invalid part");
 	}
 

@@ -128,6 +128,18 @@ finally:
 }
 
 //>>>
+static inline int conditionally_allowed(enum reuri_encode_mode mode, const char yych) //<<<
+{
+	switch (mode) {
+		case REURI_ENCODE_QUERY:	return (yych=='?' || yych=='/');
+		case REURI_ENCODE_PATH:		return (yych=='+' || yych=='&' || yych=='=');			
+		//case REURI_ENCODE_HOST:	return 0;
+		case REURI_ENCODE_FRAGMENT:	return (yych=='?' || yych=='/' || yych=='#' || yych=='+' || yych=='&' || yych=='=');
+		default:					return 0;
+	}
+}
+
+//>>>
 Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_mode mode) //<<<
 {
 	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
@@ -155,7 +167,7 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 
 	!use:common;
 
-	mark        = [-_.!~*'()];
+	mark        = [-_.!~*'()$];
 	unreserved  = alpha | digit | mark;
 	reserved    = ([^] \ end) \ unreserved;
 
@@ -164,7 +176,7 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 		goto finally;
 	}
 	<start> unreserved* / reserved {
-		if (yych == '/' && mode == REURI_ENCODE_QUERY) {
+		if (conditionally_allowed(mode, yych)) {
 			s++;
 			goto yyc_start;
 		}
@@ -191,8 +203,8 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 		goto yyc_mixed;
 	}
 	<mixed> reserved {
-		if (yych == '/' && mode == REURI_ENCODE_QUERY) {
-			Tcl_DStringAppend(&val, "/", 1);
+		if (conditionally_allowed(mode, yych)) {
+			Tcl_DStringAppend(&val, (const char*)s-1, 1);
 		} else {
 			char buf[4];
 
@@ -258,8 +270,8 @@ top:
 		goto top;
 	}
 	reserved {
-		if (yych == '/' && mode == REURI_ENCODE_QUERY) {
-			Tcl_DStringAppend(ds, "/", 1);
+		if (conditionally_allowed(mode, yych)) {
+			Tcl_DStringAppend(ds, (const char*)s-1, 1);
 		} else {
 			sprintf(buf, "%%%02X", yych);
 			Tcl_DStringAppend(ds, buf, 3);

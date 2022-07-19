@@ -5,24 +5,33 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 
 package require reuri
 
-set allchars_raw	{}
-set allchars_path	{}
-set allchars_query	{}
+set allchars_raw		{}
+set allchars_path		{}
+set allchars_query		{}
+set allchars_fragment	{}
 for {set i 0} {$i < 0x80} {incr i} {
 	set c	[format %c $i]
 	append allchars_raw	$c
-	if {[regexp {^[-a-zA-Z0-9._~!$&'()*+,;=:@]$} $c]} {
+	if {[regexp {^[-a-zA-Z0-9._.!~*'()$+&=]$} $c]} {
 		append allchars_path	$c
 	} else {
 		append allchars_path	[format %%%02X $i]
 	}
-	if {[regexp {^[-a-zA-Z0-9._~!$'()*+,;:@/?]$} $c]} {
+	if {[regexp {^[-a-zA-Z0-9._.!~*'()$?/]$} $c]} {
 		append allchars_query	$c
 	} else {
 		append allchars_query	[format %%%02X $i]
 	}
-
+	if {[regexp {^[-a-zA-Z0-9._.!~*'()$?/#+&=]$} $c]} {
+		append allchars_fragment	$c
+	} else {
+		append allchars_fragment	[format %%%02X $i]
+	}
 }
+append allchars_raw			\u306f
+append allchars_path		%E3%81%AF
+append allchars_query		%E3%81%AF
+append allchars_fragment	%E3%81%AF
 
 # TODO: test that a leading ":" in the first path segment is percent encoded in the no-scheme case
 
@@ -35,6 +44,7 @@ test reuri-1.1 {} -setup { #<<<
 			scheme		[reuri::uri get $uri scheme] \
 			userinfo	[reuri::uri get $uri userinfo] \
 			host		[reuri::uri get $uri host] \
+			hosttype	[reuri::uri get $uri hosttype] \
 			port		[reuri::uri get $uri port] \
 			path		[reuri::uri get $uri path] \
 			query		[reuri::uri get $uri query] \
@@ -113,7 +123,7 @@ test reuri_encode-3.2 {encode query, subst: #} -body { #<<<
 #>>>
 test reuri_encode-3.3 {encode query, subst: ?} -body { #<<<
 	reuri::uri encode query fo?o
-} -result fo%3Fo
+} -result fo?o
 #>>>
 test reuri_encode-3.4 {encode query, subst: &} -body { #<<<
 	reuri::uri encode query fo&o

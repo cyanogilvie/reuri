@@ -25,7 +25,8 @@ enum reuri_part {
 enum reuri_encode_mode {
 	REURI_ENCODE_QUERY,
 	REURI_ENCODE_PATH,
-	REURI_ENCODE_HOST
+	REURI_ENCODE_HOST,
+	REURI_ENCODE_FRAGMENT
 };
 
 

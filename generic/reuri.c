@@ -219,6 +219,15 @@ Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode,
 }
 
 //>>>
+Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in) //<<<
+{
+	Tcl_Obj*	res = NULL;
+
+	percent_decode(in, &res);
+	return res;
+}
+
+//>>>
 // Stubs API >>>
 // Script API <<<
 static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
@@ -381,8 +390,26 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			//>>>
 		case M_DECODE: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				enum args {
+					A_METHOD = 1,
+					A_VAL,
+					A_objc
+				};
+				Tcl_Obj*	res = NULL;
+
+				if (objc != A_objc) {
+					Tcl_WrongNumArgs(interp, 2, objv, "value");
+					code = TCL_ERROR;
+					goto finally;
+				}
+
+				res = Reuri_PercentDecodeObj(objv[A_VAL]);
+
+				if (res == NULL)
+					THROW_ERROR_LABEL(finally, code, "Could not decode string");	// Should not be reachable
+
+				Tcl_SetObjResult(interp, res);
+				replace_tclobj(&res, NULL);
 			}
 			break;
 			//>>>

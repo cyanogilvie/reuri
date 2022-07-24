@@ -40,6 +40,8 @@ EXTERN int		Reuri_GetPathFromObj(Tcl_Interp*interp,
 EXTERN int		Reuri_ResolveIndex(Tcl_Interp*interp,
 				Tcl_Obj*indexObj, size_t length,
 				Tcl_Obj**elementsPtrPtr);
+/* 10 */
+EXTERN Tcl_Obj*		Reuri_PercentDecodeObj(Tcl_Obj*in);
 
 typedef struct ReuriStubs {
     int magic;
@@ -55,6 +57,7 @@ typedef struct ReuriStubs {
     void (*reserved7)(void);
     int (*reuri_GetPathFromObj) (Tcl_Interp*interp, Tcl_Obj*pathPtr, Tcl_Obj**pathlistPtrPtr); /* 8 */
     int (*reuri_ResolveIndex) (Tcl_Interp*interp, Tcl_Obj*indexObj, size_t length, Tcl_Obj**elementsPtrPtr); /* 9 */
+    Tcl_Obj* (*reuri_PercentDecodeObj) (Tcl_Obj*in); /* 10 */
 } ReuriStubs;
 
 extern const ReuriStubs *reuriStubsPtr;
@@ -88,6 +91,8 @@ extern const ReuriStubs *reuriStubsPtr;
 	(reuriStubsPtr->reuri_GetPathFromObj) /* 8 */
 #define Reuri_ResolveIndex \
 	(reuriStubsPtr->reuri_ResolveIndex) /* 9 */
+#define Reuri_PercentDecodeObj \
+	(reuriStubsPtr->reuri_PercentDecodeObj) /* 10 */
 
 #endif /* defined(USE_REURI_STUBS) */
 

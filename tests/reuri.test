@@ -170,6 +170,87 @@ test reuri_encode-4.7 {encode path, subst: \0} -body { #<<<
 } -result fo%00o
 #>>>
 
+test reuri_decode-1.1 {nop} -body { #<<<
+	reuri::uri decode foo
+} -result foo
+#>>>
+test reuri_decode-1.2 {empty} -body { #<<<
+	reuri::uri decode {}
+} -result {}
+#>>>
+test reuri_decode-2.1 {one pct_encoded, first} -body { #<<<
+	reuri::uri decode %61
+} -result a
+#>>>
+test reuri_decode-2.2 {one pct_encoded, second} -body { #<<<
+	reuri::uri decode x%61
+} -result xa
+#>>>
+test reuri_decode-2.3 {one pct_encoded, first with trailing} -body { #<<<
+	reuri::uri decode %61x
+} -result ax
+#>>>
+test reuri_decode-2.4 {one pct_encoded, second with trailing} -body { #<<<
+	reuri::uri decode x%61x
+} -result xax
+#>>>
+test reuri_decode-3.1 {+, first} -body { #<<<
+	reuri::uri decode +
+} -result { }
+#>>>
+test reuri_decode-3.2 {+, first} -body { #<<<
+	reuri::uri decode +x
+} -result { x}
+#>>>
+test reuri_decode-3.3 {+, second} -body { #<<<
+	reuri::uri decode x+
+} -result {x }
+#>>>
+test reuri_decode-4.1 {invalid pct_encode} -body { #<<<
+	reuri::uri decode %
+} -result {%}
+#>>>
+test reuri_decode-4.2 {invalid pct_encode} -body { #<<<
+	reuri::uri decode %6
+} -result {%6}
+#>>>
+test reuri_decode-4.3 {invalid pct_encode} -body { #<<<
+	reuri::uri decode %6x
+} -result {%6x}
+#>>>
+test reuri_decode-4.4 {invalid pct_encode} -body { #<<<
+	reuri::uri decode %x6
+} -result {%x6}
+#>>>
+test reuri_decode-5.1 {invalid pct_encode} -body { #<<<
+	reuri::uri decode a%
+} -result {a%}
+#>>>
+test reuri_decode-5.2 {invalid pct_encode} -body { #<<<
+	reuri::uri decode a%6
+} -result {a%6}
+#>>>
+test reuri_decode-5.3 {invalid pct_encode} -body { #<<<
+	reuri::uri decode a%6x
+} -result {a%6x}
+#>>>
+test reuri_decode-5.4 {invalid pct_encode} -body { #<<<
+	reuri::uri decode a%x6
+} -result {a%x6}
+#>>>
+test reuri_decode-6.1 {newline} -body { #<<<
+	reuri::uri decode "a\nb"
+} -result "a\nb"
+#>>>
+test reuri_decode-7.1 {two pct_encode} -body { #<<<
+	reuri::uri decode "A%61B%62"
+} -result "AaBb"
+#>>>
+test reuri_decode-8.1 {null} -body { #<<<
+	reuri::uri decode "A%00B"
+} -result "A\0B"
+#>>>
+
 
 # cleanup
 ::tcltest::cleanupTests

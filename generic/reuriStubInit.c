@@ -15,6 +15,7 @@ const ReuriStubs reuriStubs = {
     0, /* 7 */
     Reuri_GetPathFromObj, /* 8 */
     Reuri_ResolveIndex, /* 9 */
+    Reuri_PercentDecodeObj, /* 10 */
 };
 
 /* !END!: Do not edit above this line. */

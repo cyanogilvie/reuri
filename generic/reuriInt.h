@@ -63,6 +63,7 @@ int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri);
 void parse_uri(struct parse_context* pc, const char* str, int len);
 Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_mode mode);
 void percent_encode_ds(enum reuri_encode_mode mode, Tcl_DString* ds, const char* str);
+int percent_decode(Tcl_Obj* str, Tcl_Obj** res);
 int parse_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj** index);
 int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist);
 // parse.re internal API >>>

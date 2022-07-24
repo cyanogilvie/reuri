@@ -323,6 +323,90 @@ finally:
 }
 
 //>>>
+int percent_decode(Tcl_Obj* str, Tcl_Obj** res) //<<<
+{
+	const unsigned char*	base = (const unsigned char*)Tcl_GetString(str);
+	const unsigned char*	s = base;
+	int						c = yycstart;
+	const unsigned char*	YYMARKER;
+	const unsigned char*	start = NULL;
+	Tcl_DString				acc;
+	/*!stags:re2c:percent_decode format = "const unsigned char *@@{tag}; "; */
+
+	if (*s == 0) {
+		replace_tclobj(res, str);
+		return TCL_OK;
+	}
+
+	/*!local:re2c:percent_decode
+    re2c:api:style             = free-form;
+    re2c:define:YYCTYPE        = "unsigned char";
+    re2c:define:YYCURSOR       = s;
+	re2c:yyfill:enable         = 0;
+	re2c:flags:tags            = 1;
+	re2c:define:YYGETCONDITION = "c";
+	re2c:define:YYSETCONDITION = "c = @@;";
+
+	!use:common;
+
+	special    = [%+];
+	unencoded  = . \ (special | end);
+
+	<start> unencoded* {
+		// No change to input
+		replace_tclobj(res, str);
+		return TCL_OK;
+	}
+
+	<start> @start unencoded* / special {
+		Tcl_DStringInit(&acc);
+		if (s>start) Tcl_DStringAppend(&acc, (const char*)start, (int)(s-start));
+		c = yycdecoded;
+		goto yyc_decoded;
+	}
+
+	<decoded> @start unencoded+ {
+		Tcl_DStringAppend(&acc, (const char*)start, (int)(s-start));
+		c = yycdecoded;
+		goto yyc_decoded;
+	}
+
+	<decoded> pct_encoded {
+		const unsigned char	buf[3] = {s[-2], s[-1], 0};
+		unsigned char		byte = strtol((const char*)buf, NULL, 16);
+
+		if (byte) {
+			Tcl_DStringAppend(&acc, (const char*)&byte, 1);
+		} else {
+			Tcl_DStringAppend(&acc, "\xc0\x80", 2);
+		}
+		goto yyc_decoded;
+	}
+
+	<decoded> "+" {
+		Tcl_DStringAppend(&acc, " ", 1);
+		goto yyc_decoded;
+	}
+
+	<decoded> "%" {
+		// Compat: just leave percentages that don't form valid pct_encoded sequences
+		Tcl_DStringAppend(&acc, "%", 1);
+		goto yyc_decoded;
+	}
+	
+	<decoded> end {
+		replace_tclobj(res, Tcl_NewStringObj(Tcl_DStringValue(&acc), Tcl_DStringLength(&acc)));
+		Tcl_DStringFree(&acc);
+		return TCL_OK;
+	}
+
+	<*> * {
+		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-base), *s);
+	}
+	*/
+}
+
+//>>>
 int parse_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj** index) //<<<
 {
 	int						code = TCL_OK;
@@ -358,11 +442,10 @@ top:
 
 	!use:common;
 
-	mark        = [-_.!~*'()];
-	unreserved  = alpha | digit | mark | "/";
-	reserved    = ([^] \ end) \ unreserved;
+	special    = [%+&=];
+	unencoded  = . \ (special | end);
 
-	<*> @start unreserved+ {
+	<*> @start unencoded+ {
 		Tcl_DStringAppend(&acc, (const char*)start, (int)(s-start));
 		goto top;
 	}
@@ -379,6 +462,11 @@ top:
 		} else {
 			Tcl_DStringAppend(&acc, "\xc0\x80", 2);
 		}
+		goto top;
+	}
+	<*> "%" {
+		// Compat: just leave percentages that don't form valid pct_encoded sequences
+		Tcl_DStringAppend(&acc, "%", 1);
 		goto top;
 	}
 	

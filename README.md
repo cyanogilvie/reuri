@@ -14,7 +14,7 @@ reuri - URI Manipulation for Tcl
 ?? **reuri::uri** **resolve** *uri*  
 ?? **reuri::uri** **absolute** *uri*  
 **reuri::uri** **encode** **query**|**path**|**host** *value*  
-?? **reuri::uri** **decode** *value*
+**reuri::uri** **decode** *value*
 
 ?? **reuri::query** **get** *query* ?*param* ?*default*??  
 ?? **reuri::query** **values** *query* *param*  
@@ -106,6 +106,8 @@ VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
 
   - **reuri::uri** **decode** *value*  
     Percent decode *value*, the inverse of **reuri::uri** **encode**.
+    For compatibility with other implementations, “`+`” is replaced with
+    a space and invalid percent-encoded sequences are transcribed as-is.
 
   - **reuri::query** **get** *query* ?*param* ?*default*??  
     Retrieve the value for the named *param* in the *query* part. If

@@ -28,5 +28,8 @@ declare 8 generic {
 declare 9 generic {
 	int Reuri_ResolveIndex(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** elementsPtrPtr)
 }
+declare 10 generic {
+	Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in)
+}
 
 # vim: ft=tcl foldmethod=marker foldmarker=<<<,>>>

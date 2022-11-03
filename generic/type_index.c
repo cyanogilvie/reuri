@@ -24,7 +24,7 @@ Tcl_ObjType index_objtype = {
 
 static void free_internal_rep(Tcl_Obj* obj) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &index_objtype);
+	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, &index_objtype);
 
 	if (ir)
 		free_parse_idx_cx(INDEX_PTR(ir));
@@ -59,7 +59,7 @@ void _dstring_append_indexrange(Tcl_DString* ds, struct idx_range* range) //<<<
 //>>>
 static void update_string_rep(Tcl_Obj* obj) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &index_objtype);
+	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, &index_objtype);
 	struct parse_idx_cx*	idx = INDEX(ir);
 	Tcl_DString			ds;
 
@@ -165,11 +165,11 @@ void Reuri_DStringAppendIndex(Tcl_DString* ds, struct parse_idx_cx* idx) //<<<
 //>>>
 static int ReuriGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_cx** index) //<<<
 {
-	int					code = TCL_OK;
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(indexObj, &index_objtype);
+	int						code = TCL_OK;
+	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(indexObj, &index_objtype);
 
 	if (ir == NULL) {
-		Tcl_ObjIntRep	newir;
+		Tcl_ObjInternalRep	newir;
 
 		*INDEX_PTR(&newir) = NULL;
 		code = parse_index(interp, Tcl_GetString(indexObj), INDEX_PTR(&newir));
@@ -178,9 +178,9 @@ static int ReuriGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct pa
 			goto finally;
 		}
 
-		Tcl_FreeIntRep(indexObj);
-		Tcl_StoreIntRep(indexObj, &index_objtype, &newir);
-		ir = Tcl_FetchIntRep(indexObj, &index_objtype);
+		Tcl_FreeInternalRep(indexObj);
+		Tcl_StoreInternalRep(indexObj, &index_objtype, &newir);
+		ir = Tcl_FetchInternalRep(indexObj, &index_objtype);
 	}
 
 	*index = INDEX(ir);
@@ -222,8 +222,8 @@ int Reuri_ResolveIndex(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl
 	Tcl_Obj*				res = NULL;
 	int						i;
 	struct parse_idx_cx*	index = NULL;
-	//Tcl_ObjIntRep*			int_ir = Tcl_FetchIntRep(indexObj, l->typeInt);
-	Tcl_ObjIntRep*			int_ir = NULL;
+	//Tcl_ObjInternalRep*			int_ir = Tcl_FetchInternalRep(indexObj, l->typeInt);
+	Tcl_ObjInternalRep*		int_ir = NULL;
 
 	TIME("Retrieve interp_cx from assoc data",
 	l = Tcl_GetAssocData(interp, "reuri", NULL);
@@ -233,7 +233,7 @@ int Reuri_ResolveIndex(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl
 
 	// First check if the indexObj is a native integer, in which case don't shimmer it to our intrep
 	TIME("Check for int intrep",
-	int_ir = Tcl_FetchIntRep(indexObj, l->typeInt);
+	int_ir = Tcl_FetchInternalRep(indexObj, l->typeInt);
 	);
 	if (int_ir) {
 		fprintf(stderr, "Using native int directly: %s\n", Tcl_GetString(indexObj));

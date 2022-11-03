@@ -21,7 +21,7 @@ Tcl_ObjType path_objtype = {
 	NULL
 };
 
-static void free_path(Tcl_ObjIntRep* ir) //<<<
+static void free_path(Tcl_ObjInternalRep* ir) //<<<
 {
 	if (ir)
 		replace_tclobj(PATH_PTR(ir), NULL);
@@ -30,7 +30,7 @@ static void free_path(Tcl_ObjIntRep* ir) //<<<
 //>>>
 static void free_internal_rep(Tcl_Obj* obj) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &path_objtype);
+	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, &path_objtype);
 
 	free_path(ir);
 }
@@ -38,19 +38,19 @@ static void free_internal_rep(Tcl_Obj* obj) //<<<
 ///>>>
 static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(src, &path_objtype);
-	Tcl_ObjIntRep		newir;
+	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(src, &path_objtype);
+	Tcl_ObjInternalRep		newir;
 
 	newir.ptrAndLongRep.ptr = NULL;
 	replace_tclobj(PATH_PTR(&newir), PATH(ir));
 
-	Tcl_StoreIntRep(dup, &path_objtype, &newir);
+	Tcl_StoreInternalRep(dup, &path_objtype, &newir);
 }
 
 //>>>
 static void update_string_rep(Tcl_Obj* obj) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &path_objtype);
+	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, &path_objtype);
 	Tcl_DString			ds;
 
 	Tcl_DStringInit(&ds);
@@ -68,10 +68,10 @@ static void update_string_rep(Tcl_Obj* obj) //<<<
 int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlistPtrPtr) //<<<
 {
 	int				code = TCL_OK;
-	Tcl_ObjIntRep*	ir = Tcl_FetchIntRep(pathPtr, &path_objtype);
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(pathPtr, &path_objtype);
 
 	if (ir == NULL) {
-		Tcl_ObjIntRep	newir;
+		Tcl_ObjInternalRep	newir;
 
 		*PATH_PTR(&newir) = NULL;
 		code = parse_path(interp, Tcl_GetString(pathPtr), PATH_PTR(&newir));
@@ -80,9 +80,9 @@ int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlis
 			goto finally;
 		}
 
-		Tcl_FreeIntRep(pathPtr);
-		Tcl_StoreIntRep(pathPtr, &path_objtype, &newir);
-		ir = Tcl_FetchIntRep(pathPtr, &path_objtype);
+		Tcl_FreeInternalRep(pathPtr);
+		Tcl_StoreInternalRep(pathPtr, &path_objtype, &newir);
+		ir = Tcl_FetchInternalRep(pathPtr, &path_objtype);
 	}
 
 	if (pathlistPtrPtr) replace_tclobj(pathlistPtrPtr, PATH(ir));

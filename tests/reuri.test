@@ -104,6 +104,14 @@ test reuri-2.2 {Get all parts as a dict, local socket} -setup { #<<<
 	fragment	endbit \
 ]
 #>>>
+test reuri-3.1 {Interp cleanup} -body { #<<<
+	interp create reuri-3.1
+	interp eval reuri-3.1 [list set auto_path $::auto_path]
+	interp eval reuri-3.1 {package require reuri}
+	interp delete reuri-3.1
+	return -level 0 ok
+} -result ok
+#>>>
 
 test reuri_encode-1.1 {encode query, all codepoints < 0x80} -body { #<<<
 	reuri::uri encode query $allchars_raw
@@ -250,7 +258,6 @@ test reuri_decode-8.1 {null} -body { #<<<
 	reuri::uri decode "A%00B"
 } -result "A\0B"
 #>>>
-
 
 # cleanup
 ::tcltest::cleanupTests

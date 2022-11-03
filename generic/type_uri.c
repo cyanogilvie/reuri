@@ -37,7 +37,7 @@ void free_uri(struct uri** uriPtrPtr) //<<<
 //>>>
 static void free_internal_rep(Tcl_Obj* obj) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &uri_objtype);
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(obj, &uri_objtype);
 	struct uri*			uri = (struct uri*)ir->twoPtrValue.ptr1;
 
 	free_uri(&uri);
@@ -46,8 +46,8 @@ static void free_internal_rep(Tcl_Obj* obj) //<<<
 ///>>>
 static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(src, &uri_objtype);
-	Tcl_ObjIntRep		newir;
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(src, &uri_objtype);
+	Tcl_ObjInternalRep	newir;
 	struct uri*			uri = (struct uri*)ir->twoPtrValue.ptr1;
 	struct uri*			dup_uri = ckalloc(sizeof *dup_uri);
 
@@ -61,13 +61,13 @@ static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 	replace_tclobj(&dup_uri->query,		uri->query);
 
 	newir.twoPtrValue.ptr1 = dup_uri;
-	Tcl_StoreIntRep(dup, &uri_objtype, &newir);
+	Tcl_StoreInternalRep(dup, &uri_objtype, &newir);
 }
 
 //>>>
 static void update_string_rep(Tcl_Obj* obj) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &uri_objtype);
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(obj, &uri_objtype);
 	struct uri*			uri = (struct uri*)ir->twoPtrValue.ptr1;
 	Tcl_DString			ds;
 
@@ -105,14 +105,14 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 //>>>
 int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri) //<<<
 {
-	int				code = TCL_OK;
-	Tcl_ObjIntRep*	ir = Tcl_FetchIntRep(uriPtr, &uri_objtype);
-	struct uri*		newuri = NULL;
+	int					code = TCL_OK;
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(uriPtr, &uri_objtype);
+	struct uri*			newuri = NULL;
 
 	if (ir == NULL) {
-		Tcl_ObjIntRep	newir;
-		const char*		uristr;
-		int				uristr_len;
+		Tcl_ObjInternalRep	newir;
+		const char*			uristr;
+		int					uristr_len;
 		struct parse_context	pc = {
 			.interp			= interp,
 			.rc				= TCL_OK
@@ -131,9 +131,9 @@ int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri) //
 		newuri = NULL;
 		pc.uri = NULL;
 
-		Tcl_FreeIntRep(uriPtr);
-		Tcl_StoreIntRep(uriPtr, &uri_objtype, &newir);
-		ir = Tcl_FetchIntRep(uriPtr, &uri_objtype);
+		Tcl_FreeInternalRep(uriPtr);
+		Tcl_StoreInternalRep(uriPtr, &uri_objtype, &newir);
+		ir = Tcl_FetchInternalRep(uriPtr, &uri_objtype);
 	}
 
 	*uri = (struct uri*)ir->twoPtrValue.ptr1;

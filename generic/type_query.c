@@ -25,7 +25,7 @@ Tcl_ObjType query_objtype = {
 	NULL
 };
 
-static void free_query(Tcl_ObjIntRep* ir) //<<<
+static void free_query(Tcl_ObjInternalRep* ir) //<<<
 {
 	if (ir) {
 		replace_tclobj(PARAMS_PTR(ir), NULL);
@@ -36,7 +36,7 @@ static void free_query(Tcl_ObjIntRep* ir) //<<<
 //>>>
 static void free_internal_rep(Tcl_Obj* obj) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &query_objtype);
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(obj, &query_objtype);
 
 	free_query(ir);
 }
@@ -44,20 +44,20 @@ static void free_internal_rep(Tcl_Obj* obj) //<<<
 ///>>>
 static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(src, &query_objtype);
-	Tcl_ObjIntRep		newir;
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(src, &query_objtype);
+	Tcl_ObjInternalRep	newir;
 
 	newir.twoPtrValue.ptr1 = NULL;
 	newir.twoPtrValue.ptr2 = NULL;
 	replace_tclobj(PARAMS_PTR(&newir), PARAMS(ir));
 	replace_tclobj(INDEX_PTR(&newir),  INDEX(ir));
-	Tcl_StoreIntRep(dup, &query_objtype, &newir);
+	Tcl_StoreInternalRep(dup, &query_objtype, &newir);
 }
 
 //>>>
 static void update_string_rep(Tcl_Obj* obj) //<<<
 {
-	Tcl_ObjIntRep*		ir = Tcl_FetchIntRep(obj, &query_objtype);
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(obj, &query_objtype);
 	Tcl_DString			ds;
 
 	Tcl_DStringInit(&ds);
@@ -72,11 +72,11 @@ static void update_string_rep(Tcl_Obj* obj) //<<<
 // Internal API <<<
 int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, Tcl_Obj** index) //<<<
 {
-	int				code = TCL_OK;
-	Tcl_ObjIntRep*	ir = Tcl_FetchIntRep(query, &query_objtype);
+	int					code = TCL_OK;
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(query, &query_objtype);
 
 	if (ir == NULL) {
-		Tcl_ObjIntRep	newir;
+		Tcl_ObjInternalRep	newir;
 
 		newir.twoPtrValue.ptr1 = NULL;
 		newir.twoPtrValue.ptr2 = NULL;
@@ -86,9 +86,9 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 			goto finally;
 		}
 
-		Tcl_FreeIntRep(query);
-		Tcl_StoreIntRep(query, &query_objtype, &newir);
-		ir = Tcl_FetchIntRep(query, &query_objtype);
+		Tcl_FreeInternalRep(query);
+		Tcl_StoreInternalRep(query, &query_objtype, &newir);
+		ir = Tcl_FetchInternalRep(query, &query_objtype);
 	}
 
 	if (params) replace_tclobj(params, PARAMS(ir));
@@ -128,12 +128,12 @@ finally:
 // Stubs API <<<
 int Reuri_NewQueryObj(Tcl_Interp* interp, int objc, Tcl_Obj* const objv[], Tcl_Obj** res) //<<<
 {
-	int				code = TCL_OK;
-	Tcl_ObjIntRep	newir;
-	Tcl_Obj*		newobj = NULL;
-	Tcl_Obj*		new_params = NULL;
-	Tcl_Obj*		new_index = NULL;
-	int				pnum;
+	int					code = TCL_OK;
+	Tcl_ObjInternalRep	newir;
+	Tcl_Obj*			newobj = NULL;
+	Tcl_Obj*			new_params = NULL;
+	Tcl_Obj*			new_index = NULL;
+	int					pnum;
 
 	if (objc % 2 == 1) {
 		struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
@@ -156,8 +156,8 @@ int Reuri_NewQueryObj(Tcl_Interp* interp, int objc, Tcl_Obj* const objv[], Tcl_O
 	replace_tclobj(INDEX_PTR(&newir),  new_index);
 
 	replace_tclobj(&newobj, Tcl_NewObj());
-	Tcl_FreeIntRep(newobj);
-	Tcl_StoreIntRep(newobj, &query_objtype, &newir);
+	Tcl_FreeInternalRep(newobj);
+	Tcl_StoreInternalRep(newobj, &query_objtype, &newir);
 	Tcl_InvalidateStringRep(newobj);
 
 	replace_tclobj(res, newobj);

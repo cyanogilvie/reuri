@@ -22,23 +22,35 @@ typedef union Tcl_ObjInternalRep {
 #endif
 
 #ifndef Tcl_FetchInternalRep
+#ifdef Tcl_FetchIntRep
+#define Tcl_FetchInternalRep	Tcl_FetchIntRep
+#else
 #define Tcl_FetchInternalRep(obj, type)		(Tcl_ObjInternalRep*)(((obj)->typePtr == (type)) ? &(obj)->internalRep : NULL)
+#endif
 #endif
 
 #ifndef Tcl_FreeInternalRep
+#ifdef Tcl_FreeIntRep
+#define Tcl_FreeInternalRep	Tcl_FreeIntRep
+#else
 static inline void Tcl_FreeInternalRep(Tcl_Obj* obj)
 {
 	if (obj->typePtr && obj->typePtr->freeInternalRepProc)
 		obj->typePtr->freeInternalRepProc(obj);
 }
 #endif
+#endif
 
 #ifndef Tcl_StoreInternalRep
+#ifdef Tcl_StoreIntRep
+#define Tcl_StoreInternalRep Tcl_StoreIntRep
+#else
 static inline void Tcl_StoreInternalRep(Tcl_Obj* objPtr, const Tcl_ObjType* typePtr, const Tcl_ObjInternalRep* irPtr)
 {
 	objPtr->typePtr = typePtr;
 	memcpy(&objPtr->internalRep, irPtr, sizeof(Tcl_ObjInternalRep));
 }
+#endif
 #endif
 
 #ifndef Tcl_HasStringRep

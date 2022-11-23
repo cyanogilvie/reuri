@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <limits.h>
 
-/* Just enough of TIP445 to build rl_json on Tcl 8.6 */
+/* Just enough of TIP445 to build reuri on Tcl 8.6 */
 
 #ifndef Tcl_ObjInternalRep
 typedef union Tcl_ObjInternalRep {

@@ -131,8 +131,12 @@ finally:
 static inline int conditionally_allowed(enum reuri_encode_mode mode, const char yych) //<<<
 {
 	switch (mode) {
+		/* Formally correct according to a pedantic reading of the RFC, but causes problems with some systems (like S3 signing):
 		case REURI_ENCODE_QUERY:	return (yych=='?' || yych=='/');
 		case REURI_ENCODE_PATH:		return (yych=='+' || yych=='&' || yych=='=');			
+		*/
+		case REURI_ENCODE_QUERY:	return (yych=='/');
+		case REURI_ENCODE_PATH:		return 0;			
 		//case REURI_ENCODE_HOST:	return 0;
 		case REURI_ENCODE_FRAGMENT:	return (yych=='?' || yych=='/' || yych=='#' || yych=='+' || yych=='&' || yych=='=');
 		default:					return 0;
@@ -226,7 +230,7 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 	}
 
 	<*> *	{
-		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-str), *s);
+		Tcl_Panic("Unable to percent_encode byte at ofs %d: 0x%02x", (int)(s-str), *s);
 	}
 	*/
 
@@ -279,7 +283,7 @@ top:
 		goto top;
 	}
 	* {
-		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-base), *s);
+		Tcl_Panic("Unable to percent_encode byte at ofs %d: 0x%02x", (int)(s-base), *s);
 	}
 	*/
 }
@@ -350,7 +354,7 @@ int percent_decode(Tcl_Obj* str, Tcl_Obj** res) //<<<
 	!use:common;
 
 	special    = [%+];
-	unencoded  = . \ (special | end);
+	unencoded  = ([^] \ special) \ end;
 
 	<start> unencoded* {
 		// No change to input
@@ -401,7 +405,7 @@ int percent_decode(Tcl_Obj* str, Tcl_Obj** res) //<<<
 	}
 
 	<*> * {
-		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-base), *s);
+		Tcl_Panic("Unable to percent decode string at ofs %d: 0x%02x", (int)(s-base), *s);
 	}
 	*/
 }
@@ -443,7 +447,7 @@ top:
 	!use:common;
 
 	special    = [%+&=];
-	unencoded  = . \ (special | end);
+	unencoded  = ([^] \ special) \ end;
 
 	<*> @start unencoded+ {
 		Tcl_DStringAppend(&acc, (const char*)start, (int)(s-start));
@@ -494,7 +498,9 @@ top:
 	}
 
 	<*> * {
-		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-base), *s);
+		Tcl_SetObjResult(interp, Tcl_ObjPrintf("Failed to parse query at ofs %d: 0x%02x", (int)(s-base), *s));
+		code = TCL_ERROR;
+		goto finally;
 	}
 	*/
 
@@ -593,7 +599,9 @@ top:
 	}
 
 	* {
-		Tcl_Panic("Invalid character in CESU-8 bytes returned from Tcl at ofs %d: 0x%02x", (int)(s-1-base), yych);
+		Tcl_SetObjResult(interp, Tcl_ObjPrintf("Failed to parse path at ofs %d: 0x%02x", (int)(s-1-base), yych));
+		code = TCL_ERROR;
+		goto finally;
 	}
 	*/
 

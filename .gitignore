@@ -4,7 +4,6 @@
 *.a
 *.so
 core
-tclconfig
 Makefile
 autom4te.cache
 config.log

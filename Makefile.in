@@ -171,9 +171,10 @@ COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) \
 
 GDB		= gdb
 VALGRIND	= valgrind
+VALGRINDEXTRA =
 VALGRINDARGS	= --tool=memcheck --num-callers=8 --leak-resolution=high \
 		  --leak-check=yes -v --suppressions=suppressions --keep-debuginfo=yes \
-		  --trace-children=yes
+		  --trace-children=yes $(VALGRINDEXTRA)
 PACKCCARGS	= --lines
 RE2CARGS = --case-ranges -W -Wno-nondeterministic-tags -Wno-match-empty-string --conditions
 PGOGEN_BUILD = -fprofile-generate=prof
@@ -266,7 +267,7 @@ shell: binaries libraries
 	@$(TCLSH) $(SCRIPT)
 
 vim-gdb: binaries libraries
-	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug -ex set\ print\ pretty\ on --args $(TCLSH_PROG) tests/all.tcl $(TESTFLAGS) -singleproc 1 -load package\ ifneeded\ $(PACKAGE_NAME)\ $(PACKAGE_VERSION)\ [list\ load\ `@CYGPATH@ $(PKG_LIB_FILE)`\ [string\ totitle\ $(PACKAGE_NAME)]]" -c "1windo set nonumber" -c "2windo set nonumber" generic/reuri.c
+	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug -ex set\ print\ pretty\ on --args $(TCLSH_PROG) tests/all.tcl $(TESTFLAGS) -singleproc 1 -load package\ ifneeded\ $(PACKAGE_NAME)\ $(PACKAGE_VERSION)\ [list\ load\ `@CYGPATH@ $(PKG_LIB_FILE)`\ [string\ totitle\ $(PACKAGE_NAME)]]" -c "2windo set nonumber" -c "1windo set nonumber" generic/reuri.c
 
 vim-gdb-packcc: tools/bin/packcc
 	vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args tools/bin/packcc $(PACKCCARGS) -o parsers/packcc_index generic/packcc_index.peg" tools/packcc/src/packcc.c
@@ -301,7 +302,7 @@ tools/bin/packcc: tools/packcc/src/packcc.c
 
 tools/bin/re2c:
 	mkdir -p tools/bin
-	(cd tools/re2c; ./autogen.sh && ./configure CFLAGS="-march=native -O3" CC="$(CC_FOR_BUILD)" && make)
+	(cd tools/re2c; ./autogen.sh && ./configure CFLAGS="-march=native -O3" CC="$(CC_FOR_BUILD)" --disable-golang --disable-rust && make)
 	cp tools/re2c/re2c tools/bin
 
 tools: tools/bin/packcc tools/bin/re2c

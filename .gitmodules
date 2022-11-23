@@ -7,3 +7,6 @@
 	url = https://github.com/arithy/packcc
 	branch = "feature/#55-lines"
 	shallow = true
+[submodule "tclconfig"]
+	path = tclconfig
+	url = https://github.com/cyanogilvie/tclconfig.git

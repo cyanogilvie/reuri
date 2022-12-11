@@ -530,7 +530,7 @@ pgo:
 
 .PHONY: all binaries clean depend distclean doc install libraries test
 .PHONY: gdb gdb-test valgrind valgrindshell genstubs lexers tools tags
-.PHONY: vim-gdb vim-core vim-gdb-benchmark pgo
+.PHONY: vim-gdb vim-core vim-gdb-benchmark pgo benchmark
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

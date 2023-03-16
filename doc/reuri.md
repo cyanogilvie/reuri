@@ -30,7 +30,7 @@ reuri - URI Manipulation for Tcl
 ?? **reuri::query** **exists** *query* *param*\
 ?? **reuri::query** **set** *variable* *param* *value* ?*offset*?\
 ?? **reuri::query** **unset** *variable* *param* ?*offset*?\
-?? **reuri::query** **names** *query*\
+**reuri::query** **names** *query*\
 ?? **reuri::query** **reorder** *variable* *params*\
 **reuri::query** **encode** *params*|?*param* *value* ...?\
 **reuri::query** **decode** *query*
@@ -474,7 +474,7 @@ The uri module of tcllib.
 - [ ] Implement **reuri::query exists**
 - [ ] Implement **reuri::query set**
 - [ ] Implement **reuri::query unset**
-- [ ] Implement **reuri::query names**
+- [x] Implement **reuri::query names**
 - [ ] Implement **reuri::query reorder**
 - [x] Implement **reuri::path split**
 - [x] Implement **reuri::path get**

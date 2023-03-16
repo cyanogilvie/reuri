@@ -527,7 +527,8 @@ finally:
 //>>>
 static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
-	int			code = TCL_OK;
+	int					code = TCL_OK;
+	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
 	static const char*	methods[] = {
 		"get",
 		"values",
@@ -638,8 +639,30 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_NAMES: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				Tcl_Obj*	query = NULL;
+				Tcl_Obj*	names = NULL;
+				Tcl_Obj*	res = NULL;
+				Tcl_Obj**	qv = NULL;
+				int			qc;
+
+				enum {A_cmd=1, A_QUERY, A_objc};
+				CHECK_ARGS_LABEL(names_finally, code, "query");
+
+				TEST_OK_LABEL(names_finally, code, ReuriGetQueryFromObj(interp, objv[A_QUERY], &query, NULL));
+				TEST_OK_LABEL(names_finally, code, Tcl_ListObjGetElements(interp, query, &qc, &qv));
+				if (qc > 0) {
+					replace_tclobj(&res, Tcl_NewListObj(qc, NULL));
+					for (int i=0; i<qc; i+=2)
+						TEST_OK_LABEL(names_finally, code, Tcl_ListObjAppendElement(interp, res, qv[i]));
+				} else {
+					replace_tclobj(&res, l->empty_list);
+				}
+				Tcl_SetObjResult(interp, res);
+
+			names_finally:
+				replace_tclobj(&query, NULL);
+				replace_tclobj(&names, NULL);
+				replace_tclobj(&res, NULL);
 			}
 			break;
 			//>>>
@@ -675,19 +698,10 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_DECODE: //<<<
 			{
-				enum {
-					A_METHOD=1,
-					A_QUERY,
-					A_objc
-				};
+				enum {A_cmd=1, A_QUERY, A_objc};
+				CHECK_ARGS_LABEL(finally, code, "query");
+
 				Tcl_Obj*	res = NULL;
-
-				if (objc != A_objc) {
-					Tcl_WrongNumArgs(interp, 2, objv, "query");
-					code = TCL_ERROR;
-					goto finally;
-				}
-
 				TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, objv[A_QUERY], &res, NULL));
 				Tcl_SetObjResult(interp, res);
 				replace_tclobj(&res, NULL);

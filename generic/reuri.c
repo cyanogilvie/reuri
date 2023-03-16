@@ -86,6 +86,11 @@ static void free_interp_cx(ClientData cdata, Tcl_Interp* interp) //<<<
 		for (i=0; reuri_hosttype_str[i]; i++)
 			replace_tclobj(&l->hosttype[i], NULL);
 
+		replace_tclobj(&l->empty,		NULL);
+		replace_tclobj(&l->empty_list,	NULL);
+		replace_tclobj(&l->t,			NULL);
+		replace_tclobj(&l->f,			NULL);
+
 		ckfree(l);
 		l = NULL;
 	}
@@ -136,7 +141,7 @@ int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part par
 		}
 	}
 
-	*valuePtrPtr = res;
+	replace_tclobj(valuePtrPtr, res);
 	res = NULL;
 
 finally:
@@ -232,7 +237,8 @@ Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in) //<<<
 // Script API <<<
 static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
-	int			code = TCL_OK;
+	int					code = TCL_OK;
+	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 	static const char*	methods[] = {
 		"get",
 		"exists",
@@ -243,6 +249,8 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		"absolute",
 		"encode",
 		"decode",
+		"query",
+		"path",
 		NULL
 	};
 	enum {
@@ -254,7 +262,9 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		M_RESOLVE,
 		M_ABSOLUTE,
 		M_ENCODE,
-		M_DECODE
+		M_DECODE,
+		M_QUERY,
+		M_PATH
 	};
 	int	methodidx;
 
@@ -281,7 +291,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 
 				switch (objc) {
 					case 3:	// Return all parts in a dict
-						TEST_OK_LABEL(finally, code, Reuri_URIObjGetAll(interp, objv[A_URI], &res));
+						TEST_OK_LABEL(get_finally, code, Reuri_URIObjGetAll(interp, objv[A_URI], &res));
 						Tcl_SetObjResult(interp, res);
 						replace_tclobj(&res, NULL);
 						goto finally;
@@ -294,10 +304,13 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						goto finally;
 				}
 
-				TEST_OK_LABEL(finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
-				TEST_OK_LABEL(finally, code, Reuri_URIObjGetPart(interp, objv[A_URI], part, def, &res));
+				TEST_OK_LABEL(get_finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
+				TEST_OK_LABEL(get_finally, code, Reuri_URIObjGetPart(interp, objv[A_URI], part, def, &res));
 
 				Tcl_SetObjResult(interp, res);
+
+			get_finally:
+				replace_tclobj(&res, NULL);
 			}
 			break;
 			//>>>
@@ -309,7 +322,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 					A_PART,
 					A_objc
 				};
-				int				res;
+				int				exists;
 				enum reuri_part	part;
 
 				if (objc != A_objc) {
@@ -319,8 +332,8 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				}
 
 				TEST_OK_LABEL(finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
-				TEST_OK_LABEL(finally, code, Reuri_URIObjPartExists(interp, objv[A_URI], part, &res));
-				Tcl_SetObjResult(interp, Tcl_NewIntObj(res));
+				TEST_OK_LABEL(finally, code, Reuri_URIObjPartExists(interp, objv[A_URI], part, &exists));
+				Tcl_SetObjResult(interp, exists ? l->t : l->f);
 			}
 			break;
 			//>>>
@@ -333,8 +346,10 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			//>>>
 		case M_VALID: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				enum {A_cmd=1, A_URI, A_objc};
+				CHECK_ARGS_LABEL(finally, code, "uri");
+				const char*	str = Tcl_GetString(objv[A_URI]);
+				Tcl_SetObjResult(interp, uri_valid(str) ? l->t : l->f);
 			}
 			break;
 			//>>>
@@ -410,6 +425,95 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 
 				Tcl_SetObjResult(interp, res);
 				replace_tclobj(&res, NULL);
+			}
+			break;
+			//>>>
+		case M_QUERY: //<<<
+			{
+				// TODO: implement
+				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+			}
+			break;
+			//>>>
+		case M_PATH: //<<<
+			{
+				static const char*	ops[] = {
+					"get",
+					"exists",
+					"set",
+					NULL
+				};
+				enum {
+					OP_GET,
+					OP_EXISTS,
+					OP_SET
+				};
+				int			opidx;
+				Tcl_Obj*	path = NULL;
+
+				enum args {A_cmd=1, A_OP, A_URI, A_objc};
+				if (objc < A_objc) CHECK_ARGS_LABEL(path_finally, code, "op uri ?arg ...?");
+
+				TEST_OK_LABEL(path_finally, code, Tcl_GetIndexFromObj(interp, objv[A_OP], ops, "op", TCL_EXACT, &opidx));
+				TEST_OK_LABEL(path_finally, code, Reuri_URIObjGetPart(interp, objv[A_URI], REURI_PATH, l->empty_list, &path));
+
+				switch (opidx) {
+					case OP_GET: //<<<
+						{
+							Tcl_Obj*		pathlist = NULL;
+							Tcl_Obj*		res = NULL;
+
+							enum {A_cmd=2, A_URI, A_INDEX, A_objc};
+							if (objc < A_INDEX || objc > A_objc)
+								CHECK_ARGS_LABEL(path_get_finally, code, "uri ?index?");
+
+							TEST_OK_LABEL(path_get_finally, code, Reuri_GetPathFromObj(interp, path, &pathlist));
+							if (objc > A_INDEX) {
+								TEST_OK_LABEL(path_get_finally, code, Idx_PickFromList(interp, pathlist, objv[A_INDEX], &res));
+							} else {
+								replace_tclobj(&res, pathlist);
+							}
+							Tcl_SetObjResult(interp, res);
+
+						path_get_finally:
+							replace_tclobj(&pathlist, NULL);
+							replace_tclobj(&res, NULL);
+						}
+						break;
+						//>>>
+					case OP_EXISTS: //<<<
+						{
+							Tcl_Obj*		pathlist = NULL;
+							Tcl_Obj*		res = NULL;
+
+							enum {A_cmd=2, A_URI, A_INDEX, A_objc};
+							if (objc < A_INDEX || objc > A_objc)
+								CHECK_ARGS_LABEL(path_exists_finally, code, "uri ?index?");
+
+							TEST_OK_LABEL(path_exists_finally, code, Reuri_GetPathFromObj(interp, path, &pathlist));
+							if (objc > A_INDEX) {
+								int pathc;
+								TEST_OK_LABEL(path_exists_finally, code, Tcl_ListObjLength(interp, pathlist, &pathc));
+								TEST_OK_LABEL(path_exists_finally, code, Idx_Exists(interp, pathc, objv[A_INDEX], &res));
+							} else {
+								int exists;
+								TEST_OK_LABEL(path_exists_finally, code, Reuri_URIObjPartExists(interp, objv[A_URI], REURI_PATH, &exists));
+								replace_tclobj(&res, exists ? l->t : l->f);
+							}
+							Tcl_SetObjResult(interp, res);
+
+						path_exists_finally:
+							replace_tclobj(&pathlist, NULL);
+							replace_tclobj(&res, NULL);
+						}
+						break;
+						//>>>
+					default:
+						THROW_ERROR_LABEL(finally, code, "Unhandled uri path case");
+				}
+
+			path_finally:
+				replace_tclobj(&path, NULL);
 			}
 			break;
 			//>>>
@@ -571,12 +675,12 @@ finally:
 static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
 	int					code = TCL_OK;
-	struct interp_cx*	l = (struct interp_cx*)cdata;
+	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 	static const char*	methods[] = {
 		"split",
 		"get",
+		"exists",
 		"set",
-		"unset",
 		"join",
 		"resolve",
 		NULL
@@ -584,8 +688,8 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 	enum {
 		M_SPLIT,
 		M_GET,
+		M_EXISTS,
 		M_SET,
-		M_UNSET,
 		M_JOIN,
 		M_RESOLVE
 	};
@@ -600,15 +704,11 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 	TEST_OK_LABEL(finally, code, Tcl_GetIndexFromObj(interp, objv[1], methods, "method", TCL_EXACT, &methodidx));
 
 	switch (methodidx) {
-		case M_SPLIT: //<<<
+		case M_SPLIT: // DEPRECATED <<<
 			{
-				enum {
-					A_cmd=1,
-					A_PATH,
-					A_objc
-				};
 				Tcl_Obj*	res = NULL;
 
+				enum {A_cmd=1, A_PATH, A_objc};
 				CHECK_ARGS_LABEL(finally, code, "path");
 
 				TEST_OK_LABEL(finally, code, Reuri_GetPathFromObj(interp, objv[A_PATH], &res));
@@ -619,54 +719,48 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 			//>>>
 		case M_GET: //<<<
 			{
-				enum {
-					A_cmd=1,
-					A_PATH,
-					A_INDEX,
-					A_objc
-				};
-				Tcl_Obj*	pathlist = NULL;
-				int			i;
-				Tcl_Obj*	idxlist = NULL;
-				Tcl_Obj*	res = NULL;
-				Tcl_Obj**	pathv;
-				int			pathc;
-				Tcl_Obj**	idxv;
-				int			idxc;
+				Tcl_Obj*		pathlist = NULL;
+				Tcl_Obj*		res = NULL;
 
-				CHECK_ARGS_LABEL(finally, code, "path index");
+				enum {A_cmd=1, A_PATH, A_INDEX, A_objc};
+				if (objc < A_INDEX || objc > A_objc)
+					CHECK_ARGS_LABEL(get_finally, code, "path ?index?");
 
-				TEST_OK_LABEL(finally, code, Reuri_GetPathFromObj(interp, objv[A_PATH], &pathlist));
-				TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, pathlist, &pathc, &pathv));
-				TEST_OK_LABEL(finally, code, Reuri_ResolveIndex(interp, objv[A_INDEX], pathc, &idxlist));
-
-				fprintf(stderr, "Given pathlist: %s\n\tindex %s resolves to: %s\n",
-						Tcl_GetString(pathlist),
-						Tcl_GetString(objv[A_INDEX]),
-						Tcl_GetString(idxlist));
-
-				TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
-
-				replace_tclobj(&res, Tcl_NewListObj(0, NULL));
-
-				for (i=0; i<idxc; i++) {
-					int			idx;
-					Tcl_Obj*	picked = NULL;
-
-					TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
-					if (idx < 0 || idx >= pathc) {
-						picked = Dedup_NewStringObj(l->dedup_pool, "", 0);
-					} else {
-						picked = pathv[idx];
-					}
-					TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, picked));
-					picked = NULL;
+				TEST_OK_LABEL(get_finally, code, Reuri_GetPathFromObj(interp, objv[A_PATH], &pathlist));
+				if (objc > A_INDEX) {
+					TEST_OK_LABEL(get_finally, code, Idx_PickFromList(interp, pathlist, objv[A_INDEX], &res));
+				} else {
+					replace_tclobj(&res, pathlist);
 				}
-
-				replace_tclobj(&pathlist, NULL);
-				replace_tclobj(&idxlist, NULL);
-
 				Tcl_SetObjResult(interp, res);
+
+			get_finally:
+				replace_tclobj(&pathlist, NULL);
+				replace_tclobj(&res, NULL);
+			}
+			break;
+			//>>>
+		case M_EXISTS: //<<<
+			{
+				Tcl_Obj*		pathlist = NULL;
+				Tcl_Obj*		res = NULL;
+				int pathc;
+
+				enum {A_cmd=1, A_PATH, A_INDEX, A_objc};
+				if (objc < A_INDEX || objc > A_objc)
+					CHECK_ARGS_LABEL(exists_finally, code, "path ?index?");
+
+				TEST_OK_LABEL(exists_finally, code, Reuri_GetPathFromObj(interp, objv[A_PATH], &pathlist));
+				TEST_OK_LABEL(exists_finally, code, Tcl_ListObjLength(interp, pathlist, &pathc));
+				if (objc > A_INDEX) {
+					TEST_OK_LABEL(exists_finally, code, Idx_Exists(interp, pathc, objv[A_INDEX], &res));
+				} else {
+					replace_tclobj(&res, pathc > 0 ? l->t : l->f);
+				}
+				Tcl_SetObjResult(interp, res);
+
+			exists_finally:
+				replace_tclobj(&pathlist, NULL);
 				replace_tclobj(&res, NULL);
 			}
 			break;
@@ -678,17 +772,45 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 			}
 			break;
 			//>>>
-		case M_UNSET: //<<<
-			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
-			}
-			break;
-			//>>>
 		case M_JOIN: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				enum {
+					A_cmd=1,
+					A_SEGMENTS,
+					A_objc
+				};
+				Tcl_Obj**	segmentv = NULL;
+				int			segmentc;
+				Tcl_DString	ds;
+
+				Tcl_DStringInit(&ds);
+
+				CHECK_ARGS_LABEL(join_finally, code, "segments");
+
+				TEST_OK_LABEL(join_finally, code, Tcl_ListObjGetElements(interp, objv[A_SEGMENTS], &segmentc, &segmentv));
+				if (segmentc > 0) {
+					int			len;
+					const char* seg = Tcl_GetStringFromObj(segmentv[0], &len);
+					if (len == 1 && seg[0] == '/') {
+						// Root
+						if (segmentc == 1) Tcl_DStringAppend(&ds, "/", 1);
+					} else {
+						percent_encode_ds(REURI_ENCODE_PATH, &ds, seg);
+					}
+
+					for (int i=1; i<segmentc; i++) {
+						seg = Tcl_GetString(segmentv[i]);
+						Tcl_DStringAppend(&ds, "/", 1);
+						percent_encode_ds(REURI_ENCODE_PATH, &ds, seg);
+					}
+				}
+
+			join_finally:
+				if (code == TCL_OK) {
+					Tcl_DStringResult(interp, &ds);
+				} else {
+					Tcl_DStringFree(&ds);
+				}
 			}
 			break;
 			//>>>
@@ -755,6 +877,10 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 		for (i=0; reuri_hosttype_str[i]; i++)
 			replace_tclobj(&l->hosttype[i], Dedup_NewStringObj(l->dedup_pool, reuri_hosttype_str[i], -1));
 	}
+	replace_tclobj(&l->empty,		Dedup_NewStringObj(l->dedup_pool, "", 0));
+	replace_tclobj(&l->empty_list,	Tcl_NewListObj(0, NULL));
+	replace_tclobj(&l->t,			Tcl_NewBooleanObj(1));
+	replace_tclobj(&l->f,			Tcl_NewBooleanObj(0));
 
 	Tcl_SetAssocData(interp, "reuri", free_interp_cx, l);
 	// Set up interp_cx >>>

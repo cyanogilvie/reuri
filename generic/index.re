@@ -94,26 +94,39 @@ int parse_index(Tcl_Interp* interp, const char* str, struct parse_idx_cx** index
 	int							code = TCL_OK;
 	const unsigned char*const	base = (const unsigned char*const)str;
 	const unsigned char*		s = base;
-	const unsigned char			*e, *n1, *n2, *hex_s, *decimal_s, *octal_s, *binary_s, *end;
+	const unsigned char			*n, *hex_s, *decimal_s, *octal_s, *binary_s;
 	/*!stags:re2c:index format = "const unsigned char *@@;\n"; */
 	const unsigned char*		YYMARKER;
 	long						c = yycindex;
-	struct idx_range			range;
+	struct idx_range			range = {0};
 	struct parse_idx_cx*		cx = new_parse_idx_cx(str);
 
-	range.from.type = IDX_NONE;
-	range.to.type   = IDX_NONE;
-
-#define SETATOM(a) \
+#define SET_ATOM(a, t) \
 	do { \
 		if      (decimal_s)	a.val = _strntol((const char*)decimal_s,	(int)(s - decimal_s),	NULL, 10); \
 		else if (hex_s)		a.val = _strntol((const char*)hex_s,		(int)(s - hex_s),		NULL, 16); \
 		else if (octal_s)	a.val = _strntol((const char*)octal_s,		(int)(s - octal_s),		NULL, 8); \
 		else if (binary_s)	a.val = _strntol((const char*)binary_s,		(int)(s - binary_s),	NULL, 2); \
-		if (n1 || n2) a.val = -a.val; \
-		a.type = e ? IDX_ENDREL : IDX_ABS; \
+		else                a.val = 0; \
+		if (n) a.val = -a.val; \
+		a.type = t; \
+		goto top; \
 	} while(0)
 
+#define COMPLETE_RANGE(a, t) \
+	do { \
+		if      (decimal_s)	a.val = _strntol((const char*)decimal_s,	(int)(s - decimal_s),	NULL, 10); \
+		else if (hex_s)		a.val = _strntol((const char*)hex_s,		(int)(s - hex_s),		NULL, 16); \
+		else if (octal_s)	a.val = _strntol((const char*)octal_s,		(int)(s - octal_s),		NULL, 8); \
+		else if (binary_s)	a.val = _strntol((const char*)binary_s,		(int)(s - binary_s),	NULL, 2); \
+		else                a.val = 0; \
+		if (n) a.val = -a.val; \
+		a.type = t; \
+		push_range(cx, &range); \
+		goto top; \
+	} while(0);
+
+top:
 	/*!local:re2c:index
 
 	!use:common;
@@ -125,32 +138,20 @@ int parse_index(Tcl_Interp* interp, const char* str, struct parse_idx_cx** index
 	binary			= "0b" @binary_s bit+;
 	octal			= "0" @octal_s octdigit+;
 	number			= hex | binary | octal | decimal;
-	atom			= ( @e "end" ("+" | @n1 "-") | @n2 "-" | "+"?) number;
+	relatom			= "end" (("+" | @n "-") number)?;
+	absatom			= ("+"? | @n "-") number;
 
-	<index> atom end {
-		SETATOM(range.from);
-		push_range(cx, &range);
-		goto finally;
-	}
+	<index> relatom				=> postindex { SET_ATOM(range.from, IDX_ENDREL);	}
+	<index> absatom				=> postindex { SET_ATOM(range.from, IDX_ABS);		}
 
-	<index>	atom {
-		SETATOM(range.from);
-		goto yyc_after;
-	}
+	<postindex> ".." relatom	=> postrange { COMPLETE_RANGE(range.to, IDX_ENDREL);	}
+	<postindex> ".." absatom	=> postrange { COMPLETE_RANGE(range.to, IDX_ABS);		}
 
-	<after> '..' atom (',' | @end end) {
-		SETATOM(range.to);
-		push_range(cx, &range);
-		if (end) goto finally;
-		goto yyc_index;
-	}
+	<postindex> ","				=> index	{ push_range(cx, &range); range=(struct idx_range){0}; goto top; }
+	<postrange> ","				=> index	{                         range=(struct idx_range){0}; goto top; }
 
-	<after> ',' {
-		push_range(cx, &range);
-		range.to.type   = IDX_NONE;
-		range.from.type = IDX_NONE;
-		goto yyc_index;
-	}
+	<postindex> end							{ push_range(cx, &range); goto finally; }
+	<postrange> end							{                         goto finally; }
 
 	<*> * {
 	  	char	buf[3*sizeof(ptrdiff_t)+2];

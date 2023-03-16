@@ -86,7 +86,6 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 			goto finally;
 		}
 
-		Tcl_FreeInternalRep(query);
 		Tcl_StoreInternalRep(query, &query_objtype, &newir);
 		ir = Tcl_FetchInternalRep(query, &query_objtype);
 	}
@@ -156,7 +155,6 @@ int Reuri_NewQueryObj(Tcl_Interp* interp, int objc, Tcl_Obj* const objv[], Tcl_O
 	replace_tclobj(INDEX_PTR(&newir),  new_index);
 
 	replace_tclobj(&newobj, Tcl_NewObj());
-	Tcl_FreeInternalRep(newobj);
 	Tcl_StoreInternalRep(newobj, &query_objtype, &newir);
 	Tcl_InvalidateStringRep(newobj);
 

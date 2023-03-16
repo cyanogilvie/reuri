@@ -8,7 +8,6 @@ package require reuri
 testConstraint testmode	[expr {[llength [info commands ::reuri::_test]] > 0}]
 
 foreach impl {re2c packcc} {
-	if {$impl eq "x_re2c"} continue
 	test parse_index_${impl}-1.0 {Parse an index set} -constraints testmode -body { #<<<
 		puts stderr "parse index $impl: [timerate {
 			reuri::_test parse_index_${impl} end-3..end-1,-1..2,5,end+1

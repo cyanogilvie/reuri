@@ -50,9 +50,9 @@ AC_DEFUN([DEDUP_STUBS], [
 AC_DEFUN([CHECK_TESTMODE], [
 	AC_MSG_CHECKING([whether to build in test mode])
 	AC_ARG_ENABLE(testmode,
-		[  --enable-testmode       Build in test mode (default: on)],
+		[  --enable-testmode       Build in test mode (default: off)],
 		[enable_testmode=$enableval],
-		[enable_testmode="yes"])
+		[enable_testmode="no"])
 	AC_MSG_RESULT($enable_testmode)
 	if test "$enable_testmode" = "yes"
 	then

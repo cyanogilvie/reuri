@@ -50,6 +50,10 @@ struct interp_cx {
 	struct dedup_pool*	dedup_pool;
 	const Tcl_ObjType*	typeInt;
 	Tcl_Obj*			hosttype[REURI_HOST_SIZE];
+	Tcl_Obj*			empty;
+	Tcl_Obj*			empty_list;
+	Tcl_Obj*			t;
+	Tcl_Obj*			f;
 };
 
 // reuri.c internal API <<<
@@ -60,7 +64,8 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri);
 int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri);
 // type_uri.c internal API >>>
 // parse.re internal API <<<
-void parse_uri(struct parse_context* pc, const char* str, int len);
+void parse_uri(struct parse_context* pc, const char* str);
+int uri_valid(const char* str);
 Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_mode mode);
 void percent_encode_ds(enum reuri_encode_mode mode, Tcl_DString* ds, const char* str);
 int percent_decode(Tcl_Obj* str, Tcl_Obj** res);
@@ -72,7 +77,7 @@ int query_add_index(Tcl_Interp* interp, Tcl_Obj* index, Tcl_Obj* name, const int
 int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, Tcl_Obj** index);
 // type_query.c internal API >>>
 // type_index.c internal API <<<
-enum idx_type {
+enum idx_atom_type {
 	IDX_NONE=0,
 	IDX_ABS,
 	IDX_ENDREL
@@ -84,8 +89,8 @@ enum parse_status {
 };
 
 struct idx_atom {
-	enum idx_type	type;
-	int				val;
+	enum idx_atom_type	type;
+	int					val;
 };
 
 struct idx_range {
@@ -94,8 +99,8 @@ struct idx_range {
 };
 
 struct idx_set {
-	int size;
-	int	top;
+	int					size;
+	int					top;
 	struct idx_range*	range;
 };
 
@@ -139,4 +144,4 @@ int testmode_init(Tcl_Interp* interp, struct interp_cx* l);
 #endif
 
 #endif
-// vim: ft=c foldmethod=marker foldmarker=<<<,>>>
+// vim: ft=c foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

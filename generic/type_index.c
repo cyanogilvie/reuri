@@ -163,7 +163,7 @@ void Reuri_DStringAppendIndex(Tcl_DString* ds, struct parse_idx_cx* idx) //<<<
 }
 
 //>>>
-static int ReuriGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_cx** index) //<<<
+static int IdxGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_cx** index) //<<<
 {
 	int						code = TCL_OK;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(indexObj, &index_objtype);
@@ -178,7 +178,6 @@ static int ReuriGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct pa
 			goto finally;
 		}
 
-		Tcl_FreeInternalRep(indexObj);
 		Tcl_StoreInternalRep(indexObj, &index_objtype, &newir);
 		ir = Tcl_FetchInternalRep(indexObj, &index_objtype);
 	}
@@ -190,9 +189,7 @@ finally:
 }
 
 //>>>
-// Internal API >>>
-// Stubs API <<<
-static int64_t _resolve_index_val(enum idx_type type, int64_t length, int val) //<<<
+static int64_t _resolve_index_val(enum idx_atom_type type, int64_t length, int val) //<<<
 {
 	int64_t	resolved;
 
@@ -202,7 +199,7 @@ static int64_t _resolve_index_val(enum idx_type type, int64_t length, int val) /
 			break;
 
 		case IDX_ENDREL:
-			resolved = val + length;
+			resolved = val + length - 1;
 			break;
 
 		default:
@@ -214,7 +211,97 @@ static int64_t _resolve_index_val(enum idx_type type, int64_t length, int val) /
 }
 
 //>>>
-int Reuri_ResolveIndex(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** elementsPtrPtr) //<<<
+// Internal API >>>
+// Stubs API (future exposed stubs API, when factored out into its own extension) <<<
+int Idx_PickFromList(Tcl_Interp* interp, Tcl_Obj* listObj, Tcl_Obj* indexObj, Tcl_Obj** picked) //<<<
+{
+	int					code = TCL_OK;
+	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
+	Tcl_Obj*			idxlist = NULL;
+	Tcl_Obj*			res = NULL;
+	int					idx;
+	enum idx_type		idxtype;
+	Tcl_Obj**			lv;
+	int					lc;
+	Tcl_Obj**			idxv;
+	int					idxc;
+
+	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, listObj, &lc, &lv));
+	TEST_OK_LABEL(finally, code, Idx_Resolve(interp, indexObj, lc, &idxlist, &idxtype));
+
+	switch (idxtype) {
+		case IDX_SINGLE:
+			TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxlist, &idx));
+			replace_tclobj(&res, (idx>=0 && idx<lc) ? lv[idx] : l->empty);
+			break;
+
+		case IDX_RANGE:
+			TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
+			replace_tclobj(&res, Tcl_NewListObj(0, NULL));
+			for (int i=0; i<idxc; i++) {
+				TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
+				TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res,
+							(idx>=0 && idx<lc) ? lv[idx] : l->empty
+				));
+			}
+			break;
+
+		default:
+			THROW_ERROR_LABEL(finally, code, "Invalid idxtype");
+	}
+	replace_tclobj(picked, res);
+
+finally:
+	replace_tclobj(&idxlist, NULL);
+	replace_tclobj(&res, NULL);
+	return code;
+}
+
+//>>>
+int Idx_Exists(Tcl_Interp* interp, size_t length, Tcl_Obj* indexObj, Tcl_Obj** exists) //<<<
+{
+	int					code = TCL_OK;
+	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
+	Tcl_Obj*			idxlist = NULL;
+	Tcl_Obj*			res = NULL;
+	int					idx;
+	enum idx_type		idxtype;
+	Tcl_Obj**			idxv;
+	int					idxc;
+
+	TEST_OK_LABEL(finally, code, Idx_Resolve(interp, indexObj, length, &idxlist, &idxtype));
+
+	switch (idxtype) {
+		case IDX_SINGLE:
+			TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxlist, &idx));
+			replace_tclobj(&res, (idx>=0 && idx<length) ? l->t : l->f);
+			break;
+
+		case IDX_RANGE:
+			TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
+			replace_tclobj(&res, Tcl_NewListObj(0, NULL));
+			for (int i=0; i<idxc; i++) {
+				TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
+				TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res,
+							(idx>=0 && idx<length) ? l->t : l->f
+				));
+			}
+			break;
+
+		default:
+			THROW_ERROR_LABEL(finally, code, "Invalid idxtype");
+	}
+
+	replace_tclobj(exists, res);
+
+finally:
+	replace_tclobj(&idxlist, NULL);
+	replace_tclobj(&res, NULL);
+	return code;
+}
+
+//>>>
+int Idx_Resolve(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** elementsPtrPtr, enum idx_type* type) //<<<
 {
 	int						code = TCL_OK;
 	//struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
@@ -229,35 +316,45 @@ int Reuri_ResolveIndex(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl
 	l = Tcl_GetAssocData(interp, "reuri", NULL);
 	);
 
-	replace_tclobj(&res, Tcl_NewListObj(0, NULL));
-
 	// First check if the indexObj is a native integer, in which case don't shimmer it to our intrep
 	TIME("Check for int intrep",
 	int_ir = Tcl_FetchInternalRep(indexObj, l->typeInt);
 	);
+
 	if (int_ir) {
-		fprintf(stderr, "Using native int directly: %s\n", Tcl_GetString(indexObj));
-		TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, indexObj));
+		//fprintf(stderr, "Using native int directly: %s\n", Tcl_GetString(indexObj));
+		replace_tclobj(&res, indexObj);
+		*type = IDX_SINGLE;
 		goto done;
 	}
 
-	TEST_OK_LABEL(finally, code, ReuriGetIndexFromObj(interp, indexObj, &index));
+	replace_tclobj(&res, Tcl_NewListObj(0, NULL));
 
-	for (i=0; i<index->set.top; i++) {
-		int64_t		from = _resolve_index_val(index->set.range[i].from.type, length, index->set.range[i].from.val);
-		int64_t		to   = from;
-		int64_t		r;
+	TEST_OK_LABEL(finally, code, IdxGetIndexFromObj(interp, indexObj, &index));
 
-		if (index->set.range[i].to.type != IDX_NONE)
-			to = _resolve_index_val(index->set.range[i].to.type, length, index->set.range[i].to.val);
+	if (index->set.top == 1 && index->set.range[0].to.type == IDX_NONE) {
+		// Special case: index resolves to a single element, not a range
+		int64_t		idx = _resolve_index_val(index->set.range[0].from.type, length, index->set.range[0].from.val);
+		replace_tclobj(&res, Tcl_NewIntObj(idx));
+		*type = IDX_SINGLE;
+	} else {
+		for (i=0; i<index->set.top; i++) {
+			int64_t		from = _resolve_index_val(index->set.range[i].from.type, length, index->set.range[i].from.val);
+			int64_t		to   = from;
+			int64_t		r;
 
-		if (to >= from) {
-			for (r=from; r<=to; r++)
-				TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, Tcl_NewIntObj(r)));
-		} else {
-			for (r=from; r>=to; r--)
-				TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, Tcl_NewIntObj(r)));
+			if (index->set.range[i].to.type != IDX_NONE)
+				to = _resolve_index_val(index->set.range[i].to.type, length, index->set.range[i].to.val);
+
+			if (to >= from) {
+				for (r=from; r<=to; r++)
+					TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, Tcl_NewIntObj(r)));
+			} else {
+				for (r=from; r>=to; r--)
+					TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, Tcl_NewIntObj(r)));
+			}
 		}
+		*type = IDX_RANGE;
 	}
 
 done:
@@ -265,6 +362,27 @@ done:
 
 finally:
 	replace_tclobj(&res, NULL);
+	return code;
+}
+
+//>>>
+int Idx_IndexType(Tcl_Interp* interp, Tcl_Obj* indexObj, enum idx_type* type) //<<<
+{
+	int						code = TCL_OK;
+	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
+	struct parse_idx_cx*	index = NULL;
+
+	// First check if the indexObj is a native integer, in which case don't shimmer it to our intrep
+	Tcl_ObjInternalRep*		int_ir = Tcl_FetchInternalRep(indexObj, l->typeInt);
+	if (int_ir) {
+		*type = IDX_SINGLE;
+		goto finally;
+	}
+
+	TEST_OK_LABEL(finally, code, IdxGetIndexFromObj(interp, indexObj, &index));
+	*type = (index->set.top == 1 && index->set.range[0].to.type == IDX_NONE) ? IDX_SINGLE : IDX_RANGE;
+
+finally:
 	return code;
 }
 

@@ -25,9 +25,6 @@ declare 6 generic {
 declare 8 generic {
 	int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlistPtrPtr)
 }
-declare 9 generic {
-	int Reuri_ResolveIndex(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** elementsPtrPtr)
-}
 declare 10 generic {
 	Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in)
 }

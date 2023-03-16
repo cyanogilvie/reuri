@@ -122,7 +122,7 @@ int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri) //
 		pc.uri = newuri = (struct uri*)ckalloc(sizeof *newuri);
 		memset(newuri, 0, sizeof *newuri);
 
-		parse_uri(&pc, uristr, uristr_len);
+		parse_uri(&pc, uristr);
 		code = pc.rc;
 		if (pc.rc != TCL_OK) goto finally;
 
@@ -131,7 +131,6 @@ int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri) //
 		newuri = NULL;
 		pc.uri = NULL;
 
-		Tcl_FreeInternalRep(uriPtr);
 		Tcl_StoreInternalRep(uriPtr, &uri_objtype, &newir);
 		ir = Tcl_FetchInternalRep(uriPtr, &uri_objtype);
 	}

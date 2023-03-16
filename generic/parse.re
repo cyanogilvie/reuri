@@ -5,7 +5,7 @@
 /*!types:re2c*/
 /*!include:re2c "parse.h"*/
 
-void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
+void parse_uri(struct parse_context* pc, const char* str) //<<<
 {
 	struct interp_cx*	l = Tcl_GetAssocData(pc->interp, "reuri", NULL);
     const char
@@ -26,54 +26,7 @@ void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
 	re2c:yyfill:enable         = 0;
 	re2c:flags:tags            = 1;
 
-	!use:common;
-
-    unreserved  = alpha | digit | [-._~];
-    sub_delims  = [!$&'()*+,;=];
-    pchar       = unreserved | pct_encoded | sub_delims | [:@];
-
-    scheme = @s1 alpha (alpha | digit | [-+.])* @s2;
-    userinfo = @u1 (unreserved | pct_encoded | sub_delims | ":")* @u2;
-    dec_octet
-        = digit
-        | [\x31-\x39] digit
-        | "1" digit{2}
-        | "2" [\x30-\x34] digit
-        | "25" [\x30-\x35];
-    ipv4address = dec_octet "." dec_octet "." dec_octet "." dec_octet;
-    h16         = hexdigit{1,4};
-    ls32        = h16 ":" h16 | ipv4address;
-    ipv6address
-        =                            (h16 ":"){6} ls32
-        |                       "::" (h16 ":"){5} ls32
-        | (               h16)? "::" (h16 ":"){4} ls32
-        | ((h16 ":"){0,1} h16)? "::" (h16 ":"){3} ls32
-        | ((h16 ":"){0,2} h16)? "::" (h16 ":"){2} ls32
-        | ((h16 ":"){0,3} h16)? "::"  h16 ":"     ls32
-        | ((h16 ":"){0,4} h16)? "::"              ls32
-        | ((h16 ":"){0,5} h16)? "::"              h16
-        | ((h16 ":"){0,6} h16)? "::";
-    ipvfuture   = "v" hexdigit+ "." (unreserved | sub_delims | ":" )+;
-    ip_literal  = "[" ( ipv6address | ipvfuture ) "]";
-    reg_name    = (unreserved | pct_encoded | sub_delims)*;
-	unix_socket = ("[" | "[v0.local:") @h7 "/" pchar+ ("/" pchar+)* @h8 "]";
-    host
-        = @h1 ip_literal  @h2
-        | @h3 ipv4address @h4
-        | @h5 reg_name    @h6
-		| unix_socket;
-    port      = @r1 digit* @r2;
-    authority = (userinfo "@")? host (":" port)?;
-    path_abempty  = ("/" pchar*)*;
-    path_absolute = "/" (pchar+ ("/" pchar*)*)?;
-    path_rootless = pchar+ ("/" pchar*)*;
-    path_empty    = "";
-    hier_part
-        = "//" authority @p1 path_abempty @p2
-        | @p3 (path_absolute | path_rootless | path_empty) @p4;
-    query    = @q1 (pchar | [/?])* @q2;
-    fragment = @f1 (pchar | [/?])* @f2;
-    uri = scheme ":" hier_part ("?" query)? ("#" fragment)?;
+	!use:uri;
 
     *   {
 		Tcl_Obj*	ofsObj = NULL;
@@ -86,9 +39,8 @@ void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
 		pc->rc = TCL_ERROR;
 		goto finally;
 	}
-    end { goto finally; }
-    uri {
-		replace_tclobj(&pc->uri->scheme, Dedup_NewStringObj(l->dedup_pool, s1, (int)(s2-s1)));
+    uri end {
+		if (s1) replace_tclobj(&pc->uri->scheme,	Dedup_NewStringObj(l->dedup_pool, s1, (int)(s2-s1)));
 		if (u1) replace_tclobj(&pc->uri->userinfo,	Dedup_NewStringObj(l->dedup_pool, u1, (int)(u2-u1)));
 
 		if (h1) {
@@ -113,18 +65,41 @@ void parse_uri(struct parse_context* pc, const char* str, int len) //<<<
 		if (p3 && p4>p3) replace_tclobj(&pc->uri->path,     Dedup_NewStringObj(l->dedup_pool, p3, (int)(p4 - p3)));
 		if (q1) replace_tclobj(&pc->uri->query,    Dedup_NewStringObj(l->dedup_pool, q1, (int)(q2 - q1)));
 		if (f1) replace_tclobj(&pc->uri->fragment, Dedup_NewStringObj(l->dedup_pool, f1, (int)(f2 - f1)));
-		if ((int)(s-str) < len) {
-			Tcl_SetErrorCode(pc->interp, "REURI", "PARSE", NULL);
-			Tcl_SetObjResult(pc->interp, Tcl_ObjPrintf("Extra characters remain after URI at offset %d", (int)(s-str)));
-			pc->fail_ofs = (int)(s-str);
-			pc->rc = TCL_ERROR;
-		}
 		goto finally;
     }
 	*/
 
 finally:
 	Tcl_DStringFree(&val);
+}
+
+//>>>
+int uri_valid(const char* str) //<<<
+{
+	_Pragma("GCC diagnostic push");
+	_Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"");
+	// We need these tag variables so that we can reuse the parse rules
+    const char
+        *s1, *u1, *h1, *h3, *h5, *r1, *p1, *p3, *q1, *f1,
+        *s2, *u2, *h2, *h4, *h6, *h7, *h8, *r2, *p2, *p4,
+		*q2, *f2;
+	_Pragma("GCC diagnostic pop");
+	const char*			s = str;
+	const char*			YYMARKER;
+	/*!stags:re2c:uri_valid format = "const char *@@{tag}; "; */
+
+	/*!local:re2c:uri_valid
+    re2c:api:style             = free-form;
+    re2c:define:YYCTYPE        = "char";
+    re2c:define:YYCURSOR       = s;
+	re2c:yyfill:enable         = 0;
+	re2c:flags:tags            = 1;
+
+	!use:uri;
+
+    uri end	{return 1;}
+    *		{return 0;}
+	*/
 }
 
 //>>>
@@ -151,12 +126,11 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 	const unsigned char*	u;
 	const unsigned char*	str = NULL;	// CESU-8
 	const unsigned char*	s;
-	int						strlen;
 	int						c = yycstart;
 	Tcl_DString				val;
 	/*!stags:re2c:percent_encode format = "const unsigned char *@@{tag}; "; */
 
-	u = s = str = (const unsigned char*)Tcl_GetStringFromObj(objPtr, &strlen);
+	u = s = str = (const unsigned char*)Tcl_GetString(objPtr);
 
 	Tcl_DStringInit(&val);
 
@@ -482,7 +456,7 @@ top:
 	<name> end {
 		if (Tcl_DStringLength(&acc)) {
 			TEST_OK_LABEL(finally, code, _add_name(interp, l, &acc, res_params, res_index, pnum++));
-			TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, Dedup_NewStringObj(l->dedup_pool, "", 0)));
+			TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, l->empty));
 		}
 		goto finally;
 	}
@@ -517,23 +491,7 @@ finally:
 }
 
 //>>>
-static int _add_path(Tcl_Interp* interp, struct interp_cx* l, Tcl_DString* ds, Tcl_Obj* res_pathlist) //<<<
-{
-	int				code = TCL_OK;
-	Tcl_Obj*		valueObj = NULL;
-
-	replace_tclobj(&valueObj, Dedup_NewStringObj(l->dedup_pool, Tcl_DStringValue(ds), Tcl_DStringLength(ds)));
-
-	TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_pathlist, valueObj));
-
-finally:
-	Tcl_DStringSetLength(ds, 0);
-	replace_tclobj(&valueObj, NULL);
-
-	return code;
-}
-
-//>>>
+#define _add_path _add_value
 int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist) //<<<
 {
 	int						code = TCL_OK;
@@ -562,17 +520,10 @@ top:
 
 	!use:common;
 
-	mark        = [-_.!~*'()];
-	unreserved  = alpha | digit | mark | [=&];
-	reserved    = ([^] \ end) \ unreserved;
+	lenient		= [^] \ end \ [/%];
 
-	@start unreserved+ {
+	@start lenient+ {
 		Tcl_DStringAppend(&acc, (const char*)start, (int)(s-start));
-		goto top;
-	}
-	"+" {
-		// Not sure about this
-		Tcl_DStringAppend(&acc, " ", 1);
 		goto top;
 	}
 	pct_encoded {
@@ -586,7 +537,11 @@ top:
 		}
 		goto top;
 	}
-	
+	"%" {
+		// Invalid percent that isn't a valid percent encoded sequence, add it as a literal
+		Tcl_DStringAppend(&acc, "%", 1);
+		goto top;
+	}
 	"/" {
 		if (s == base+1) Tcl_DStringAppend(&acc, "/", 1);
 		TEST_OK_LABEL(finally, code, _add_path(interp, l, &acc, res_pathlist));

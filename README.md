@@ -2,19 +2,21 @@
 
 reuri - URI Manipulation for Tcl
 
-# SYNOPSIS
+## SYNOPSIS
 
-**package require reuri** ?0.1?
+**package require reuri** ?0.3?
 
 **reuri::uri** **get** *uri* ?*part* ?*default*??  
 **reuri::uri** **exists** *uri* *part*  
 ?? **reuri::uri** **set** *variable* *part* *value*  
-?? **reuri::uri** **valid** *uri*  
+**reuri::uri** **valid** *uri*  
 ?? **reuri::uri** **context** *uri* *script*  
 ?? **reuri::uri** **resolve** *uri*  
 ?? **reuri::uri** **absolute** *uri*  
 **reuri::uri** **encode** **query**|**path**|**host** *value*  
-**reuri::uri** **decode** *value*
+**reuri::uri** **decode** *value*  
+**reuri::uri** **query** *op* *uri* ?*arg* …?  
+**reuri::uri** **path** *op* *uri* ?*arg* …?
 
 ?? **reuri::query** **get** *query* ?*param* ?*default*??  
 ?? **reuri::query** **values** *query* *param*  
@@ -27,11 +29,10 @@ reuri - URI Manipulation for Tcl
 **reuri::query** **encode** *params*|?*param* *value* …?  
 **reuri::query** **decode** *query*
 
-**reuri::path** **split** *path*  
-?? **reuri::path** **join** *segments*  
-?? **reuri::path** **get** *path* *index*  
+**reuri::path** **get** *path* ?*index*?  
+**reuri::path** **exists** *path* *index*  
+**reuri::path** **join** *segments*  
 ?? **reuri::path** **set** *variable* *index* *value*  
-?? **reuri::path** **unset** *variable* *index*  
 ?? **reuri::path** **resolve** *path*
 
 ### Note
@@ -39,7 +40,7 @@ reuri - URI Manipulation for Tcl
 Commands marked up as “?? **reuri::foo**” are not yet implemented, or
 only partially implemented.
 
-# DESCRIPTION
+## DESCRIPTION
 
 This package allows efficient manipulation of URI strings from Tcl. A
 fast parser is used to extract the parts from the URI string
@@ -61,7 +62,7 @@ series release the API will preserve backwards compatibility within a
 major version number sequence. <span color="red">**USING THE 0 SERIES
 VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
 
-# COMMANDS
+## COMMANDS
 
   - **reuri::uri** **get** *uri* ?*part* ?*default*??  
     Return the URL *part* from *uri* or throw an exception if *uri*
@@ -108,6 +109,14 @@ VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
     Percent decode *value*, the inverse of **reuri::uri** **encode**.
     For compatibility with other implementations, “`+`” is replaced with
     a space and invalid percent-encoded sequences are transcribed as-is.
+
+  - **reuri::uri** **query** *op* *uri* ?*arg* …?  
+    Equivalent to calling **reuri::query** *op* ?*arg* …? on the query
+    portion of *uri*.
+
+  - **reuri::uri** **path** *op* *uri* ?*arg* …?  
+    Equivalent to calling **reuri::path** *op* ?*arg* …? on the path
+    portion of *uri*.
 
   - **reuri::query** **get** *query* ?*param* ?*default*??  
     Retrieve the value for the named *param* in the *query* part. If
@@ -166,12 +175,25 @@ VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
   - **reuri::query** **decode** *query*  
     Decode *query* into a list of params and their values.
 
-  - **reuri::path** **split** *path*  
-    Return a fully decoded list of path segments in *path*.
+  - **reuri::path** **get** *path* ?*index*?  
+    Return decoded elements of a path. See **INDEX SYNTAX** for details
+    on *index*. If *index* names elements outside of the range (before
+    the start or after the end of the path), then empty values are
+    returned for those elements. If *index* is omitted, return a list of
+    all the elements (equivalent to specifying “0..end” for the
+    *index*). If *index* specifies a list or a range, the result is a
+    list of the elements, otherwise just the element value.
+
+  - **reuri::path** **exists** *path* *index*  
+    True if *index* refers to a path element in range. If *index*
+    specifies a range or list of indices, return a list with a boolean
+    corresponding to each named element. See **INDEX SYNTAX** for
+    details on *index*.
 
   - **reuri::path** **set** *variable* *index* *value*
 
-  - **reuri::path** **unset** *variable* *index*
+  - **reuri::path** **split** *path*  
+    Deprecated - use **reuri::path** **get** *path* instead.
 
   - **reuri::path** **join** *segments*  
     Produce a properly encoded URI path part given the list of
@@ -181,7 +203,30 @@ VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
     Return *path* resolved in the context of all the URIs on the
     callstack from **reuri::uri** **context** calls.
 
-# PARTS
+## INDEX SYNTAX
+
+For commands that take an *index* parameter, a superset of the index
+style provided by *lindex* is supported.
+
+An index may be a plain positive or negative integer in decimal, hex
+(0x\*), octal (0o\*, 0\*) or binary (0b\*) formats, in which case it
+counts from the first element at 0. If it is the string “end” it names
+the last element in the list. “end” followed by a positive or negative
+integer counts from the last element, “end-1” is the second last
+element, “end+2” is two beyond the end of the list.
+
+An index may also be a range of two such values separated by “..”, in
+which case it names the range of elements starting from the index on the
+left to the index on the right, inclusive. So “0..end” is all of the
+elements, and “end..1” is all but the first, in reverse order.
+
+An index may also be a list of comma separated indices or index ranges,
+which names each element from each of the indices or index ranges. So
+“1,2,4” refers to the second, third and fifth elements, and
+“end..0,1,-1” refers to all of the elements in reverse order, plus the
+second, and -1 th element (before the start of the list).
+
+## PARTS
 
 The named parts of URIs that are accessible in this package are:
 
@@ -208,7 +253,7 @@ The named parts of URIs that are accessible in this package are:
   - **fragment**  
     `endbit` in `http://localhost/foo?x=y&a=b#endbit`
 
-# EXCEPTIONS
+## EXCEPTIONS
 
 Exceptions with errorcodes matching the following patterns will be
 thrown by these commands if the supplied URIs aren’t valid, the
@@ -232,7 +277,7 @@ specified part isn’t valid, or some other assumption was violated:
     The supplied set of parameters isn’t even. Each parameter name must
     have a matching value.
 
-# C API
+## C API
 
 A C API is exposed via the stubs mechanism:
 
@@ -246,7 +291,7 @@ int **Reuri\_URIObjSetParam**(*interp*, *uriPtr*, *paramPtr*,
 
 TODO: complete
 
-## ARGUMENTS
+### ARGUMENTS
 
   - Tcl\_Interp *\*interp*  
     A Tcl interpreter, which will have its result updated with and
@@ -272,7 +317,7 @@ TODO: complete
   - enum reuri\_param\_mode *paramMode*  
     One of **REURI\_PARAM\_ADD** or **REURI\_PARAM\_REPLACE**.
 
-# EXAMPLES
+## EXAMPLES
 
 Extract the host and port from a URI, with a scheme-defined default
 port:
@@ -399,32 +444,32 @@ finally:
 }
 ```
 
-# CONFORMING TO
+## CONFORMING TO
 
 This package aims to conform to RFC 3986, with the optional addition of
 recognising HTTP-over-unix sockets style URLs like
 `http://[/tmp/myserv.80]/foo?bar=baz`.
 
-# BUGS
+## BUGS
 
 Please report any bugs to the github issue tracker:
 https://github.com/cyanogilvie/reuri/issues
 
-# SEE ALSO
+## SEE ALSO
 
 The uri module of tcllib.
 
-# TODO
+## TODO
 
   - [x] Implement http://\[/tmp/mysock.80\]/foo style unix domain
     sockets support
   - [ ] Implement **reuri::uri set**
-  - [ ] Implement **reuri::uri valid**
+  - [x] Implement **reuri::uri valid**
   - [ ] Implement **reuri::uri context**
   - [ ] Implement **reuri::uri resolve**
   - [ ] Implement **reuri::uri absolute**
-  - [ ] Implement **reuri::uri decode**
-  - [ ] Implement **reuri::query get**
+  - [x] Implement **reuri::uri decode**
+  - [x] Implement **reuri::query get**
   - [ ] Implement **reuri::query values**
   - [ ] Implement **reuri::query add**
   - [ ] Implement **reuri::query exists**
@@ -433,13 +478,12 @@ The uri module of tcllib.
   - [ ] Implement **reuri::query names**
   - [ ] Implement **reuri::query reorder**
   - [x] Implement **reuri::path split**
-  - [ ] Implement **reuri::path get**
+  - [x] Implement **reuri::path get**
   - [ ] Implement **reuri::path set**
-  - [ ] Implement **reuri::path unset**
   - [ ] Implement **reuri::path join**
   - [ ] Implement **reuri::path resolve**
 
-# LICENSE
+## LICENSE
 
 This package is Copyright 2021 Cyan Ogilvie, and is made available under
 the same license terms as the Tcl Core

@@ -80,7 +80,6 @@ int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlis
 			goto finally;
 		}
 
-		Tcl_FreeInternalRep(pathPtr);
 		Tcl_StoreInternalRep(pathPtr, &path_objtype, &newir);
 		ir = Tcl_FetchInternalRep(pathPtr, &path_objtype);
 	}

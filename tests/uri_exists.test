@@ -9,6 +9,8 @@ interp alias {} uri {} ::reuri::uri
 
 set t	uri_exists
 test $t-1.1 {scheme, true}		{ uri exists http://localhost					scheme		}	1
+test $t-2.1 {scheme, false}		{ uri exists //localhost						scheme		}	0
+test $t-2.2 {scheme, false}		{ uri exists http								scheme		}	0
 
 test $t-2.1 {userinfo, true}	{ uri exists http://foo:bar@localhost			userinfo	}	1
 test $t-2.2 {userinfo, false}	{ uri exists http://localhost					userinfo	}	0
@@ -28,6 +30,16 @@ test $t-4.2 {port, false}		{ uri exists http://localhost					port		}	0
 
 test $t-5.1 {path, true}		{ uri exists http://localhost/one/two			path		}	1
 test $t-5.2 {path, no path}		{ uri exists http://localhost?three=3			path		}	0
+test $t-5.3 {path, true}		{ uri exists /one/two							path		}	1
+test $t-5.4 {path, no path}		{ uri exists ?three=3							path		}	0
+test $t-6.1 {path, true}		{ uri exists http								path		}	1
+test $t-7.1 {path, true}		{ uri exists http:foo							path		}	1
+test $t-7.1.1 {path, true}		{ uri get http:foo								path		}	foo
+test $t-7.1.2 {path, false}		{ uri exists http:								path		}	0
+test $t-7.2 {path, true}		{ uri exists ./http:foo							path		}	1
+test $t-7.2.1 {path, true}		{ uri get ./http:foo							path		}	./http:foo
+test $t-7.3 {path, true}		{ uri exists http%3Afoo							path		}	1
+test $t-7.3.1 {path, true}		{ uri get http%3Afoo							path		}	http%3Afoo
 
 test $t-6.1 {query, path}		{ uri exists http://localhost/one?two=3&four=4	query		}	1
 test $t-6.2 {query, no path}	{ uri exists http://localhost?three=3&four=4	query		}	1

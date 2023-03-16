@@ -11,16 +11,189 @@ test $t-1.1 {abs}			{ reuri::path split /one/two		} {/ one two}
 test $t-1.2 {rel}			{ reuri::path split one/two			} {one two}
 test $t-1.3 {leading //}	{ reuri::path split //one/two		} {/ {} one two}	;# differs from [file split]
 test $t-1.4 {mid //}		{ reuri::path split /one//two		} {/ one {} two}	;# differs from [file split]
-test $t-1.5 {trailing /}	{ reuri::path split /one/two/		} {/ one two {}}	;# differs from [file split]
+test $t-1.5 {trailing /}	{ reuri::path split /one/two/		} {/ one two}
 test $t-1.6 {bare /}		{ reuri::path split /				} {/}
 test $t-1.7 {bare x}		{ reuri::path split x				} {x}
+test $t-1.8 {lenient chars}	{ reuri::path split /foo:?#=%&bar/baz%2fx	} {/ foo:?#=%&bar baz/x}
 
 set t	path_get
-test $t-1.0 {abs, exists}	{ reuri::path get /one/two/three 0	} {one}
-test $t-1.1 {abs, exists}	{ reuri::path get /one/two/three 1	} {two}
-test $t-1.2 {abs, exists}	{ reuri::path get /one/two/three 2	} {three}
-test $t-1.3 {abs, oob}		{ reuri::path get /one/two/three 3	} {}
-test $t-1.4 {abs, oob}		{ reuri::path get /one/two/three -1	} {}
+test $t-0.0 {empty}			{ reuri::path get {}					} {}
+test $t-0.1 {abs}			{ reuri::path get /one/two				} {/ one two}
+test $t-0.2 {rel}			{ reuri::path get one/two				} {one two}
+test $t-0.3 {leading //}	{ reuri::path get //one/two				} {/ {} one two}	;# differs from [file split]
+test $t-0.4 {mid //}		{ reuri::path get /one//two				} {/ one {} two}	;# differs from [file split]
+test $t-0.5 {trailing /}	{ reuri::path get /one/two/				} {/ one two}
+test $t-0.6 {bare /}		{ reuri::path get /						} {/}
+test $t-0.7 {bare x}		{ reuri::path get x						} {x}
+test $t-0.8 {lenient chars}	{ reuri::path get /foo:?#=%&bar/baz%2fx	} {/ foo:?#=%&bar baz/x}
+
+test $t-1.0 {abs, exists}	{ reuri::path get /one/two/three 0		} {/}
+test $t-1.1 {abs, exists}	{ reuri::path get /one/two/three 1		} {one}
+test $t-1.2 {abs, exists}	{ reuri::path get /one/two/three 2		} {two}
+test $t-1.3 {abs, exists}	{ reuri::path get /one/two/three 3		} {three}
+test $t-1.4 {abs, oob}		{ reuri::path get /one/two/three 4		} {}
+test $t-1.5 {abs, oob}		{ reuri::path get /one/two/three -1		} {}
+test $t-1.6 {abs, range}	{ reuri::path get /one/two/three 1..2	} {one two}
+test $t-1.7 {all}			{ reuri::path get /one/two/three		} {/ one two three}
+
+test $t-2.0 {rel, exists}	{ reuri::path get /one/two/three end			} {three}
+test $t-2.1 {rel, exists}	{ reuri::path get /one/two/three end-1			} {two}
+test $t-2.2 {rel, exists}	{ reuri::path get /one/two/three end-2			} {one}
+test $t-2.3 {rel, exists}	{ reuri::path get /one/two/three end-3			} {/}
+test $t-2.4 {rel, oob}		{ reuri::path get /one/two/three end-4			} {}
+test $t-2.5 {rel, oob}		{ reuri::path get /one/two/three end+1			} {}
+test $t-2.6 {rel, range}	{ reuri::path get /one/two/three end-1..end-2	} {two one}
+test $t-2.7 {rel, range}	{ reuri::path get /one/two/three end-1..end+1	} {two three {}}
+
+test $t-3.1 {all, twice}	{ reuri::path get /one/two/three 0..end,end..0	} {/ one two three three two one /}
+test $t-3.2 {picked}		{ reuri::path get /one/two/three 1,end,-1,end-1	} {one three {} two}
+
+test $t-10.1 {uri path get}		{ reuri::uri path get http://localhost/one/two/three	}	{/ one two three}
+test $t-10.2.0 {uri path get}	{ reuri::uri path get http://localhost/one/two/three 0	}	/
+test $t-10.2.1 {uri path get}	{ reuri::uri path get http://localhost/one/two/three 1	}	one
+test $t-10.2.2 {uri path get}	{ reuri::uri path get http://localhost/one/two/three 2	}	two
+test $t-10.2.3 {uri path get}	{ reuri::uri path get http://localhost/one/two/three 3	}	three
+test $t-10.2.4 {uri path get}	{ reuri::uri path get http://localhost/one/two/three 4	}	{}
+test $t-10.3.0 {uri path get}	{ reuri::uri path get http://localhost/one/two/three end	}	three
+test $t-10.3.1 {uri path get}	{ reuri::uri path get http://localhost/one/two/three end-1	}	two
+test $t-10.3.2 {uri path get}	{ reuri::uri path get http://localhost/one/two/three end-2	}	one
+test $t-10.3.3 {uri path get}	{ reuri::uri path get http://localhost/one/two/three end-3	}	/
+test $t-10.3.4 {uri path get}	{ reuri::uri path get http://localhost/one/two/three end-4	}	{}
+
+test $t-11.1 {uri path get}		{ reuri::uri path get //localhost/one/two/three		}	{/ one two three}
+test $t-11.2.0 {uri path get}	{ reuri::uri path get //localhost/one/two/three 0	}	/
+test $t-11.2.1 {uri path get}	{ reuri::uri path get //localhost/one/two/three 1	}	one
+test $t-11.2.2 {uri path get}	{ reuri::uri path get //localhost/one/two/three 2	}	two
+test $t-11.2.3 {uri path get}	{ reuri::uri path get //localhost/one/two/three 3	}	three
+test $t-11.2.4 {uri path get}	{ reuri::uri path get //localhost/one/two/three 4	}	{}
+test $t-11.3.0 {uri path get}	{ reuri::uri path get //localhost/one/two/three end	}	three
+test $t-11.3.1 {uri path get}	{ reuri::uri path get //localhost/one/two/three end-1	}	two
+test $t-11.3.2 {uri path get}	{ reuri::uri path get //localhost/one/two/three end-2	}	one
+test $t-11.3.3 {uri path get}	{ reuri::uri path get //localhost/one/two/three end-3	}	/
+test $t-11.3.4 {uri path get}	{ reuri::uri path get //localhost/one/two/three end-4	}	{}
+
+test $t-12.1 {uri path get}		{ reuri::uri path get /one/two/three	}	{/ one two three}
+test $t-12.2.0 {uri path get}	{ reuri::uri path get /one/two/three 0	}	/
+test $t-12.2.1 {uri path get}	{ reuri::uri path get /one/two/three 1	}	one
+test $t-12.2.2 {uri path get}	{ reuri::uri path get /one/two/three 2	}	two
+test $t-12.2.3 {uri path get}	{ reuri::uri path get /one/two/three 3	}	three
+test $t-12.2.4 {uri path get}	{ reuri::uri path get /one/two/three 4	}	{}
+test $t-12.3.0 {uri path get}	{ reuri::uri path get /one/two/three end	}	three
+test $t-12.3.1 {uri path get}	{ reuri::uri path get /one/two/three end-1	}	two
+test $t-12.3.2 {uri path get}	{ reuri::uri path get /one/two/three end-2	}	one
+test $t-12.3.3 {uri path get}	{ reuri::uri path get /one/two/three end-3	}	/
+test $t-12.3.4 {uri path get}	{ reuri::uri path get /one/two/three end-4	}	{}
+
+test $t-13.1 {uri path get}		{ reuri::uri path get one/two/three		}	{one two three}
+test $t-13.2.0 {uri path get}	{ reuri::uri path get one/two/three 0	}	one
+test $t-13.2.1 {uri path get}	{ reuri::uri path get one/two/three 1	}	two
+test $t-13.2.2 {uri path get}	{ reuri::uri path get one/two/three 2	}	three
+test $t-13.2.3 {uri path get}	{ reuri::uri path get one/two/three 3	}	{}
+test $t-13.2.4 {uri path get}	{ reuri::uri path get one/two/three 4	}	{}
+test $t-13.3.0 {uri path get}	{ reuri::uri path get one/two/three end	}	three
+test $t-13.3.1 {uri path get}	{ reuri::uri path get one/two/three end-1	}	two
+test $t-13.3.2 {uri path get}	{ reuri::uri path get one/two/three end-2	}	one
+test $t-13.3.3 {uri path get}	{ reuri::uri path get one/two/three end-3	}	{}
+test $t-13.3.4 {uri path get}	{ reuri::uri path get one/two/three end-4	}	{}
+
+test $t-14.1 {uri path get}		{ reuri::uri path get ?foo=bar		}	{}
+test $t-14.2 {uri path get}		{ reuri::uri path get #frag			}	{}
+
+set t	path_exists
+test $t-1.0 {abs, exists}	{ reuri::path exists /one/two/three 0		} 1
+test $t-1.1 {abs, exists}	{ reuri::path exists /one/two/three 1		} 1
+test $t-1.2 {abs, exists}	{ reuri::path exists /one/two/three 2		} 1
+test $t-1.3 {abs, exists}	{ reuri::path exists /one/two/three 3		} 1
+test $t-1.4 {abs, oob}		{ reuri::path exists /one/two/three 4		} 0
+test $t-1.5 {abs, oob}		{ reuri::path exists /one/two/three -1		} 0
+test $t-1.6 {abs, range}	{ reuri::path exists /one/two/three 1..2	} {1 1}
+
+test $t-2.0 {rel, exists}	{ reuri::path exists /one/two/three end				} 1
+test $t-2.1 {rel, exists}	{ reuri::path exists /one/two/three end-1			} 1
+test $t-2.2 {rel, exists}	{ reuri::path exists /one/two/three end-2			} 1
+test $t-2.3 {rel, exists}	{ reuri::path exists /one/two/three end-3			} 1
+test $t-2.4 {rel, oob}		{ reuri::path exists /one/two/three end-4			} 0
+test $t-2.5 {rel, oob}		{ reuri::path exists /one/two/three end+1			} 0
+test $t-2.6 {rel, range}	{ reuri::path exists /one/two/three end-1..end-2	} {1 1}
+test $t-2.7 {rel, range}	{ reuri::path exists /one/two/three end-1..end+1	} {1 1 0}
+
+test $t-3.1 {all, twice}	{ reuri::path exists /one/two/three 0..end,end..0	} {1 1 1 1 1 1 1 1}
+test $t-3.2 {picked}		{ reuri::path exists /one/two/three 1,end,-1,end-1	} {1 1 0 1}
+
+test $t-10.1.1 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three		}	1
+test $t-10.1.2 {uri path exists}	{ reuri::uri path exists http://localhost/					}	1
+test $t-10.1.3 {uri path exists}	{ reuri::uri path exists http://localhost					}	0
+test $t-10.1.4.0 {uri path exists}	{ reuri::uri path exists http:/one							}	1
+test $t-10.1.4.1 {uri path exists}	{ reuri::uri path exists /one								}	1
+test $t-10.1.5.0 {uri path exists}	{ reuri::uri path exists http:?foo=bar						}	0
+test $t-10.1.5.1 {uri path exists}	{ reuri::uri path exists ?foo=bar							}	0
+test $t-10.1.6.0 {uri path exists}	{ reuri::uri path exists http:#frag							}	0
+test $t-10.1.6.1 {uri path exists}	{ reuri::uri path exists #frag								}	0
+test $t-10.1.7.0 {uri path exists}	{ reuri::uri path exists http:								}	0
+test $t-10.1.7.1 {uri path exists}	{ reuri::uri path exists {}									}	0
+test $t-10.1.8.0 {uri path exists}	{ reuri::uri path exists //localhost						}	0
+test $t-10.1.8.1 {uri path exists}	{ reuri::uri path exists //localhost/						}	1
+test $t-10.1.9 {uri path exists}	{ reuri::uri path exists http://localhost?foo=bar			}	0
+
+test $t-10.2.0 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three 0		}	1
+test $t-10.2.1 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three 1		}	1
+test $t-10.2.2 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three 2		}	1
+test $t-10.2.3 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three 3		}	1
+test $t-10.2.4 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three 4		}	0
+test $t-10.3.0 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three end		}	1
+test $t-10.3.1 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three end-1	}	1
+test $t-10.3.2 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three end-2	}	1
+test $t-10.3.3 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three end-3	}	1
+test $t-10.3.4 {uri path exists}	{ reuri::uri path exists http://localhost/one/two/three end-4	}	0
+
+test $t-11.1 {uri path exists}		{ reuri::uri path exists //localhost/one/two/three		}	1
+test $t-11.2.0 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three 0	}	1
+test $t-11.2.1 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three 1	}	1
+test $t-11.2.2 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three 2	}	1
+test $t-11.2.3 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three 3	}	1
+test $t-11.2.4 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three 4	}	0
+test $t-11.3.0 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three end	}	1
+test $t-11.3.1 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three end-1	}	1
+test $t-11.3.2 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three end-2	}	1
+test $t-11.3.3 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three end-3	}	1
+test $t-11.3.4 {uri path exists}	{ reuri::uri path exists //localhost/one/two/three end-4	}	0
+
+test $t-12.1 {uri path exists}		{ reuri::uri path exists /one/two/three		}	1
+test $t-12.2.0 {uri path exists}	{ reuri::uri path exists /one/two/three 0	}	1
+test $t-12.2.1 {uri path exists}	{ reuri::uri path exists /one/two/three 1	}	1
+test $t-12.2.2 {uri path exists}	{ reuri::uri path exists /one/two/three 2	}	1
+test $t-12.2.3 {uri path exists}	{ reuri::uri path exists /one/two/three 3	}	1
+test $t-12.2.4 {uri path exists}	{ reuri::uri path exists /one/two/three 4	}	0
+test $t-12.3.0 {uri path exists}	{ reuri::uri path exists /one/two/three end	}	1
+test $t-12.3.1 {uri path exists}	{ reuri::uri path exists /one/two/three end-1	}	1
+test $t-12.3.2 {uri path exists}	{ reuri::uri path exists /one/two/three end-2	}	1
+test $t-12.3.3 {uri path exists}	{ reuri::uri path exists /one/two/three end-3	}	1
+test $t-12.3.4 {uri path exists}	{ reuri::uri path exists /one/two/three end-4	}	0
+
+test $t-13.1 {uri path exists}		{ reuri::uri path exists one/two/three		}	1
+test $t-13.2.0 {uri path exists}	{ reuri::uri path exists one/two/three 0	}	1
+test $t-13.2.1 {uri path exists}	{ reuri::uri path exists one/two/three 1	}	1
+test $t-13.2.2 {uri path exists}	{ reuri::uri path exists one/two/three 2	}	1
+test $t-13.2.3 {uri path exists}	{ reuri::uri path exists one/two/three 3	}	0
+test $t-13.2.4 {uri path exists}	{ reuri::uri path exists one/two/three 4	}	0
+test $t-13.3.0 {uri path exists}	{ reuri::uri path exists one/two/three end	}	1
+test $t-13.3.1 {uri path exists}	{ reuri::uri path exists one/two/three end-1	}	1
+test $t-13.3.2 {uri path exists}	{ reuri::uri path exists one/two/three end-2	}	1
+test $t-13.3.3 {uri path exists}	{ reuri::uri path exists one/two/three end-3	}	0
+test $t-13.3.4 {uri path exists}	{ reuri::uri path exists one/two/three end-4	}	0
+
+test $t-14.1 {uri path exists}		{ reuri::uri path exists ?foo=bar		}	0
+test $t-14.2 {uri path exists}		{ reuri::uri path exists #frag			}	0
+
+set t	path_join
+test $t-1.0.0 {mepty}		{ reuri::path join {}						}	{}
+test $t-1.0.1 {root}		{ reuri::path join /						}	/
+test $t-1.0.2 {root2}		{ reuri::path join {/ x}					}	/x
+test $t-1.1 {simple}		{ reuri::path join {/ one two three}		}	/one/two/three
+test $t-1.2 {simple}		{ reuri::path join {/ one two three {}}		}	/one/two/three/
+test $t-1.3 {simple}		{ reuri::path join {one two three}			}	one/two/three
+test $t-2.1 {escapes}		{ reuri::path join {/ foo:?#=%&bar baz/x}	}	/[reuri::uri encode path foo:?#=%&bar]/[reuri::uri encode path baz/x]
+test $t-2.2 {escapes}		{ reuri::path join {foo:?#=%&bar baz/x}		}	[reuri::uri encode path foo:?#=%&bar]/[reuri::uri encode path baz/x]
 
 # cleanup
 ::tcltest::cleanupTests

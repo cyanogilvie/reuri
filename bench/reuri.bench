@@ -77,6 +77,28 @@ proc main {} {
 		unset -nocomplain uri_a uri_b newuri uri parts
 	} -result {http localhost 81 /one/two}
 	#>>>
+	bench reuri_valid-2.1 {Validate a uri, valid} -batch auto -setup { #<<<
+		set uri_a http://foo:bar@localhost:81
+		set uri_b /one/two?three=3&four=4#endbit
+		set uri		$uri_a$uri_b
+	} -compare {
+		reuri	{reuri::uri valid $uri}
+		uri		{expr {![catch {uri::split $uri}]}}
+	} -cleanup {
+		unset -nocomplain uri_a uri_b newuri uri parts
+	} -result 1
+	#>>>
+	bench reuri_valid-2.2 {Validate a uri, invalid} -batch auto -setup { #<<<
+		set uri_a http://fo\u306fo:bar@localhost:81
+		set uri_b /one/two?three=3&four=4#endbit
+		set uri		$uri_a$uri_b
+	} -compare {
+		reuri	{reuri::uri valid $uri}
+		uri		{expr {![catch {uri::split $uri}]}}
+	} -cleanup {
+		unset -nocomplain uri_a uri_b newuri uri parts
+	} -result 0
+	#>>>
 }
 
 main

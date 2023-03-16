@@ -12,12 +12,12 @@ set allchars_fragment	{}
 for {set i 0} {$i < 0x80} {incr i} {
 	set c	[format %c $i]
 	append allchars_raw	$c
-	if {[regexp {^[-a-zA-Z0-9._.!~*'()$+&=]$} $c]} {
+	if {[regexp {^[-a-zA-Z0-9._.!~*'()$]$} $c]} {
 		append allchars_path	$c
 	} else {
 		append allchars_path	[format %%%02X $i]
 	}
-	if {[regexp {^[-a-zA-Z0-9._.!~*'()$?/]$} $c]} {
+	if {[regexp {^[-a-zA-Z0-9._.!~*'()$/]$} $c]} {
 		append allchars_query	$c
 	} else {
 		append allchars_query	[format %%%02X $i]
@@ -50,7 +50,7 @@ test reuri-1.1 {} -setup { #<<<
 			query		[reuri::uri get $uri query] \
 			fragment	[reuri::uri get $uri fragment]
 	} finally {
-		puts stderr "Extracting parts from uri took [expr {[clock microseconds]-$start}] usec"
+		#puts stderr "Extracting parts from uri took [expr {[clock microseconds]-$start}] usec"
 	}
 } -cleanup {
 	unset -nocomplain uri start
@@ -72,7 +72,7 @@ test reuri-2.1 {Get all parts as a dict} -setup { #<<<
 	try {
 		reuri::uri get $uri
 	} finally {
-		puts stderr "Extracting parts as dict from uri took [expr {[clock microseconds]-$start}] usec"
+		#puts stderr "Extracting parts as dict from uri took [expr {[clock microseconds]-$start}] usec"
 	}
 } -cleanup {
 	unset -nocomplain uri start
@@ -113,6 +113,9 @@ test reuri-3.1 {Interp cleanup} -body { #<<<
 } -result ok
 #>>>
 
+test reuri_valid-1.1 {http://localhost}			{ reuri::uri valid http://localhost 		}		1
+test reuri_valid-2.1 {http://local\u306fhost}	{ reuri::uri valid http://local\u306fhost	}		0
+
 test reuri_encode-1.1 {encode query, all codepoints < 0x80} -body { #<<<
 	reuri::uri encode query $allchars_raw
 } -result $allchars_query
@@ -131,7 +134,7 @@ test reuri_encode-3.2 {encode query, subst: #} -body { #<<<
 #>>>
 test reuri_encode-3.3 {encode query, subst: ?} -body { #<<<
 	reuri::uri encode query fo?o
-} -result fo?o
+} -result fo%3Fo
 #>>>
 test reuri_encode-3.4 {encode query, subst: &} -body { #<<<
 	reuri::uri encode query fo&o
@@ -163,11 +166,11 @@ test reuri_encode-4.3 {encode path, subst: ?} -body { #<<<
 #>>>
 test reuri_encode-4.4 {encode path, subst: &} -body { #<<<
 	reuri::uri encode path fo&o
-} -result fo&o
+} -result fo%26o
 #>>>
 test reuri_encode-4.5 {encode path, subst: =} -body { #<<<
 	reuri::uri encode path fo=o
-} -result fo=o
+} -result fo%3Do
 #>>>
 test reuri_encode-4.6 {encode path, subst: /} -body { #<<<
 	reuri::uri encode path fo/o

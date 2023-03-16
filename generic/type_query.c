@@ -145,7 +145,7 @@ int Reuri_NewQueryObj(Tcl_Interp* interp, int objc, Tcl_Obj* const objv[], Tcl_O
 	replace_tclobj(&new_params, Tcl_NewListObj(objc, objv));
 	replace_tclobj(&new_index,  Tcl_NewDictObj());
 
-	for (pnum=0; pnum<objc; pnum++)
+	for (pnum=0; pnum<objc; pnum+=2)
 		TEST_OK_LABEL(finally, code, query_add_index(interp, new_index, objv[pnum], pnum));
 
 	*PARAMS_PTR(&newir) = NULL;

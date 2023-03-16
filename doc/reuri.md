@@ -25,7 +25,7 @@ reuri - URI Manipulation for Tcl
 **reuri::uri** **path** *op* *uri* ?*arg* ...?
 
 ?? **reuri::query** **get** *query* ?*param* ?*default*??\
-?? **reuri::query** **values** *query* *param*\
+**reuri::query** **values** *query* *param*\
 ?? **reuri::query** **add** *variable* *param* *value*\
 ?? **reuri::query** **exists** *query* *param*\
 ?? **reuri::query** **set** *variable* *param* *value* ?*offset*?\
@@ -138,16 +138,16 @@ CODE IS NOT RECOMMENDED.**</span>
 **reuri::query** **exists** *query* *param*
 :   Return true if *param* exists in *query*.
 
-**reuri::query** **set** *variable* *param* *value* ?*offset*?
+**reuri::query** **set** *variable* *param* *value* ?*index*?
 :   Replace any instances of *param* in the query part stored in *variable*
-    with a single instance containing *value*.  If *offset* is specified, then
+    with a single instance containing *value*.  If *index* is specified, then
     replace only that instance of *param* in *variable*, or throw exception
-    **REURI** **BAD_OFFSET** if the offset isn't valid.
+    **REURI** **BAD_OFFSET** if the *index* isn't valid.
 
-**reuri::query** **unset** *variable* *param* ?*offset*?
-:   Remove all instances of *param* in *variable*, unless *offset* is specified in which
-    case only remove the specified instance, or throw **REURI** **BAD_OFFSET** if
-    the offset isn't valid.
+**reuri::query** **unset** *variable* *param* ?*index*?
+:   Remove all instances of *param* in *variable*, unless *index* is specified in which
+    case only remove the specified instance(s), or throw **REURI** **BAD_OFFSET** if
+    the *index* isn't valid.
 
 **reuri::query** **names** *query*
 :   Return a list of all of the param names that appear in *query*, in the order they
@@ -469,7 +469,7 @@ The uri module of tcllib.
 - [ ] Implement **reuri::uri absolute**
 - [x] Implement **reuri::uri decode**
 - [x] Implement **reuri::query get**
-- [ ] Implement **reuri::query values**
+- [x] Implement **reuri::query values**
 - [ ] Implement **reuri::query add**
 - [ ] Implement **reuri::query exists**
 - [ ] Implement **reuri::query set**

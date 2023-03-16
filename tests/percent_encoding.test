@@ -3,6 +3,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
     namespace import ::tcltest::*
 }
 
+tcltest::loadTestedCommands
 package require reuri
 
 set testchars   ""

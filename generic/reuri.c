@@ -573,8 +573,38 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_VALUES: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				Tcl_Obj*	res = NULL;
+				Tcl_Obj*	query = NULL;
+				Tcl_Obj*	index = NULL;
+				Tcl_Obj*	idxlist = NULL;
+				Tcl_Obj**	idxv = NULL;
+				int			idxc;
+				Tcl_Obj**	qv = NULL;
+				int			qc;
+
+				enum {A_cmd=1, A_QUERY, A_PARAM, A_objc};
+				CHECK_ARGS_LABEL(values_finally, code, "query param");
+				TEST_OK_LABEL(values_finally, code, ReuriGetQueryFromObj(interp, objv[A_QUERY], &query, &index));
+				TEST_OK_LABEL(values_finally, code, Tcl_ListObjGetElements(interp, query, &qc, &qv));
+				TEST_OK_LABEL(values_finally, code, Tcl_DictObjGet(interp, index, objv[A_PARAM], &idxlist));
+				if (idxlist) {
+					Tcl_IncrRefCount(idxlist);
+					TEST_OK_LABEL(values_finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
+
+					replace_tclobj(&res, Tcl_NewListObj(idxc, NULL));
+					for (int i=0; i<idxc; i++) {
+						int idx;
+						TEST_OK_LABEL(values_finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
+						TEST_OK_LABEL(values_finally, code, Tcl_ListObjAppendElement(interp, res, qv[idx*2+1]));
+					}
+					Tcl_SetObjResult(interp, res);
+				}
+
+			values_finally:
+				replace_tclobj(&res, NULL);
+				replace_tclobj(&query, NULL);
+				replace_tclobj(&index, NULL);
+				replace_tclobj(&idxlist, NULL);
 			}
 			break;
 			//>>>

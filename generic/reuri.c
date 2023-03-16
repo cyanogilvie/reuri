@@ -618,8 +618,18 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_EXISTS: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				Tcl_Obj*	index = NULL;
+				Tcl_Obj*	idxlist = NULL;
+
+				enum {A_cmd=1, A_QUERY, A_PARAM, A_objc};
+				CHECK_ARGS_LABEL(exists_finally, code, "query param");
+				TEST_OK_LABEL(exists_finally, code, ReuriGetQueryFromObj(interp, objv[A_QUERY], NULL, &index));
+				TEST_OK_LABEL(exists_finally, code, Tcl_DictObjGet(interp, index, objv[A_PARAM], &idxlist));
+				Tcl_SetObjResult(interp, idxlist ? l->t : l->f);
+
+			exists_finally:
+				replace_tclobj(&index, NULL);
+				// idxlist ref is on loan from the index dict
 			}
 			break;
 			//>>>

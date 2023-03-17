@@ -24,7 +24,7 @@ reuri - URI Manipulation for Tcl
 **reuri::uri** **query** *op* *uri* ?*arg* ...?\
 **reuri::uri** **path** *op* *uri* ?*arg* ...?
 
-?? **reuri::query** **get** *query* ?*param* ?*default*??\
+**reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??\
 **reuri::query** **values** *query* *param*\
 ?? **reuri::query** **add** *variable* *param* *value*\
 **reuri::query** **exists** *query* *param*\
@@ -117,9 +117,11 @@ CODE IS NOT RECOMMENDED.**</span>
 **reuri::uri** **path** *op* *uri* ?*arg* ...?
 :   Equivalent to calling **reuri::path** *op* ?*arg* ...? on the path portion of *uri*.
 
-**reuri::query** **get** *query* ?*param* ?*default*??
+**reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??
 :   Retrieve the value for the named *param* in the *query* part.  If *param*
-    occurs multiple times in the query part, returns the value for the last instance.
+    occurs multiple times in the query part, returns the value for the last instance,
+    unless **-index** is given, in which case it returns the value(s) named by *index*
+    (see **INDEX SYNTAX** for details on *index*).
     If *param* doesn't exist and *default* is supplied, return that in its place,
     otherwise throw the **REURI** **PARAM_NOT_SET** exception.  If *param* is not supplied,
     return all of the query parameters as a list of alternating parameter names and

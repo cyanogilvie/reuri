@@ -123,6 +123,7 @@ void push_range(struct parse_idx_cx* cx, struct idx_range* r);
 // type_index.c internal API >>>
 // index.re internal API <<<
 int parse_index(Tcl_Interp* interp, const char* str, struct parse_idx_cx** indexPtrPtr);
+int IdxGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_cx** index);
 // index.re internal API >>>
 // packcc_index.peg internal API <<<
 enum parse_status parse_idx_packcc(struct parse_idx_cx* auxil);

@@ -567,8 +567,127 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 	switch (methodidx) {
 		case M_GET: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				Tcl_Obj*	res = NULL;
+				Tcl_Obj*	query = NULL;
+				Tcl_Obj*	index = NULL;
+				Tcl_Obj*	idxlist = NULL;
+				Tcl_Obj*	def = NULL;
+				Tcl_Obj*	idxobj = NULL;
+				Tcl_Obj*	allvals = NULL;
+				Tcl_Obj**	idxv = NULL;
+				int			idxc;
+				Tcl_Obj**	qv = NULL;
+				int			qc;
+
+				enum {A_cmd=1, A_QUERY, A_PARAM, A_objc};
+				if (objc < A_PARAM)
+					CHECK_ARGS_LABEL(get_finally, code, "query ?param ?-default defaultval??");
+
+				if (objc > A_objc) {
+					static const char* opts[] = {
+						"-default",
+						"-index",
+						NULL
+					};
+					enum {
+						OPT_DEFAULT,
+						OPT_INDEX,
+						OPT_END
+					};
+					int	opt_i = A_objc;
+					int opt;
+
+					while (opt_i < objc) {
+						TEST_OK_LABEL(get_finally, code, Tcl_GetIndexFromObj(interp, objv[opt_i++], opts, "option", TCL_EXACT, &opt));
+						#define use_next(to) \
+							do { \
+								if (opt_i >= objc) { \
+									Tcl_SetErrorCode(interp, "TCL", "ARGUMENT", "MISSING", NULL); \
+									THROW_ERROR_LABEL(get_finally, code, "missing argument to \"", Tcl_GetString(objv[opt_i-1]), "\""); \
+								} \
+								replace_tclobj(&(to), objv[opt_i++]); \
+							} while(0);
+
+						switch (opt) {
+							case OPT_DEFAULT:	use_next(def);		break;
+							case OPT_INDEX:		use_next(idxobj);	break;
+							default: THROW_ERROR_LABEL(get_finally, code, "Unhandled query get option case");
+						}
+						#undef use_next
+					}
+				}
+
+				TEST_OK_LABEL(get_finally, code, ReuriGetQueryFromObj(interp, objv[A_QUERY], &query, &index));
+				if (objc == A_PARAM) {
+					// No param specified, return everything
+					Tcl_SetObjResult(interp, query);
+					goto get_finally;
+				}
+
+				TEST_OK_LABEL(get_finally, code, Tcl_ListObjGetElements(interp, query, &qc, &qv));
+				TEST_OK_LABEL(get_finally, code, Tcl_DictObjGet(interp, index, objv[A_PARAM], &idxlist));
+				if (idxlist) {
+					int idx;
+					Tcl_IncrRefCount(idxlist);
+					TEST_OK_LABEL(get_finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
+					TEST_OK_LABEL(get_finally, code, Tcl_GetIntFromObj(interp, idxv[idxc-1], &idx));
+
+					if (idxobj) {
+						// TODO: maybe optimize common cases like "0", "end" to just get that value without building allvals
+						replace_tclobj(&allvals, Tcl_NewListObj(idxc, NULL));
+						for (int i=0; i<idxc; i++) {
+							TEST_OK_LABEL(get_finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
+							TEST_OK_LABEL(get_finally, code, Tcl_ListObjAppendElement(interp, allvals, qv[idx*2+1]));
+						}
+						TEST_OK_LABEL(get_finally, code, Idx_PickFromList(interp, allvals, idxobj, &res));
+					} else {
+						replace_tclobj(&res, qv[idx*2+1]);
+					}
+
+					Tcl_SetObjResult(interp, res);
+				} else if (idxobj) {
+					struct parse_idx_cx*	index;
+
+					TEST_OK_LABEL(get_finally, code, IdxGetIndexFromObj(interp, idxobj, &index));
+
+					replace_tclobj(&res, Tcl_NewListObj(0, NULL));
+
+					// If index is a single, apply the default rules
+					if (index->set.size == 1 && index->set.range[0].to.type != IDX_NONE) goto try_default;
+
+					for (int i=0; i<index->set.size; i++) {
+						if (index->set.range[i].to.type != IDX_NONE) continue;	// For ranges, emit nothing
+						if (def) {
+							TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, def));
+						} else {
+							Tcl_SetErrorCode(interp, "REURI", "PARAM_NOT_SET", Tcl_GetString(objv[A_PARAM]), NULL);
+							THROW_ERROR_LABEL(get_finally, code, "param \"", Tcl_GetString(objv[A_PARAM]), "\" doesn't exist");
+						}
+					}
+					Tcl_SetObjResult(interp, res);
+				} else {
+					goto try_default;
+				}
+
+			get_finally:
+				replace_tclobj(&res, NULL);
+				replace_tclobj(&query, NULL);
+				replace_tclobj(&index, NULL);
+				replace_tclobj(&idxlist, NULL);
+				replace_tclobj(&def, NULL);
+				replace_tclobj(&idxobj, NULL);
+				replace_tclobj(&allvals, NULL);
+				goto finally;
+
+			try_default:
+				if (def) {
+					replace_tclobj(&res, def);
+					Tcl_SetObjResult(interp, res);
+				} else {
+					Tcl_SetErrorCode(interp, "REURI", "PARAM_NOT_SET", Tcl_GetString(objv[A_PARAM]), NULL);
+					THROW_ERROR_LABEL(get_finally, code, "param \"", Tcl_GetString(objv[A_PARAM]), "\" doesn't exist");
+				}
+				goto get_finally;
 			}
 			break;
 			//>>>

@@ -163,7 +163,7 @@ void Reuri_DStringAppendIndex(Tcl_DString* ds, struct parse_idx_cx* idx) //<<<
 }
 
 //>>>
-static int IdxGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_cx** index) //<<<
+int IdxGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_cx** index) //<<<
 {
 	int						code = TCL_OK;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(indexObj, &index_objtype);

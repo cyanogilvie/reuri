@@ -30,6 +30,42 @@ test $t-1.2 {exists, single}	{ reuri::query names {?foo=a}				} foo
 test $t-1.3 {exists, multiple}	{ reuri::query names {?foo=a&foo=bar}		} {foo foo}
 test $t-1.4 {exists, multiple}	{ reuri::query names {?foo=a&x=y&foo=bar}	} {foo x foo}
 
+set t	query_get
+test $t-1.0.0.0 {empty}	-body   { reuri::query get {} foo						} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-1.0.0.1 {empty} -body	{ reuri::query get {} foo -default				} -returnCodes error -errorCode {TCL ARGUMENT MISSING} -result {missing argument to "-default"}
+test $t-1.0.0.1 {empty}			{ reuri::query get {} foo -default def			} def
+test $t-1.0.1.0 {empty}	-body   { reuri::query get {?} foo						} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-1.0.1.1 {empty}			{ reuri::query get {?} foo -default def			} def
+test $t-1.1.0 {missing} -body	{ reuri::query get {?xyz=a} foo					} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-1.1.1 {missing}			{ reuri::query get {?xyz=a} foo -default def	} def
+test $t-1.2.0 {exists, single}	{ reuri::query get {?foo=a} foo					} a
+test $t-1.2.1 {exists, single}	{ reuri::query get {?foo=a} foo	-default def	} a
+test $t-1.3 {exists, multiple}	{ reuri::query get {?foo=a&foo=bar} foo			} bar
+test $t-1.4 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar} foo		} bar
+test $t-2.0.0 {empty}			{ reuri::query get {}							} {}
+test $t-2.0.1 {empty}			{ reuri::query get {?}							} {}
+test $t-2.1 {missing}			{ reuri::query get {?xyz=a}						} {xyz a}
+test $t-2.2 {exists, single}	{ reuri::query get {?foo=a}						} {foo a}
+test $t-2.3 {exists, multiple}	{ reuri::query get {?foo=a&foo=bar}				} {foo a foo bar}
+test $t-2.4 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar}			} {foo a x y foo bar}
+if 0 {
+test $t-3.0 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 0	} a
+test $t-3.1 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 1	} bar
+test $t-3.2 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 2	} z
+test $t-3.3 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index end	} z
+test $t-3.4 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index end-1	} bar
+test $t-3.5.1 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 3				} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo"[3] doesn't exist}
+test $t-3.5.2 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 3 -default def	} -result def
+test $t-3.5.3 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index end+1			} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo"[end+1] doesn't exist}
+test $t-3.5.4 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index end+1 -default def		} -result def
+test $t-3.5.5 {exists, multiple}		{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 3 -default def			} def
+test $t-3.6 {exists, multiple}			{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..end -default def	} {}
+test $t-3.7 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0					} {}
+test $t-3.8.1 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1					} -returnCodes error -errorCode {REURI PARAM_NOT_SET foox} -result {param "foox"[1] doesn't exist}
+test $t-3.8.2 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1 -default def	} -result def
+test $t-3.8.3 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 2,0..0,1 -default def	} -result {def def}
+}
+
 # cleanup
 ::tcltest::cleanupTests
 return

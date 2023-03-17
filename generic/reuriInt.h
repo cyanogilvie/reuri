@@ -52,6 +52,7 @@ struct interp_cx {
 	Tcl_Obj*			hosttype[REURI_HOST_SIZE];
 	Tcl_Obj*			empty;
 	Tcl_Obj*			empty_list;
+	Tcl_Obj*			empty_query;
 	Tcl_Obj*			t;
 	Tcl_Obj*			f;
 };

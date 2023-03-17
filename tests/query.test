@@ -48,6 +48,7 @@ test $t-2.1 {missing}			{ reuri::query get {?xyz=a}						} {xyz a}
 test $t-2.2 {exists, single}	{ reuri::query get {?foo=a}						} {foo a}
 test $t-2.3 {exists, multiple}	{ reuri::query get {?foo=a&foo=bar}				} {foo a foo bar}
 test $t-2.4 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar}			} {foo a x y foo bar}
+test $t-2.5 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar}			} {foo a x y foo bar}
 if 0 {
 test $t-3.0 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 0	} a
 test $t-3.1 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 1	} bar
@@ -61,10 +62,57 @@ test $t-3.5.4 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&fo
 test $t-3.5.5 {exists, multiple}		{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 3 -default def			} def
 test $t-3.6 {exists, multiple}			{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..end -default def	} {}
 test $t-3.7 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0					} {}
-test $t-3.8.1 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1					} -returnCodes error -errorCode {REURI PARAM_NOT_SET foox} -result {param "foox"[1] doesn't exist}
+test $t-3.8.1 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1				} -returnCodes error -errorCode {REURI PARAM_NOT_SET foox} -result {param "foox"[1] doesn't exist}
 test $t-3.8.2 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1 -default def	} -result def
 test $t-3.8.3 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 2,0..0,1 -default def	} -result {def def}
 }
+
+set t	uri_query_get
+test $t-1.0.0 {empty}		{ reuri::uri query get {}									} {}
+test $t-1.0.1 {empty}		{ reuri::uri query get http:								} {}
+test $t-1.0.2 {empty}		{ reuri::uri query get http://localhost						} {}
+test $t-1.0.3 {empty}		{ reuri::uri query get http://localhost/foo					} {}
+test $t-1.0.4 {empty}		{ reuri::uri query get http://localhost/foo#frag			} {}
+test $t-1.0.5 {empty}		{ reuri::uri query get /foo/bar								} {}
+test $t-1.0.6 {empty}		{ reuri::uri query get foo/bar								} {}
+test $t-1.0.7 {empty}		{ reuri::uri query get #frag								} {}
+test $t-1.1.0 {simple}		{ reuri::uri query get http://localhost/foo?foo=bar&x=y		} {foo bar x y}
+test $t-1.1.1 {simple}		{ reuri::uri query get /foo?foo=bar&x=y						} {foo bar x y}
+test $t-1.1.2 {simple}		{ reuri::uri query get foo?foo=bar&x=y						} {foo bar x y}
+test $t-1.1.3 {multiple}	{ reuri::uri query get foo?foo=bar&x=y&foo=baz				} {foo bar x y foo baz}
+test $t-1.1.4 {multiple}	{ reuri::uri query get foo?foo=bar&x=y&foo=baz#frag			} {foo bar x y foo baz}
+test $t-1.1.5 {multiple}	{ reuri::uri query get ?foo=bar&x=y&foo=baz					} {foo bar x y foo baz}
+test $t-1.1.6 {multiple}	{ reuri::uri query get ?foo=bar&x=y&foo=baz#frag			} {foo bar x y foo baz}
+test $t-2.0.0 {empty}		-body { reuri::uri query get {} foo									} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-2.0.1 {empty}		-body { reuri::uri query get http: foo								} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-2.0.2 {empty}		-body { reuri::uri query get http://localhost foo					} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-2.0.3 {empty}		-body { reuri::uri query get http://localhost/foo foo				} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-2.0.4 {empty}		-body { reuri::uri query get http://localhost/foo#frag foo			} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-2.0.5 {empty}		-body { reuri::uri query get /foo/bar foo							} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-2.0.6 {empty}		-body { reuri::uri query get foo/bar foo							} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-2.0.7 {empty}		-body { reuri::uri query get #frag foo								} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-2.1.0 {simple}		-body { reuri::uri query get http://localhost/foo?foo=bar&x=y foo	} -result bar
+test $t-2.1.1 {simple}		-body { reuri::uri query get /foo?foo=bar&x=y foo					} -result bar
+test $t-2.1.2 {simple}		-body { reuri::uri query get foo?foo=bar&x=y foo					} -result bar
+test $t-2.1.3 {multiple}	-body { reuri::uri query get foo?foo=bar&x=y&foo=baz foo			} -result baz
+test $t-2.1.4 {multiple}	-body { reuri::uri query get foo?foo=bar&x=y&foo=baz#frag foo		} -result baz
+test $t-2.1.5 {multiple}	-body { reuri::uri query get ?foo=bar&x=y&foo=baz foo				} -result baz
+test $t-2.1.6 {multiple}	-body { reuri::uri query get ?foo=bar&x=y&foo=baz#frag foo			} -result baz
+test $t-3.0.0 {empty}		-body { reuri::uri query get {} foo -default def								} -result def
+test $t-3.0.1 {empty}		-body { reuri::uri query get http: foo -default def								} -result def
+test $t-3.0.2 {empty}		-body { reuri::uri query get http://localhost foo -default def					} -result def
+test $t-3.0.3 {empty}		-body { reuri::uri query get http://localhost/foo foo -default def				} -result def
+test $t-3.0.4 {empty}		-body { reuri::uri query get http://localhost/foo#frag foo -default def			} -result def
+test $t-3.0.5 {empty}		-body { reuri::uri query get /foo/bar foo -default def							} -result def
+test $t-3.0.6 {empty}		-body { reuri::uri query get foo/bar foo -default def							} -result def
+test $t-3.0.7 {empty}		-body { reuri::uri query get #frag foo -default def								} -result def
+test $t-3.1.0 {simple}		-body { reuri::uri query get http://localhost/foo?foo=bar&x=y foo -default def	} -result bar
+test $t-3.1.1 {simple}		-body { reuri::uri query get /foo?foo=bar&x=y foo -default def					} -result bar
+test $t-3.1.2 {simple}		-body { reuri::uri query get foo?foo=bar&x=y foo -default def					} -result bar
+test $t-3.1.3 {multiple}	-body { reuri::uri query get foo?foo=bar&x=y&foo=baz foo -default def			} -result baz
+test $t-3.1.4 {multiple}	-body { reuri::uri query get foo?foo=bar&x=y&foo=baz#frag foo -default def		} -result baz
+test $t-3.1.5 {multiple}	-body { reuri::uri query get ?foo=bar&x=y&foo=baz foo -default def				} -result baz
+test $t-3.1.6 {multiple}	-body { reuri::uri query get ?foo=bar&x=y&foo=baz#frag foo -default def			} -result baz
 
 # cleanup
 ::tcltest::cleanupTests

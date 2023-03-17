@@ -88,6 +88,7 @@ static void free_interp_cx(ClientData cdata, Tcl_Interp* interp) //<<<
 
 		replace_tclobj(&l->empty,		NULL);
 		replace_tclobj(&l->empty_list,	NULL);
+		replace_tclobj(&l->empty_query,	NULL);
 		replace_tclobj(&l->t,			NULL);
 		replace_tclobj(&l->f,			NULL);
 
@@ -236,6 +237,45 @@ try_default:
 		THROW_ERROR_LABEL(finally, code, "param \"", Tcl_GetString(objv[A_PARAM]), "\" doesn't exist");
 	}
 	goto finally;
+}
+
+//>>>
+static int query_values(Tcl_Interp* interp, Tcl_Obj* queryObj, Tcl_Obj* param, const char* srcparam, Tcl_Obj** out) //<<<
+{
+	int					code = TCL_OK;
+	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
+	Tcl_Obj*			res = NULL;
+	Tcl_Obj*			query = NULL;
+	Tcl_Obj*			index = NULL;
+	Tcl_Obj*			idxlist = NULL;
+	Tcl_Obj**			idxv = NULL;
+	int					idxc;
+	Tcl_Obj**			qv = NULL;
+	int					qc;
+
+	TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, queryObj, &query, &index));
+	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, query, &qc, &qv));
+	TEST_OK_LABEL(finally, code, Tcl_DictObjGet(interp, index, param, &idxlist));
+	if (idxlist) {
+		TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
+
+		replace_tclobj(&res, Tcl_NewListObj(idxc, NULL));
+		for (int i=0; i<idxc; i++) {
+			int idx;
+			TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
+			TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, qv[idx*2+1]));
+		}
+		replace_tclobj(out, res);
+	} else {
+		replace_tclobj(out, l->empty_list);
+	}
+
+finally:
+	replace_tclobj(&res, NULL);
+	replace_tclobj(&query, NULL);
+	replace_tclobj(&index, NULL);
+	// idxlist is on loan from the index dictionary
+	return code;
 }
 
 //>>>
@@ -606,6 +646,32 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						}
 						break;
 						//>>>
+					case OP_VALUES: //<<<
+						{
+							enum {A_cmd=2, A_URI, A_PARAM, A_objc};
+							CHECK_ARGS_LABEL(query_finally, code, "uri param");
+							TEST_OK_LABEL(finally, code, query_values(interp, query, objv[A_PARAM], "query", &res));
+							Tcl_SetObjResult(interp, res);
+						}
+						break;
+						//>>>
+					case OP_EXISTS: //<<<
+						{
+							Tcl_Obj*	index = NULL;
+							Tcl_Obj*	idxlist = NULL;
+
+							enum {A_cmd=2, A_URI, A_PARAM, A_objc};
+							CHECK_ARGS_LABEL(exists_finally, code, "uri param");
+							TEST_OK_LABEL(exists_finally, code, ReuriGetQueryFromObj(interp, query, NULL, &index));
+							TEST_OK_LABEL(exists_finally, code, Tcl_DictObjGet(interp, index, objv[A_PARAM], &idxlist));
+							Tcl_SetObjResult(interp, idxlist ? l->t : l->f);
+
+						exists_finally:
+							replace_tclobj(&index, NULL);
+							// idxlist ref is on loan from the index dict
+						}
+						break;
+						//>>>
 					default:
 						THROW_ERROR_LABEL(finally, code, "Unhandled uri query case");
 				}
@@ -757,36 +823,10 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_VALUES: //<<<
 			{
-				Tcl_Obj*	query = NULL;
-				Tcl_Obj*	index = NULL;
-				Tcl_Obj*	idxlist = NULL;
-				Tcl_Obj**	idxv = NULL;
-				int			idxc;
-				Tcl_Obj**	qv = NULL;
-				int			qc;
-
 				enum {A_cmd=1, A_QUERY, A_PARAM, A_objc};
-				CHECK_ARGS_LABEL(values_finally, code, "query param");
-				TEST_OK_LABEL(values_finally, code, ReuriGetQueryFromObj(interp, objv[A_QUERY], &query, &index));
-				TEST_OK_LABEL(values_finally, code, Tcl_ListObjGetElements(interp, query, &qc, &qv));
-				TEST_OK_LABEL(values_finally, code, Tcl_DictObjGet(interp, index, objv[A_PARAM], &idxlist));
-				if (idxlist) {
-					Tcl_IncrRefCount(idxlist);
-					TEST_OK_LABEL(values_finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
-
-					replace_tclobj(&res, Tcl_NewListObj(idxc, NULL));
-					for (int i=0; i<idxc; i++) {
-						int idx;
-						TEST_OK_LABEL(values_finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
-						TEST_OK_LABEL(values_finally, code, Tcl_ListObjAppendElement(interp, res, qv[idx*2+1]));
-					}
-					Tcl_SetObjResult(interp, res);
-				}
-
-			values_finally:
-				replace_tclobj(&query, NULL);
-				replace_tclobj(&index, NULL);
-				replace_tclobj(&idxlist, NULL);
+				CHECK_ARGS_LABEL(finally, code, "query param");
+				TEST_OK_LABEL(finally, code, query_values(interp, objv[A_QUERY], objv[A_PARAM], "query", &res));
+				Tcl_SetObjResult(interp, res);
 			}
 			break;
 			//>>>
@@ -888,7 +928,6 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 				enum {A_cmd=1, A_QUERY, A_objc};
 				CHECK_ARGS_LABEL(finally, code, "query");
 
-				fprintf(stderr, "decode\n");
 				TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, objv[A_QUERY], &res, NULL));
 				Tcl_SetObjResult(interp, res);
 			}

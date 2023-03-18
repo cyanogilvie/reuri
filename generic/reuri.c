@@ -1062,7 +1062,12 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 
 				TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, oc, ov, &res));
 
-				Tcl_SetObjResult(interp, res);
+				const char* str = Tcl_GetString(res);
+				if (str[0]) {
+					Tcl_SetObjResult(interp, Tcl_ObjPrintf("?%s", Tcl_GetString(res)));
+				} else {
+					Tcl_SetObjResult(interp, l->empty);
+				}
 			}
 			break;
 			//>>>

@@ -222,7 +222,7 @@ doc/reuri.n: doc/reuri.md
 	pandoc --standalone --from markdown --to man doc/reuri.md --output doc/reuri.n
 
 README.md: doc/reuri.md
-	pandoc --standalone --from markdown --to gfm doc/reuri.md --output README.md
+	pandoc --standalone --wrap=none --from markdown --to gfm doc/reuri.md --output README.md
 
 
 install: all install-binaries install-libraries install-doc

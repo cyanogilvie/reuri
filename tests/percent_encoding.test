@@ -26,9 +26,9 @@ foreach v {
 	set ::urlencode::_uri::$v [lmap t [set ::urlencode::_uri::$v] {if {[string length $t] > 1} {string toupper $t} else {set t}}]
 }
 
-set refchars_query		[string map {%24 $} [urlencode::rfc_urlencode -part query -charset utf-8 -- $testchars]]
-set refchars_path		[string map {%24 $} [urlencode::rfc_urlencode -part path  -charset utf-8 -- $testchars]]
-set refchars_fragment	[string map {%24 $ %26 & %3F ? %23 # %2B + %26 & %3D =} [urlencode::rfc_urlencode -part query -charset utf-8 -- $testchars]]
+set refchars_query		[string map {%24 $ %2B + %2C , %3A : %3B ; %40 @} [urlencode::rfc_urlencode -part query -charset utf-8 -- $testchars]]
+set refchars_path		[string map {%24 $ %2B + %2C , %26 & %3B ; %3D = %40 @} [urlencode::rfc_urlencode -part path  -charset utf-8 -- $testchars]]
+set refchars_fragment	[string map {%24 $ %2B + %2C , %26 & %3A : %3B ; %3F ? %40 @ %3D =} [urlencode::rfc_urlencode -part query -charset utf-8 -- $testchars]]
 
 test percent_encoding-1.1 {Encode a query-string portion: completely unreserved} -body { #<<<
     reuri::uri encode query foo
@@ -91,19 +91,19 @@ test percent_encoding-30.1 {query encode, no args} -body { #<<<
 #>>>
 test percent_encoding-31.1 {query encode, single list arg, no substitutions} -body { #<<<
 	reuri::query encode "foo bar baz quux"
-} -result {?foo=bar&baz=quux}
+} -result foo=bar&baz=quux
 #>>>
 test percent_encoding-31.2 {query encode, single list arg, substitutions} -body { #<<<
 	reuri::query encode "{ foo} b=ar b?az {q&uux\u306f }"
-} -result {?%20foo=b%3Dar&b%3Faz=q%26uux%E3%81%AF%20}
+} -result %20foo=b%3Dar&b%3Faz=q%26uux%E3%81%AF%20
 #>>>
 test percent_encoding-32.1 {query encode, multiple args, no substitutions} -body { #<<<
 	reuri::query encode foo bar baz quux
-} -result {?foo=bar&baz=quux}
+} -result foo=bar&baz=quux
 #>>>
 test percent_encoding-32.2 {query encode, multiple args, substitutions} -body { #<<<
 	reuri::query encode { foo} b=ar b?az "q&uux\u306f "
-} -result {?%20foo=b%3Dar&b%3Faz=q%26uux%E3%81%AF%20}
+} -result %20foo=b%3Dar&b%3Faz=q%26uux%E3%81%AF%20
 #>>>
 test percent_encoding-40.1 {query decode, empty} -body { #<<<
 	reuri::query decode {}

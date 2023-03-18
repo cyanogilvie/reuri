@@ -147,6 +147,89 @@ test $t-3.1.4 {multiple}	-body { reuri::uri query get foo?foo=bar&x=y&foo=baz#fr
 test $t-3.1.5 {multiple}	-body { reuri::uri query get ?foo=bar&x=y&foo=baz foo -default def				} -result baz
 test $t-3.1.6 {multiple}	-body { reuri::uri query get ?foo=bar&x=y&foo=baz#frag foo -default def			} -result baz
 
+set t	query_add
+set std	{apply {init {list -setup [list set q $init] -cleanup {unset -nocomplain q}}}}
+test $t-0.1 {var not set}	-setup {unset -nocomplain q} -body {reuri::query add q foo bar; set q		} -result foo=bar				-cleanup {unset -nocomplain q}
+test $t-0.2 {dup}			-setup {set q x=y}  -body {set d $q; reuri::query add q foo bar; list $d $q	} -result {x=y x=y&foo=bar}		-cleanup {unset -nocomplain d q}
+test $t-0.3 {dup}			-setup {set q ?x=y} -body {set d $q; reuri::query add q foo bar; list $d $q	} -result {?x=y x=y&foo=bar}	-cleanup {unset -nocomplain d q}
+test $t-0.4 {dup}			-setup {set q x=y}  -body {set d $q; reuri::query add q foo bar; list $d $q	} -result {x=y x=y&foo=bar}		-cleanup {unset -nocomplain d q}
+test $t-1.1	{empty}	{*}[{*}$std {}]		-body { list [reuri::query add q foo bar] $q	} -result {foo=bar foo=bar}
+test $t-1.2	{empty}	{*}[{*}$std ?]		-body { list [reuri::query add q foo bar] $q	} -result {foo=bar foo=bar}
+test $t-2.1	{other}	{*}[{*}$std ?x=y]	-body { reuri::query add q foo bar; set q		} -result x=y&foo=bar
+test $t-2.2	{same}	{*}[{*}$std ?foo=x]	-body { reuri::query add q foo bar; set q		} -result foo=x&foo=bar
+test $t-3.1	{index}	{*}[{*}$std ?foo=x]	-body { reuri::query add q foo bar; reuri::query values $q foo	} -result {x bar}
+test $t-4.1	{encoding}	{*}[{*}$std {}]	-body { reuri::query add q f=o b&ar				} -result f%3Do=b%26ar
+test $t-4.2	{unicode}	{*}[{*}$std {}]	-body { reuri::query add q f\0o b\u306far		} -result f%00o=b%E3%81%AFar
+test $t-6.1	{trace} -setup { #<<<
+	unset -nocomplain q
+	trace add variable q write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}
+} -body {
+	list [reuri::query add q f\0o b\u306far] $q
+} -cleanup {
+	unset -nocomplain q
+} -result [list trace:f%00o=b%E3%81%AFar trace:f%00o=b%E3%81%AFar]
+#>>>
+test $t-6.2	{trace} -setup { #<<<
+	set q	{}
+	trace add variable q write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}
+} -body {
+	list [reuri::query add q f\0o b\u306far] $q
+} -cleanup {
+	unset -nocomplain q
+} -result [list trace:f%00o=b%E3%81%AFar trace:f%00o=b%E3%81%AFar]
+#>>>
+test $t-6.3	{trace} -setup { #<<<
+	set q	x=y
+	trace add variable q write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}
+} -body {
+	list [reuri::query add q f\0o b\u306far] $q
+} -cleanup {
+	unset -nocomplain q
+} -result [list trace:x=y&f%00o=b%E3%81%AFar trace:x=y&f%00o=b%E3%81%AFar]
+#>>>
+
+set t	uri_query_add
+set std	{apply {init {list -setup [list set u $init] -cleanup {unset -nocomplain u}}}}
+test $t-0.1 {var not set}	-setup {unset -nocomplain u} -body {reuri::uri query add u foo bar; set u			} -result ?foo=bar						-cleanup {unset -nocomplain u}
+test $t-0.3 {dup}			-setup {set u /xyz?x=y} -body {set d $u; reuri::uri query add u foo bar; list $d $u	} -result {/xyz?x=y /xyz?x=y&foo=bar}	-cleanup {unset -nocomplain d u}
+test $t-1.1	{empty}	{*}[{*}$std {}]			-body { list [reuri::uri query add u foo bar] $u	} -result {?foo=bar ?foo=bar}
+test $t-1.2	{empty}	{*}[{*}$std ?]			-body { list [reuri::uri query add u foo bar] $u	} -result {?foo=bar ?foo=bar}
+test $t-1.3	{empty}	{*}[{*}$std http:?]		-body { list [reuri::uri query add u foo bar] $u	} -result {http:?foo=bar http:?foo=bar}
+test $t-1.4	{empty}	{*}[{*}$std /a?]		-body { list [reuri::uri query add u foo bar] $u	} -result {/a?foo=bar /a?foo=bar}
+test $t-2.1	{other}	{*}[{*}$std /a?x=y]		-body { reuri::uri query add u foo bar; set u		} -result /a?x=y&foo=bar
+test $t-2.2	{same}	{*}[{*}$std /a?foo=x]	-body { reuri::uri query add u foo bar; set u		} -result /a?foo=x&foo=bar
+test $t-3.1	{index}	{*}[{*}$std /a?foo=x]	-body { reuri::uri query add u foo bar; reuri::uri query values $u foo	} -result {x bar}
+test $t-4.1	{encoding}	{*}[{*}$std /a]		-body { reuri::uri query add u f=o b&ar				} -result /a?f%3Do=b%26ar
+test $t-4.2	{unicode}	{*}[{*}$std /a]		-body { reuri::uri query add u f\0o b\u306far		} -result /a?f%00o=b%E3%81%AFar
+test $t-5.1	{uri get}	{*}[{*}$std /a?x=y]	-body { reuri::uri query add u f\0o b\u306far; reuri::uri get $u query		} -result x=y&f%00o=b%E3%81%AFar
+test $t-6.1	{trace} -setup { #<<<
+	unset -nocomplain u
+	trace add variable u write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}
+} -body {
+	list [reuri::uri query add u f\0o b\u306far] $u
+} -cleanup {
+	unset -nocomplain u
+} -result [list trace:?f%00o=b%E3%81%AFar trace:?f%00o=b%E3%81%AFar]
+#>>>
+test $t-6.2	{trace} -setup { #<<<
+	set u	/a
+	trace add variable u write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}
+} -body {
+	list [reuri::uri query add u f\0o b\u306far] $u
+} -cleanup {
+	unset -nocomplain u
+} -result [list trace:/a?f%00o=b%E3%81%AFar trace:/a?f%00o=b%E3%81%AFar]
+#>>>
+test $t-6.3	{trace} -setup { #<<<
+	set u	/a?x=y
+	trace add variable u write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}
+} -body {
+	list [reuri::uri query add u f\0o b\u306far] $u
+} -cleanup {
+	unset -nocomplain u
+} -result [list trace:/a?x=y&f%00o=b%E3%81%AFar trace:/a?x=y&f%00o=b%E3%81%AFar]
+#>>>
+
 # cleanup
 ::tcltest::cleanupTests
 return

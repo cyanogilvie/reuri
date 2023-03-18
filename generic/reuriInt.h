@@ -63,6 +63,7 @@ int ReuriGetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* p
 // type_uri.c internal API <<<
 void ReuriCompile(Tcl_DString* ds, struct uri* uri);
 int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri);
+void ReuriSetURI(Tcl_Obj* uriPtr, struct uri* uri);
 // type_uri.c internal API >>>
 // parse.re internal API <<<
 void parse_uri(struct parse_context* pc, const char* str);
@@ -76,6 +77,7 @@ int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist);
 // type_query.c internal API <<<
 int query_add_index(Tcl_Interp* interp, Tcl_Obj* index, Tcl_Obj* name, const int pnum);
 int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, Tcl_Obj** index);
+void ReuriSetQuery(Tcl_Obj* query, Tcl_Obj* params, Tcl_Obj* index);
 // type_query.c internal API >>>
 // type_index.c internal API <<<
 enum idx_atom_type {

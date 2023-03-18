@@ -90,16 +90,71 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 	} while(0)
 
 	if (uri->scheme) {
+		// Must conform to:
+		//	scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 		APPEND_PART(uri->scheme);
-		Tcl_DStringAppend(ds, "://", 3);
+		Tcl_DStringAppend(ds, ":", 1);
 	}
 
-	if (uri->userinfo) {
-		APPEND_PART(uri->userinfo);
-		Tcl_DStringAppend(ds, "@", 1);
+	if (uri->host && uri->hosttype != REURI_HOST_NONE) { // Only emit authority part if we have a host
+		Tcl_DStringAppend(ds, "//", 2);
+
+		if (uri->userinfo) {
+			percent_encode_ds(REURI_ENCODE_USERINFO, ds, Tcl_GetString(uri->userinfo));
+			Tcl_DStringAppend(ds, "@", 1);
+		}
+
+		switch (uri->hosttype) {
+			case REURI_HOST_IPV6:
+				// Must conform to: IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
+				Tcl_DStringAppend(ds, "[", 1);
+				APPEND_PART(uri->host);
+				Tcl_DStringAppend(ds, "]", 1);
+				break;
+			case REURI_HOST_IPV4:
+				// Must conform to:	IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
+				APPEND_PART(uri->host);
+				break;
+			case REURI_HOST_HOSTNAME:
+				percent_encode_ds(REURI_ENCODE_HOST, ds, Tcl_GetString(uri->host));
+				break;
+			case REURI_HOST_UNIX:
+				// Must confirm to: "/" pchar+ ("/" pchar+)*
+				Tcl_DStringAppend(ds, "[", 1);
+				APPEND_PART(uri->host);
+				Tcl_DStringAppend(ds, "]", 1);
+				break;
+			case REURI_HOST_NONE:
+				break;
+			case REURI_HOST_SIZE:
+				// Dummy value
+				break;
+		}
+
+		if (uri->port) {
+			// Must conform to:
+			//	port        = *DIGIT
+			Tcl_DStringAppend(ds, ":", 1);
+			APPEND_PART(uri->port);
+		}
 	}
 
-	// TODO: complete
+	if (uri->path) {
+		// Must be empty or start with a /
+		// First segment must be non-zero length
+		// TODO: what to do if path is relative?
+		APPEND_PART(uri->path);
+	}
+
+	if (uri->query) {
+		Tcl_DStringAppend(ds, "?", 1);
+		APPEND_PART(uri->query);
+	}
+
+	if (uri->fragment) {
+		Tcl_DStringAppend(ds, "#", 1);
+		percent_encode_ds(REURI_ENCODE_FRAGMENT, ds, Tcl_GetString(uri->fragment));
+	}
 }
 
 //>>>
@@ -141,6 +196,33 @@ finally:
 	if (newuri) free_uri(&newuri);
 
 	return code;
+}
+
+//>>>
+void ReuriSetURI(Tcl_Obj* uriPtr, struct uri* uri) //<<<
+{
+	struct uri*		newuri = NULL;
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(uriPtr, &uri_objtype);
+
+	if (ir) {
+		newuri = ir->twoPtrValue.ptr1;
+	} else {
+		newuri = ckalloc(sizeof(struct uri));
+		memset(newuri, 0, sizeof(struct uri));
+	}
+
+	replace_tclobj(&newuri->scheme,		uri->scheme);
+	replace_tclobj(&newuri->userinfo,	uri->userinfo);
+	replace_tclobj(&newuri->host,		uri->host);
+	newuri->hosttype = uri->hosttype;
+	replace_tclobj(&newuri->port,		uri->port);
+	replace_tclobj(&newuri->path,		uri->path);
+	replace_tclobj(&newuri->query,		uri->query);
+	replace_tclobj(&newuri->fragment,	uri->fragment);
+
+	Tcl_ObjInternalRep	newir = {.twoPtrValue.ptr1 = newuri};
+	Tcl_StoreInternalRep(uriPtr, &uri_objtype, &newir);
+	Tcl_InvalidateStringRep(uriPtr);
 }
 
 //>>>

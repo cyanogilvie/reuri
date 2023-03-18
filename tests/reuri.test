@@ -12,17 +12,17 @@ set allchars_fragment	{}
 for {set i 0} {$i < 0x80} {incr i} {
 	set c	[format %c $i]
 	append allchars_raw	$c
-	if {[regexp {^[-a-zA-Z0-9._.!~*'()$]$} $c]} {
+	if {[regexp {^[-a-zA-Z0-9._~!$&'()*+,;=@]$} $c]} {
 		append allchars_path	$c
 	} else {
 		append allchars_path	[format %%%02X $i]
 	}
-	if {[regexp {^[-a-zA-Z0-9._.!~*'()$/]$} $c]} {
+	if {[regexp {^[-a-zA-Z0-9._~!$'()*+,;:@/]$} $c]} {
 		append allchars_query	$c
 	} else {
 		append allchars_query	[format %%%02X $i]
 	}
-	if {[regexp {^[-a-zA-Z0-9._.!~*'()$?/#+&=]$} $c]} {
+	if {[regexp {^[-a-zA-Z0-9._~!$&'()*+,;=:@/?]$} $c]} {
 		append allchars_fragment	$c
 	} else {
 		append allchars_fragment	[format %%%02X $i]
@@ -166,11 +166,11 @@ test reuri_encode-4.3 {encode path, subst: ?} -body { #<<<
 #>>>
 test reuri_encode-4.4 {encode path, subst: &} -body { #<<<
 	reuri::uri encode path fo&o
-} -result fo%26o
+} -result fo&o
 #>>>
 test reuri_encode-4.5 {encode path, subst: =} -body { #<<<
 	reuri::uri encode path fo=o
-} -result fo%3Do
+} -result fo=o
 #>>>
 test reuri_encode-4.6 {encode path, subst: /} -body { #<<<
 	reuri::uri encode path fo/o

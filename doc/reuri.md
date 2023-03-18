@@ -1,6 +1,6 @@
-% reuri(3) 0.3 | URI Manipulation for Tcl
+% reuri(3) 0.5 | URI Manipulation for Tcl
 % Cyan Ogilvie
-% 0.3
+% 0.5
 
 
 # NAME
@@ -10,7 +10,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.3?
+**package require reuri** ?0.5?
 
 **reuri::uri** **get** *uri* ?*part* ?*default*??\
 **reuri::uri** **exists** *uri* *part*\
@@ -26,7 +26,7 @@ reuri - URI Manipulation for Tcl
 
 **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??\
 **reuri::query** **values** *query* *param*\
-?? **reuri::query** **add** *variable* *param* *value*\
+**reuri::query** **add** *variable* *param* *value*\
 **reuri::query** **exists** *query* *param*\
 ?? **reuri::query** **set** *variable* *param* *value* ?*offset*?\
 ?? **reuri::query** **unset** *variable* *param* ?*offset*?\
@@ -472,7 +472,7 @@ The uri module of tcllib.
 - [x] Implement **reuri::uri decode**
 - [x] Implement **reuri::query get**
 - [x] Implement **reuri::query values**
-- [ ] Implement **reuri::query add**
+- [x] Implement **reuri::query add**
 - [x] Implement **reuri::query exists**
 - [ ] Implement **reuri::query set**
 - [ ] Implement **reuri::query unset**

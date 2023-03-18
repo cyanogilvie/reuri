@@ -107,13 +107,14 @@ static inline int conditionally_allowed(enum reuri_encode_mode mode, const char 
 {
 	switch (mode) {
 		/* Formally correct according to a pedantic reading of the RFC, but causes problems with some systems (like S3 signing):
-		case REURI_ENCODE_QUERY:	return (yych=='?' || yych=='/');
-		case REURI_ENCODE_PATH:		return (yych=='+' || yych=='&' || yych=='=');			
+		case REURI_ENCODE_QUERY:	return (yych=='/' || yych=='?' || yych==':' || yych=='@');
 		*/
-		case REURI_ENCODE_QUERY:	return (yych=='/');
-		case REURI_ENCODE_PATH:		return 0;			
-		//case REURI_ENCODE_HOST:	return 0;
-		case REURI_ENCODE_FRAGMENT:	return (yych=='?' || yych=='/' || yych=='#' || yych=='+' || yych=='&' || yych=='=');
+		case REURI_ENCODE_QUERY:	return (yych=='/' || yych==':' || yych=='@');
+		case REURI_ENCODE_PATH:		return (yych=='@' || yych=='=' || yych=='&');
+		case REURI_ENCODE_PATH2:	return (yych=='@' || yych=='=' || yych=='&' || yych==':');
+		case REURI_ENCODE_HOST:		return (yych=='=' || yych=='&');
+		case REURI_ENCODE_USERINFO:	return (yych==':' || yych=='=' || yych=='&');
+		case REURI_ENCODE_FRAGMENT:	return (yych==':' || yych=='@' || yych=='/' || yych=='?' || yych=='=' || yych=='&');
 		default:					return 0;
 	}
 }
@@ -143,17 +144,13 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 	re2c:define:YYGETCONDITION = "c";
 	re2c:define:YYSETCONDITION = "c = @@;";
 
-	!use:common;
+	!use:uri;
 
-	mark        = [-_.!~*'()$];
-	unreserved  = alpha | digit | mark;
-	reserved    = ([^] \ end) \ unreserved;
-
-	<start> unreserved* / end {
+	<start> allowed* / end {
 		res = objPtr;
 		goto finally;
 	}
-	<start> unreserved* / reserved {
+	<start> allowed* / reserved {
 		if (conditionally_allowed(mode, yych)) {
 			s++;
 			goto yyc_start;
@@ -166,7 +163,7 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 		c = yycmixed;
 		goto yyc_mixed;
 	}
-	<start> unreserved* / cesu8null {
+	<start> allowed* / cesu8null {
 		if (s>str)
 			Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
 
@@ -192,7 +189,7 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 		u = s;
 		goto yyc_mixed;
 	}
-	<mixed> unreserved+ {
+	<mixed> allowed+ {
 		Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
 		u = s;
 		goto yyc_mixed;
@@ -224,22 +221,18 @@ void percent_encode_ds(enum reuri_encode_mode mode, Tcl_DString* ds, const char*
 
 top:
 	/*!local:re2c:percent_encode_ds
-    re2c:api:style             = free-form;
-    re2c:define:YYCTYPE        = "unsigned char";
-    re2c:define:YYCURSOR       = s;
+	re2c:api:style             = free-form;
+	re2c:define:YYCTYPE        = "unsigned char";
+	re2c:define:YYCURSOR       = s;
 	re2c:yyfill:enable         = 0;
 	re2c:flags:tags            = 1;
 
-	!use:common;
-
-	mark        = [-_.!~*'()];
-	unreserved  = alpha | digit | mark;
-	reserved    = ([^] \ end) \ unreserved;
+	!use:uri;
 
 	end {
 		return;
 	}
-	@u unreserved+ {
+	@u allowed+ {
 		Tcl_DStringAppend(ds, (const char*)u, (int)(s-u));
 		goto top;
 	}
@@ -390,7 +383,6 @@ int parse_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj**
 	int						code = TCL_OK;
 	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
 	const unsigned char*	base = (const unsigned char*)str;
-	const unsigned char*	s = base;
 	int						pnum = 0;
 	int						c = yycname;
 	const unsigned char*	YYMARKER;
@@ -405,8 +397,9 @@ int parse_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj**
 	replace_tclobj(&res_params, Tcl_NewListObj(0, NULL));
 	replace_tclobj(&res_index,  Tcl_NewDictObj());
 
-	if (*s == '?') s++;				/* Accept optional leading ? */
-	if (s[0] == 0) goto finally;	/* Do nothing gracefully */
+	if (base[0] == 0) goto finally;	/* Do nothing gracefully */
+
+	const unsigned char*	s = base;
 
 top:
 	/*!local:re2c:parse_query

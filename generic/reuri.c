@@ -18,7 +18,9 @@ const char*	reuri_part_str[] = {
 const char* reuri_encode_mode_str[] = {
 	"query",
 	"path",
+	"path2",
 	"host",
+	"userinfo",
 	"fragment",
 	NULL				// NULL here so we can point Tcl_GetIndexFromObj at this
 };
@@ -308,6 +310,62 @@ finally:
 }
 
 //>>>
+static int query_add(Tcl_Interp* interp, Tcl_Obj* queryObj, Tcl_Obj* param, Tcl_Obj* value, Tcl_Obj** out) //<<<
+{
+	int					code = TCL_OK;
+	Tcl_Obj*			res = NULL;
+	Tcl_Obj*			params = NULL;
+	Tcl_Obj*			index = NULL;
+	Tcl_Obj*			idxlist = NULL;
+	Tcl_Obj*			lidxlist = NULL;
+	Tcl_Obj*			newidx = NULL;
+
+	if (queryObj == NULL) {
+		Tcl_Obj*	ov[2] = {param, value};
+		TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, 2, ov, &res));
+		replace_tclobj(out, res);
+		goto finally;
+	}
+
+	replace_tclobj(&res, Tcl_IsShared(queryObj) ? Tcl_DuplicateObj(queryObj) : queryObj);
+
+	TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, res, &params, &index));
+	replace_tclobj(&params, Tcl_DuplicateObj(params));
+	replace_tclobj(&index,  Tcl_DuplicateObj(index));
+	// params and index are unshared
+
+	int last;
+	TEST_OK_LABEL(finally, code, Tcl_ListObjLength(interp, params, &last));
+	replace_tclobj(&newidx, Tcl_NewIntObj(last/2));
+
+	// Append this instance of param
+	TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, params, param));
+	TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, params, value));
+
+	// Record this instance of param in the index
+	TEST_OK_LABEL(finally, code, Tcl_DictObjGet(interp, index, param, &idxlist));
+	if (!idxlist || Tcl_IsShared(idxlist)) {
+		replace_tclobj(&lidxlist, idxlist ? Tcl_DuplicateObj(idxlist) : Tcl_NewListObj(1, NULL));
+		idxlist = lidxlist;
+	}
+	TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, idxlist, newidx));
+	TEST_OK_LABEL(finally, code, Tcl_DictObjPut(interp, index, param, idxlist));
+
+	ReuriSetQuery(res, params, index);
+
+	replace_tclobj(out, res);
+
+finally:
+	replace_tclobj(&params, NULL);
+	replace_tclobj(&index, NULL);
+	// idxlist is on loan from the index dict
+	replace_tclobj(&lidxlist, NULL);
+	replace_tclobj(&newidx, NULL);
+	replace_tclobj(&res, NULL);
+	return code;
+}
+
+//>>>
 // Internal API >>>
 // Stubs API <<<
 int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* defaultPtr, Tcl_Obj** valuePtrPtr) //<<<
@@ -418,6 +476,8 @@ Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode,
 	switch (mode) {
 		case REURI_ENCODE_QUERY:    return percent_encode(interp, objPtr, REURI_ENCODE_QUERY);
 		case REURI_ENCODE_PATH:     return percent_encode(interp, objPtr, REURI_ENCODE_PATH);
+		case REURI_ENCODE_PATH2:    return percent_encode(interp, objPtr, REURI_ENCODE_PATH2);
+		case REURI_ENCODE_USERINFO: return percent_encode(interp, objPtr, REURI_ENCODE_USERINFO);
 		case REURI_ENCODE_HOST:     return percent_encode(interp, objPtr, REURI_ENCODE_HOST);
 		case REURI_ENCODE_FRAGMENT: return percent_encode(interp, objPtr, REURI_ENCODE_FRAGMENT);
 	}
@@ -635,6 +695,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				static const char*	ops[] = {
 					"get",
 					"values",
+					"add",
 					"exists",
 					"set",
 					"unset",
@@ -645,6 +706,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				enum {
 					OP_GET,
 					OP_VALUES,
+					OP_ADD,
 					OP_EXISTS,
 					OP_SET,
 					OP_UNSET,
@@ -654,12 +716,30 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				int			opidx;
 				Tcl_Obj*	query = NULL;
 				Tcl_Obj*	res = NULL;
+				Tcl_Obj*	uri = NULL;
+				Tcl_Obj*	luri = NULL;
+				int			setvar = 0;
 
 				enum args {A_cmd=1, A_OP, A_URI, A_objc};
 				if (objc < A_objc) CHECK_ARGS_LABEL(query_finally, code, "op uri ?arg ...?");
 
 				TEST_OK_LABEL(query_finally, code, Tcl_GetIndexFromObj(interp, objv[A_OP], ops, "op", TCL_EXACT, &opidx));
-				TEST_OK_LABEL(query_finally, code, Reuri_URIObjGetPart(interp, objv[A_URI], REURI_QUERY, l->empty_query, &query));
+				switch (opidx) {
+					case OP_ADD:
+						{
+							struct uri*	uri_ir = NULL;
+							uri = Tcl_ObjGetVar2(interp, objv[A_URI], NULL, 0);
+							if (uri) {
+								//TEST_OK_LABEL(query_finally, code, Reuri_URIObjGetPart(interp, uri, REURI_QUERY, NULL, &query));
+								TEST_OK_LABEL(query_finally, code, ReuriGetURIFromObj(interp, uri, &uri_ir));
+								replace_tclobj(&query, uri_ir->query);
+							}
+							setvar = 1;
+						}
+						break;
+					default:
+						TEST_OK_LABEL(query_finally, code, Reuri_URIObjGetPart(interp, objv[A_URI], REURI_QUERY, l->empty_query, &query));
+				}
 
 				switch (opidx) {
 					case OP_GET: //<<<
@@ -679,8 +759,16 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						{
 							enum {A_cmd=2, A_URI, A_PARAM, A_objc};
 							CHECK_ARGS_LABEL(query_finally, code, "uri param");
-							TEST_OK_LABEL(finally, code, query_values(interp, query, objv[A_PARAM], &res));
+							TEST_OK_LABEL(query_finally, code, query_values(interp, query, objv[A_PARAM], &res));
 							Tcl_SetObjResult(interp, res);
+						}
+						break;
+						//>>>
+					case OP_ADD: //<<<
+						{
+							enum {A_cmd=2, A_URIVAR, A_PARAM, A_VALUE, A_objc};
+							CHECK_ARGS_LABEL(query_finally, code, "uri param value");
+							TEST_OK_LABEL(query_finally, code, query_add(interp, query, objv[A_PARAM], objv[A_VALUE], &query));
 						}
 						break;
 						//>>>
@@ -705,17 +793,46 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						{
 							enum {A_cmd=2, A_URI, A_objc};
 							CHECK_ARGS_LABEL(query_finally, code, "uri");
-							TEST_OK_LABEL(finally, code, query_names(interp, query, &res));
+							TEST_OK_LABEL(query_finally, code, query_names(interp, query, &res));
 							Tcl_SetObjResult(interp, res);
 						}
 						break;
 						//>>>
 					default:
-						THROW_ERROR_LABEL(finally, code, "Unhandled uri query case");
+						THROW_ERROR_LABEL(query_finally, code, "Unhandled uri query case");
 				}
+
+				if (setvar) { // Write the uri back into the var <<<
+					if (uri == NULL) {
+						// Make a new URI
+						struct uri uri_ir = {.query = query};
+						replace_tclobj(&luri, Tcl_NewObj());
+						uri = luri;
+						ReuriSetURI(uri, &uri_ir);
+					} else {
+						// Update existing one
+						struct uri* uri_ir = NULL;
+						if (Tcl_IsShared(uri)) uri = Tcl_DuplicateObj(uri);
+						TEST_OK_LABEL(query_finally, code, ReuriGetURIFromObj(interp, uri, &uri_ir));
+						replace_tclobj(&uri_ir->query, query);
+						Tcl_InvalidateStringRep(uri);
+					}
+
+					uri = Tcl_ObjSetVar2(interp, objv[A_URI], NULL, uri, TCL_LEAVE_ERR_MSG);
+					if (uri == NULL) {
+						code = TCL_ERROR;
+						goto query_finally;
+					}
+
+					replace_tclobj(&res, uri);
+					Tcl_SetObjResult(interp, res);
+				}
+				//>>>
+
 			query_finally:
 				replace_tclobj(&query, NULL);
 				replace_tclobj(&res, NULL);
+				replace_tclobj(&luri, NULL);
 			}
 			break;
 			//>>>
@@ -870,8 +987,14 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_ADD: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				Tcl_Obj*	queryObj = NULL;
+				enum {A_cmd=1, A_QUERYVAR, A_PARAM, A_VALUE, A_objc};
+				CHECK_ARGS_LABEL(finally, code, "queryVarName param value");
+				TEST_OK_LABEL(finally, code, query_add(interp, Tcl_ObjGetVar2(interp, objv[A_QUERYVAR], NULL, 0), objv[A_PARAM], objv[A_VALUE], &res));
+				queryObj = Tcl_ObjSetVar2(interp, objv[A_QUERYVAR], NULL, res, TCL_LEAVE_ERR_MSG);
+				if (queryObj == NULL) { code = TCL_ERROR; goto finally; }
+				replace_tclobj(&res, queryObj);
+				Tcl_SetObjResult(interp, res);
 			}
 			break;
 			//>>>
@@ -1091,7 +1214,7 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 					for (int i=1; i<segmentc; i++) {
 						seg = Tcl_GetString(segmentv[i]);
 						Tcl_DStringAppend(&ds, "/", 1);
-						percent_encode_ds(REURI_ENCODE_PATH, &ds, seg);
+						percent_encode_ds(REURI_ENCODE_PATH2, &ds, seg);
 					}
 				}
 

@@ -77,16 +77,19 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 
 	if (ir == NULL) {
 		Tcl_ObjInternalRep	newir;
+		const char*			str = Tcl_GetString(query);
+		const char*			s = str[0] == '?' ? str+1 : str;
 
 		newir.twoPtrValue.ptr1 = NULL;
 		newir.twoPtrValue.ptr2 = NULL;
-		code = parse_query(interp, Tcl_GetString(query), PARAMS_PTR(&newir), INDEX_PTR(&newir));
+		code = parse_query(interp, s, PARAMS_PTR(&newir), INDEX_PTR(&newir));
 		if (code != TCL_OK) {
 			free_query(&newir);
 			goto finally;
 		}
 
 		Tcl_StoreInternalRep(query, &query_objtype, &newir);
+		if (s > str) Tcl_InvalidateStringRep(query);	// A leading ? was trimmed, have to discard the old stringrep
 		ir = Tcl_FetchInternalRep(query, &query_objtype);
 	}
 
@@ -95,6 +98,17 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 
 finally:
 	return code;
+}
+
+//>>>
+void ReuriSetQuery(Tcl_Obj* query, Tcl_Obj* params, Tcl_Obj* index) //<<<
+{
+	Tcl_ObjInternalRep	newir = {0};
+
+	replace_tclobj(PARAMS_PTR(&newir), params);
+	replace_tclobj(INDEX_PTR(&newir),  index);
+	Tcl_StoreInternalRep(query, &query_objtype, &newir);
+	Tcl_InvalidateStringRep(query);
 }
 
 //>>>
@@ -187,15 +201,22 @@ int Reuri_CompileQuery(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* params) //<
 	}
 	if (pc == 0) goto finally;
 
-	Tcl_DStringAppend(ds, "?", 1);
+	const char*	str = NULL;
+
 	percent_encode_ds(REURI_ENCODE_QUERY, ds, Tcl_GetString(pv[i++]));
-	Tcl_DStringAppend(ds, "=", 1);
-	percent_encode_ds(REURI_ENCODE_QUERY, ds, Tcl_GetString(pv[i++]));
+	str = Tcl_GetString(pv[i++]);
+	if (str[0]) {
+		Tcl_DStringAppend(ds, "=", 1);
+		percent_encode_ds(REURI_ENCODE_QUERY, ds, str);
+	}
 	while (i<pc) {
 		Tcl_DStringAppend(ds, "&", 1);
 		percent_encode_ds(REURI_ENCODE_QUERY, ds, Tcl_GetString(pv[i++]));
-		Tcl_DStringAppend(ds, "=", 1);
-		percent_encode_ds(REURI_ENCODE_QUERY, ds, Tcl_GetString(pv[i++]));
+		str = Tcl_GetString(pv[i++]);
+		if (str[0]) {
+			Tcl_DStringAppend(ds, "=", 1);
+			percent_encode_ds(REURI_ENCODE_QUERY, ds, str);
+		}
 	}
 
 finally:

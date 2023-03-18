@@ -108,7 +108,7 @@ int Reuri_CompilePath(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* pathListPtr)
 
 	for (i=1; i<oc; i++) {
 		Tcl_DStringAppend(ds, "/", 1);
-		percent_encode_ds(REURI_ENCODE_PATH, ds, Tcl_GetString(ov[i]));
+		percent_encode_ds(REURI_ENCODE_PATH2, ds, Tcl_GetString(ov[i]));
 	}
 
 finally:

@@ -437,6 +437,102 @@ finally:
 }
 
 //>>>
+static int query_set(Tcl_Interp* interp, Tcl_Obj* queryObj, Tcl_Obj* param, Tcl_Obj* value, Tcl_Obj** out) //<<<
+{
+	int					code = TCL_OK;
+	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
+	Tcl_Obj*			res = NULL;
+	Tcl_Obj*			params = NULL;
+	Tcl_Obj*			index = NULL;
+	Tcl_Obj*			lidxlist = NULL;
+	Tcl_Obj*			newidx = NULL;
+	Tcl_Obj*			sortcmdv[3] = {l->apply, l->sort_unique};
+
+	if (queryObj == NULL) {
+		Tcl_Obj*	ov[2] = {param, value};
+		TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, 2, ov, &res));
+		replace_tclobj(out, res);
+		goto finally;
+	}
+
+	replace_tclobj(&res, Tcl_IsShared(queryObj) ? Tcl_DuplicateObj(queryObj) : queryObj);
+
+	TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, res, &params, &index));
+	replace_tclobj(&params, Tcl_DuplicateObj(params));
+	replace_tclobj(&index,  Tcl_DuplicateObj(index));
+	// params and index are unshared
+
+	// Gather the indices for all instances of all the params we're unsetting
+	Tcl_Obj*	idxlist = NULL;
+	Tcl_Obj**	idxv = NULL;
+	int			idxc;
+
+	TEST_OK_LABEL(finally, code, Tcl_DictObjGet(interp, index, param, &idxlist));
+	if (!idxlist) {
+add:
+		// param doesn't exist in query yet, append it
+		int last;
+		TEST_OK_LABEL(finally, code, Tcl_ListObjLength(interp, params, &last));
+		replace_tclobj(&newidx, Tcl_NewIntObj(last/2));
+
+		// Append this instance of param
+		TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, params, param));
+		TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, params, value));
+
+		// Record this instance of param in the index
+		replace_tclobj(&lidxlist, Tcl_NewListObj(1, NULL));
+		idxlist = lidxlist;
+		TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, idxlist, newidx));
+		TEST_OK_LABEL(finally, code, Tcl_DictObjPut(interp, index, param, idxlist));
+	} else {
+		TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
+
+		if (idxc == 1) { // Typical case: single existing entry, just replace its value
+			int			idx;
+			TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxv[0], &idx));
+			TEST_OK_LABEL(finally, code, Tcl_ListObjReplace(interp, params, idx*2+1, 1, 1, &value))
+		} else if (idxc == 0) {
+			goto add;
+		} else { // Multiple existing instances, replace the first and remove the later instances
+			// Sort unique in descending order as integers: [lsort -integer -unique -decreasing]
+			sortcmdv[2] = idxlist;
+			TEST_OK_LABEL(finally, code, Tcl_EvalObjv(interp, 3, sortcmdv, TCL_EVAL_GLOBAL));
+			replace_tclobj(&lidxlist, Tcl_GetObjResult(interp));
+			idxlist = lidxlist;
+			Tcl_ResetResult(interp);		// Necessary?
+
+			// Remove the elements from the params list
+			int			idx;
+			TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
+
+			// Remove second and subsequent instances
+			for (int i=0; i<idxc-1; i++) {
+				TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
+				TEST_OK_LABEL(finally, code, Tcl_ListObjReplace(interp, params, idx*2, 2, 0, NULL));
+			}
+
+			// Replace the first instance's value
+			TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxv[idxc-1], &idx));
+			TEST_OK_LABEL(finally, code, Tcl_ListObjReplace(interp, params, idx*2+1, 1, 1, &value));
+
+			replace_tclobj(&index, NULL);
+		}
+	}
+
+	ReuriSetQuery(res, params, index);
+
+	replace_tclobj(out, res);
+
+finally:
+	replace_tclobj(&params, NULL);
+	replace_tclobj(&index, NULL);
+	replace_tclobj(&res, NULL);
+	replace_tclobj(&lidxlist, NULL);
+	replace_tclobj(&newidx, NULL);
+	return code;
+}
+
+//>>>
 // Internal API >>>
 // Stubs API <<<
 int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* defaultPtr, Tcl_Obj** valuePtrPtr) //<<<
@@ -798,6 +894,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				switch (opidx) {
 					case OP_ADD:
 					case OP_UNSET:
+					case OP_SET:
 						{
 							struct uri*	uri_ir = NULL;
 							uri = Tcl_ObjGetVar2(interp, objv[A_URI], NULL, 0);
@@ -858,6 +955,14 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						exists_finally:
 							replace_tclobj(&index, NULL);
 							// idxlist ref is on loan from the index dict
+						}
+						break;
+						//>>>
+					case OP_SET: //<<<
+						{
+							enum {A_cmd=2, A_URIVAR, A_PARAM, A_VALUE, A_objc};
+							CHECK_ARGS_LABEL(query_finally, code, "uri param value");
+							TEST_OK_LABEL(query_finally, code, query_set(interp, query, objv[A_PARAM], objv[A_VALUE], &query));
 						}
 						break;
 						//>>>
@@ -1097,8 +1202,14 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_SET: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				Tcl_Obj*	queryObj = NULL;
+				enum {A_cmd=1, A_QUERYVAR, A_PARAM, A_VALUE, A_objc};
+				CHECK_ARGS_LABEL(finally, code, "queryVarName param value");
+				TEST_OK_LABEL(finally, code, query_set(interp, Tcl_ObjGetVar2(interp, objv[A_QUERYVAR], NULL, 0), objv[A_PARAM], objv[A_VALUE], &res));
+				queryObj = Tcl_ObjSetVar2(interp, objv[A_QUERYVAR], NULL, res, TCL_LEAVE_ERR_MSG);
+				if (queryObj == NULL) { code = TCL_ERROR; goto finally; }
+				replace_tclobj(&res, queryObj);
+				Tcl_SetObjResult(interp, res);
 			}
 			break;
 			//>>>

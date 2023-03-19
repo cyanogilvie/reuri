@@ -8,6 +8,8 @@ package require reuri
 proc main {} {
 	bench parse_index-1.0 {Parse an index: simple} -batch auto -setup { #<<<
 		set idx	end-1
+	} -overhead {
+		* {reuri::nop $idx}
 	} -compare {
 		packcc { reuri::_test parse_index_packcc $idx }
 		re2c   { reuri::_test parse_index_re2c $idx   }
@@ -17,6 +19,8 @@ proc main {} {
 	#>>>
 	bench parse_index-1.1 {Parse an index: complex} -batch auto -setup { #<<<
 		set idx	end-3..end-1,-1..2,5,end+1
+	} -overhead {
+		* {reuri::nop $idx}
 	} -compare {
 		packcc { reuri::_test parse_index_packcc $idx }
 		re2c   { reuri::_test parse_index_re2c $idx   }

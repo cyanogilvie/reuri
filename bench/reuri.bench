@@ -14,6 +14,9 @@ proc main {} {
 		set uri_b /one/two?three=3&four=4#endbit
 		set uri		$uri_a$uri_b
 		reuri::uri get $uri scheme
+	} -overhead {
+		reuri_parse	- uri	{return -level 0 $uri_a$uri_b}
+		uri_reuse			{return -level 0 $uri}
 	} -compare {
 		reuri_parse {
 			reuri::uri get $uri_a$uri_b fragment
@@ -33,6 +36,11 @@ proc main {} {
 		set uri_b /one/two?three=3&four=4#endbit
 		set uri		$uri_a$uri_b
 		reuri::uri get $uri scheme
+	} -overhead {
+		reuri_reparse				{set newuri $uri_a$uri_b; return -level 0 $newuri}
+		reuri_reuse					{return -level 0 $uri}
+		reuri_dict_reparse - uri	{return -level 0 $uri_a$uri_b}
+		reuri_dict_reuse			{return -level 0 $uri}
 	} -compare {
 		reuri_reparse {
 			set newuri	$uri_a$uri_b
@@ -80,23 +88,25 @@ proc main {} {
 	bench reuri_valid-2.1 {Validate a uri, valid} -batch auto -setup { #<<<
 		set uri_a http://foo:bar@localhost:81
 		set uri_b /one/two?three=3&four=4#endbit
-		set uri		$uri_a$uri_b
+	} -overhead {
+		* {reuri::nop $uri_a$uri_b}
 	} -compare {
-		reuri	{reuri::uri valid $uri}
-		uri		{expr {![catch {uri::split $uri}]}}
+		reuri	{reuri::uri valid $uri_a$uri_b}
+		uri		{expr {![catch {uri::split $uri_a$uri_b}]}}
 	} -cleanup {
-		unset -nocomplain uri_a uri_b newuri uri parts
+		unset -nocomplain uri_a uri_b newuri
 	} -result 1
 	#>>>
 	bench reuri_valid-2.2 {Validate a uri, invalid} -batch auto -setup { #<<<
 		set uri_a http://fo\u306fo:bar@localhost:81
 		set uri_b /one/two?three=3&four=4#endbit
-		set uri		$uri_a$uri_b
+	} -overhead {
+		* {reuri::nop $uri_a$uri_b}
 	} -compare {
-		reuri	{reuri::uri valid $uri}
-		uri		{expr {![catch {uri::split $uri}]}}
+		reuri	{reuri::uri valid $uri_a$uri_b}
+		uri		{expr {![catch {uri::split $uri_a$uri_b}]}}
 	} -cleanup {
-		unset -nocomplain uri_a uri_b newuri uri parts
+		unset -nocomplain uri_a uri_b newuri
 	} -result 0
 	#>>>
 }

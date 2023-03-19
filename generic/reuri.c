@@ -1247,6 +1247,14 @@ finally:
 }
 
 //>>>
+#if TESTMODE
+static int NopObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
+{
+	return TCL_OK;
+}
+
+//>>>
+#endif
 
 #define NS	"::reuri"
 static struct cmd {
@@ -1256,6 +1264,9 @@ static struct cmd {
 	{NS "::uri",	UriObjCmd},
 	{NS "::query",	QueryObjCmd},
 	{NS "::path",	PathObjCmd},
+#if TESTMODE
+	{NS "::nop",	NopObjCmd},
+#endif
 	{NULL,			NULL}
 };
 // Script API >>>

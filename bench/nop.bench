@@ -1,0 +1,32 @@
+
+if {"bench" ni [info commands bench]} {
+	package require bench
+	namespace import bench::*
+}
+
+package require reuri
+
+proc main {} {
+	bench nop-1.1 {Do nothing} -batch auto -setup { #<<<
+		proc proc_nop args {}
+		namespace import ::reuri::nop
+		interp alias {} alias_nop {} ::reuri::nop
+	} -compare {
+		reuri_nop		{ reuri::nop }
+		fqreuri_nop		{ ::reuri::nop }
+		imported_nop	{ nop }
+		alias_nop		{ nop }
+		proc_nop		{ proc_nop }
+		bytecode		{ return -level 0 }
+		list			{ list }
+	} -cleanup {
+		rename proc_nop {}
+		namespace forget ::reuri::nop
+		rename alias_nop {}
+	} -result {}
+	#>>>
+}
+
+main
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

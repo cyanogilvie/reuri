@@ -55,6 +55,8 @@ struct interp_cx {
 	Tcl_Obj*			empty_query;
 	Tcl_Obj*			t;
 	Tcl_Obj*			f;
+	Tcl_Obj*			apply;
+	Tcl_Obj*			sort_unique;
 };
 
 // reuri.c internal API <<<

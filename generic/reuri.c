@@ -93,6 +93,8 @@ static void free_interp_cx(ClientData cdata, Tcl_Interp* interp) //<<<
 		replace_tclobj(&l->empty_query,	NULL);
 		replace_tclobj(&l->t,			NULL);
 		replace_tclobj(&l->f,			NULL);
+		replace_tclobj(&l->apply,		NULL);
+		replace_tclobj(&l->sort_unique,	NULL);
 
 		ckfree(l);
 		l = NULL;
@@ -361,6 +363,75 @@ finally:
 	// idxlist is on loan from the index dict
 	replace_tclobj(&lidxlist, NULL);
 	replace_tclobj(&newidx, NULL);
+	replace_tclobj(&res, NULL);
+	return code;
+}
+
+//>>>
+static int query_unset(Tcl_Interp* interp, Tcl_Obj* queryObj, int paramc, Tcl_Obj*const paramv[], Tcl_Obj** out) //<<<
+{
+	int					code = TCL_OK;
+	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
+	Tcl_Obj*			res = NULL;
+	Tcl_Obj*			params = NULL;
+	Tcl_Obj*			index = NULL;
+	Tcl_Obj*			hitlist = NULL;
+	Tcl_Obj*			sortcmdv[3] = {l->apply, l->sort_unique};
+
+	if (
+			queryObj == NULL ||	// Removing anything from an empty query is an invariant
+			paramc == 0			// Do Nothing Gracefully
+	) {
+		replace_tclobj(out, queryObj ? queryObj : l->empty_query);
+		goto finally;
+	}
+
+	replace_tclobj(&res, Tcl_IsShared(queryObj) ? Tcl_DuplicateObj(queryObj) : queryObj);
+
+	TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, res, &params, &index));
+	replace_tclobj(&params, Tcl_DuplicateObj(params));
+	replace_tclobj(&index,  Tcl_DuplicateObj(index));
+	// params and index are unshared
+
+	// Gather the indices for all instances of all the params we're unsetting
+	replace_tclobj(&hitlist, Tcl_NewListObj(paramc, NULL));	// Guess that we will have an average of one idx per param
+	for (int p=0; p<paramc; p++) {
+		int			len;
+		Tcl_Obj*	idxlist = NULL;
+		Tcl_Obj**	idxv = NULL;
+		int			idxc;
+
+		TEST_OK_LABEL(finally, code, Tcl_ListObjLength(interp, hitlist, &len));	// TODO: keep track of this directly instead?
+		TEST_OK_LABEL(finally, code, Tcl_DictObjGet(interp, index, paramv[p], &idxlist));
+		if (!idxlist) continue;
+		TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
+		TEST_OK_LABEL(finally, code, Tcl_ListObjReplace(interp, hitlist, len, 0, idxc, idxv));
+	}
+
+	// Sort unique in descending order as integers: [lsort -integer -unique -decreasing]
+	sortcmdv[2] = hitlist;
+	TEST_OK_LABEL(finally, code, Tcl_EvalObjv(interp, 3, sortcmdv, TCL_EVAL_GLOBAL));
+	replace_tclobj(&hitlist, Tcl_GetObjResult(interp));
+	Tcl_ResetResult(interp);		// Necessary?
+
+	// Remove the elements from the params list
+	Tcl_Obj**	hitv = NULL;
+	int			hitc;
+	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, hitlist, &hitc, &hitv));
+	for (int i=0; i<hitc; i++) {
+		int		idx;
+		TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, hitv[i], &idx));
+		TEST_OK_LABEL(finally, code, Tcl_ListObjReplace(interp, params, idx*2, 2, 0, NULL));
+	}
+
+	ReuriSetQuery(res, params, NULL);
+
+	replace_tclobj(out, res);
+
+finally:
+	replace_tclobj(&params, NULL);
+	replace_tclobj(&index, NULL);
+	replace_tclobj(&hitlist, NULL);
 	replace_tclobj(&res, NULL);
 	return code;
 }
@@ -726,6 +797,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				TEST_OK_LABEL(query_finally, code, Tcl_GetIndexFromObj(interp, objv[A_OP], ops, "op", TCL_EXACT, &opidx));
 				switch (opidx) {
 					case OP_ADD:
+					case OP_UNSET:
 						{
 							struct uri*	uri_ir = NULL;
 							uri = Tcl_ObjGetVar2(interp, objv[A_URI], NULL, 0);
@@ -786,6 +858,14 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						exists_finally:
 							replace_tclobj(&index, NULL);
 							// idxlist ref is on loan from the index dict
+						}
+						break;
+						//>>>
+					case OP_UNSET: //<<<
+						{
+							enum {A_cmd=2, A_URIVAR, A_args};
+							CHECK_MIN_ARGS_LABEL(query_finally, code, "uri ?param ...");
+							TEST_OK_LABEL(query_finally, code, query_unset(interp, query, objc-A_args, objv+A_args, &query));
 						}
 						break;
 						//>>>
@@ -1024,8 +1104,14 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_UNSET: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				Tcl_Obj*	queryObj = NULL;
+				enum {A_cmd=1, A_QUERYVAR, A_args};
+				CHECK_MIN_ARGS_LABEL(finally, code, "queryVarName ?param ...?");
+				TEST_OK_LABEL(finally, code, query_unset(interp, Tcl_ObjGetVar2(interp, objv[A_QUERYVAR], NULL, 0), objc-A_args, objv+A_args, &res));
+				queryObj = Tcl_ObjSetVar2(interp, objv[A_QUERYVAR], NULL, res, TCL_LEAVE_ERR_MSG);
+				if (queryObj == NULL) { code = TCL_ERROR; goto finally; }
+				replace_tclobj(&res, queryObj);
+				Tcl_SetObjResult(interp, res);
 			}
 			break;
 			//>>>
@@ -1310,6 +1396,9 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 	replace_tclobj(&l->empty_list,	Tcl_NewListObj(0, NULL));
 	replace_tclobj(&l->t,			Tcl_NewBooleanObj(1));
 	replace_tclobj(&l->f,			Tcl_NewBooleanObj(0));
+	replace_tclobj(&l->apply,		Tcl_NewStringObj("apply", -1));
+	replace_tclobj(&l->sort_unique,	Tcl_NewStringObj("l {lsort -integer -unique -decreasing $l}", -1));
+
 	TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, 0, NULL, &l->empty_query));
 
 	Tcl_SetAssocData(interp, "reuri", free_interp_cx, l);

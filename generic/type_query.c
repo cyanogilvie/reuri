@@ -70,6 +70,29 @@ static void update_string_rep(Tcl_Obj* obj) //<<<
 //>>>
 
 // Internal API <<<
+int ReuriRebuildIndex(Tcl_Interp* interp, Tcl_Obj* params, Tcl_Obj** index) //<<<
+{
+	int					code = TCL_OK;
+	Tcl_Obj*			res = NULL;
+	Tcl_Obj**			pv = NULL;
+	int					pc;
+	
+	replace_tclobj(&res, Tcl_NewDictObj());
+
+	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, params, &pc, &pv));
+	if (pc % 2 != 0) THROW_ERROR_LABEL(finally, code, "params list has an odd number of elements");
+
+	for (int i=0; i<pc/2; i++)
+		TEST_OK_LABEL(finally, code, query_add_index(interp, res, pv[i*2], i));
+
+	replace_tclobj(index, res);
+
+finally:
+	replace_tclobj(&res, NULL);
+	return code;
+}
+
+//>>>
 int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, Tcl_Obj** index) //<<<
 {
 	int					code = TCL_OK;
@@ -93,8 +116,14 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 		ir = Tcl_FetchInternalRep(query, &query_objtype);
 	}
 
+	if (index) {
+		if (INDEX(ir) == NULL) {
+			TEST_OK_LABEL(finally, code, ReuriRebuildIndex(interp, PARAMS(ir), INDEX_PTR(ir)));
+		}
+		replace_tclobj(index, INDEX(ir));
+	}
+
 	if (params) replace_tclobj(params, PARAMS(ir));
-	if (index)  replace_tclobj(index,  INDEX(ir));
 
 finally:
 	return code;
@@ -191,8 +220,8 @@ int Reuri_CompileQuery(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* params) //<
 
 	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, params, &pc, &pv));
 	if (pc % 2 == 1) {
-		struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 		if (interp) {
+			struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 			Tcl_SetErrorCode(interp, "REURI", "UNBALANCED_PARAMS", NULL);
 			Tcl_SetObjResult(interp, Dedup_NewStringObj(l->dedup_pool, "Parameter list isn't even", -1));
 		}

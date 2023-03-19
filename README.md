@@ -23,7 +23,7 @@ reuri - URI Manipulation for Tcl
 **reuri::query** **add** *variable* *param* *value*  
 **reuri::query** **exists** *query* *param*  
 ?? **reuri::query** **set** *variable* *param* *value* ?*offset*?  
-?? **reuri::query** **unset** *variable* *param* ?*offset*?  
+**reuri::query** **unset** *variable* ?*param* …?  
 **reuri::query** **names** *query*  
 ?? **reuri::query** **reorder** *variable* *params*  
 **reuri::query** **encode** *params*|?*param* *value* …?  
@@ -97,8 +97,8 @@ While this package is in the 0 major version series this API is not stable and w
   - **reuri::query** **set** *variable* *param* *value* ?*index*?  
     Replace any instances of *param* in the query part stored in *variable* with a single instance containing *value*. If *index* is specified, then replace only that instance of *param* in *variable*, or throw exception **REURI** **BAD\_OFFSET** if the *index* isn’t valid.
 
-  - **reuri::query** **unset** *variable* *param* ?*index*?  
-    Remove all instances of *param* in *variable*, unless *index* is specified in which case only remove the specified instance(s), or throw **REURI** **BAD\_OFFSET** if the *index* isn’t valid.
+  - **reuri::query** **unset** *variable* ?*param* …?  
+    Remove all instances of each *param* in *variable*.
 
   - **reuri::query** **names** *query*  
     Return a list of all of the param names that appear in *query*, in the order they appear. If multiple instances occur then the result contains multiple instances in the corresponding positions.
@@ -357,7 +357,7 @@ The uri module of tcllib.
   - [x] Implement **reuri::query add**
   - [x] Implement **reuri::query exists**
   - [ ] Implement **reuri::query set**
-  - [ ] Implement **reuri::query unset**
+  - [x] Implement **reuri::query unset**
   - [x] Implement **reuri::query names**
   - [ ] Implement **reuri::query reorder**
   - [x] Implement **reuri::path split**

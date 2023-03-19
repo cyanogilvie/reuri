@@ -148,7 +148,10 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 
 	if (uri->query) {
 		Tcl_DStringAppend(ds, "?", 1);
+		const int end = Tcl_DStringLength(ds);
 		APPEND_PART(uri->query);
+		// If the query was empty, walk back the ?
+		if (Tcl_DStringLength(ds) == end) Tcl_DStringTrunc(ds, end-1);
 	}
 
 	if (uri->fragment) {

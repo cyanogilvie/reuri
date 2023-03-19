@@ -79,7 +79,7 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-REURI_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c parsers/packcc_index.c type_uri.c type_query.c type_path.c type_index.c testmode.c reuriStubInit.c])
+REURI_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c type_uri.c type_query.c type_path.c type_index.c testmode.c reuriStubInit.c])
 TEA_ADD_HEADERS([generic/reuri.h generic/reuriDecls.h])
 TEA_ADD_INCLUDES([-Igeneric ${dedup_INCLUDE_SPEC}])
 TEA_ADD_LIBS([])
@@ -99,7 +99,7 @@ TEA_ADD_TCL_SOURCES([])
 # TEA_ADD_* any platform specific compiler/build info here.
 #--------------------------------------------------------------------
 
-CLEANFILES="$CLEANFILES parsers/*.c parsers/*.h lexers/*"
+CLEANFILES="$CLEANFILES lexers/*"
 #CLEANFILES="$CLEANFILES lexers/* tools/bin/*"
 if test "${TEA_PLATFORM}" = "windows" ; then
     # Ensure no empty if clauses

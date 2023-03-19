@@ -154,7 +154,7 @@ top:
 	<postrange> end							{                         goto finally; }
 
 	<*> * {
-	  	char	buf[3*sizeof(ptrdiff_t)+2];
+		char	buf[3*sizeof(ptrdiff_t)+2];
 
 		sprintf(buf, "%ld", s-1-base);
 		Tcl_SetObjResult(interp, Tcl_ObjPrintf("Index syntax error at %d: 0x%02x", (int)(s-1-base), yych));

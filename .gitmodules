@@ -2,10 +2,6 @@
 	path = tools/re2c
 	url = https://github.com/skvadrik/re2c
 	shallow = true
-[submodule "tools/packcc"]
-	path = tools/packcc
-	url = https://github.com/arithy/packcc
-	shallow = true
 [submodule "tclconfig"]
 	path = tclconfig
 	url = https://github.com/cyanogilvie/tclconfig.git

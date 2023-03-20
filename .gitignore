@@ -3,6 +3,10 @@
 *.o
 *.a
 *.so
+*.gcda
+*.gcno
+*.gcov
+*~
 core
 Makefile
 autom4te.cache

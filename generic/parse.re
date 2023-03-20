@@ -113,10 +113,10 @@ static inline int conditionally_allowed(enum reuri_encode_mode mode, const char 
 		case REURI_ENCODE_PATH:		return (yych=='@' || yych=='=' || yych=='&');
 		case REURI_ENCODE_PATH2:	return (yych=='@' || yych=='=' || yych=='&' || yych==':');
 		case REURI_ENCODE_HOST:		return (yych=='=' || yych=='&');
-		case REURI_ENCODE_USERINFO:	return (yych==':' || yych=='=' || yych=='&');
-		case REURI_ENCODE_FRAGMENT:	return (yych==':' || yych=='@' || yych=='/' || yych=='?' || yych=='=' || yych=='&');
-		default:					return 0;
+		case REURI_ENCODE_USERINFO:	return (yych=='=' || yych=='&' || yych==':');
+		case REURI_ENCODE_FRAGMENT:	return (yych=='@' || yych=='/' || yych=='?' || yych=='=' || yych=='&' || yych==':');
 	}
+	return 0;
 }
 
 //>>>
@@ -372,7 +372,8 @@ int percent_decode(Tcl_Obj* str, Tcl_Obj** res) //<<<
 	}
 
 	<*> * {
-		Tcl_Panic("Unable to percent decode string at ofs %d: 0x%02x", (int)(s-base), *s);
+		fprintf(stderr, "Unable to percent decode string at ofs %d: 0x%02x", (int)(s-base), *s);
+		return TCL_ERROR;
 	}
 	*/
 }
@@ -505,9 +506,9 @@ int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist) //<<<
 
 top:
 	/*!local:re2c:parse_path
-    re2c:api:style             = free-form;
-    re2c:define:YYCTYPE        = "unsigned char";
-    re2c:define:YYCURSOR       = s;
+	re2c:api:style             = free-form;
+	re2c:define:YYCTYPE        = "unsigned char";
+	re2c:define:YYCURSOR       = s;
 	re2c:yyfill:enable         = 0;
 	re2c:flags:tags            = 1;
 
@@ -554,9 +555,8 @@ top:
 	*/
 
 finally:
-	if (code == TCL_OK) {
+	if (code == TCL_OK)
 		replace_tclobj(pathlist, res_pathlist);
-	}
 
 	replace_tclobj(&res_pathlist, NULL);
 	Tcl_DStringFree(&acc);

@@ -27,6 +27,7 @@ test $t-0.5 {trailing /}	{ reuri::path get /one/two/				} {/ one two}
 test $t-0.6 {bare /}		{ reuri::path get /						} {/}
 test $t-0.7 {bare x}		{ reuri::path get x						} {x}
 test $t-0.8 {lenient chars}	{ reuri::path get /foo:?#=%&bar/baz%2fx	} {/ foo:?#=%&bar baz/x}
+test $t-1.1 {null}			{ reuri::path get /foo%00baz			} "/ foo\0baz"
 
 test $t-1.0 {abs, exists}	{ reuri::path get /one/two/three 0		} {/}
 test $t-1.1 {abs, exists}	{ reuri::path get /one/two/three 1		} {one}

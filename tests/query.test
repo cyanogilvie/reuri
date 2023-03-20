@@ -13,6 +13,15 @@ test $t-1.1 {missing}			{ reuri::query values {?xyz=a} foo				} {}
 test $t-1.2 {exists, single}	{ reuri::query values {?foo=a} foo				} a
 test $t-1.3 {exists, multiple}	{ reuri::query values {?foo=a&foo=bar} foo		} {a bar}
 test $t-1.4 {exists, multiple}	{ reuri::query values {?foo=a&x=y&foo=bar} foo	} {a bar}
+test $t-2.1 {%00}				{ reuri::query values {?f%00oo=a%00b} f\0oo		} a\0b
+test $t-2.2 {bad %}				{ reuri::query values {?f%0oo=a%0x} f%0oo		} a%0x
+test $t-2.3 {bad %}				{ reuri::query values {?f%oo=a%x} f%oo			} a%x
+test $t-2.4 {%00}				{ reuri::query values {?f%00=a%00} f\0			} a\0
+test $t-2.5 {%00}				{ reuri::query values {?f%00} f\0				} {{}}
+test $t-2.5 {no val}			{ reuri::query values {?foo} foo				} {{}}
+test $t-2.6 {no name}			{ reuri::query values {?=foo} {}				} {foo}
+test $t-2.7 {no name}			{ reuri::query values {?=foo&} {}				} {foo}
+test $t-2.8 {no name}			{ reuri::query values {?} {}					} {}
 
 set t	uri_query_values
 test $t-1.0.0 {empty}			{ reuri::uri query values {} foo					} {}

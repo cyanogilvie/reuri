@@ -56,9 +56,11 @@ static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 	replace_tclobj(&dup_uri->scheme,	uri->scheme);
 	replace_tclobj(&dup_uri->userinfo,	uri->userinfo);
 	replace_tclobj(&dup_uri->host,		uri->host);
+	dup_uri->hosttype = uri->hosttype;
 	replace_tclobj(&dup_uri->port,		uri->port);
 	replace_tclobj(&dup_uri->path,		uri->path);
 	replace_tclobj(&dup_uri->query,		uri->query);
+	replace_tclobj(&dup_uri->fragment,	uri->fragment);
 
 	newir.twoPtrValue.ptr1 = dup_uri;
 	Tcl_StoreInternalRep(dup, &uri_objtype, &newir);

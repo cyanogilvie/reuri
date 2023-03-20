@@ -71,9 +71,8 @@ int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlis
 	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(pathPtr, &path_objtype);
 
 	if (ir == NULL) {
-		Tcl_ObjInternalRep	newir;
+		Tcl_ObjInternalRep	newir = {0};
 
-		*PATH_PTR(&newir) = NULL;
 		code = parse_path(interp, Tcl_GetString(pathPtr), PATH_PTR(&newir));
 		if (code != TCL_OK) {
 			free_path(&newir);

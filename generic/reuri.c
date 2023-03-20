@@ -469,9 +469,9 @@ static int query_set(Tcl_Interp* interp, Tcl_Obj* queryObj, Tcl_Obj* param, Tcl_
 
 	TEST_OK_LABEL(finally, code, Tcl_DictObjGet(interp, index, param, &idxlist));
 	if (!idxlist) {
-add:
 		// param doesn't exist in query yet, append it
 		int last;
+add:
 		TEST_OK_LABEL(finally, code, Tcl_ListObjLength(interp, params, &last));
 		replace_tclobj(&newidx, Tcl_NewIntObj(last/2));
 
@@ -647,9 +647,8 @@ Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode,
 		case REURI_ENCODE_USERINFO: return percent_encode(interp, objPtr, REURI_ENCODE_USERINFO);
 		case REURI_ENCODE_HOST:     return percent_encode(interp, objPtr, REURI_ENCODE_HOST);
 		case REURI_ENCODE_FRAGMENT: return percent_encode(interp, objPtr, REURI_ENCODE_FRAGMENT);
+		default:					Tcl_Panic("Invalid encode mode: %d", mode); return NULL;
 	}
-	Tcl_Panic("Invalid encode mode: %d", mode);
-	return NULL;	// Unreachable, pacify compiler
 }
 
 //>>>
@@ -680,6 +679,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		"decode",
 		"query",
 		"path",
+		"normalize",
 		NULL
 	};
 	enum {
@@ -693,7 +693,8 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		M_ENCODE,
 		M_DECODE,
 		M_QUERY,
-		M_PATH
+		M_PATH,
+		M_NORMALIZE
 	};
 	int	methodidx;
 
@@ -1076,9 +1077,9 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 							if (objc < A_INDEX || objc > A_objc)
 								CHECK_ARGS_LABEL(path_exists_finally, code, "uri ?index?");
 
-							TEST_OK_LABEL(path_exists_finally, code, Reuri_GetPathFromObj(interp, path, &pathlist));
 							if (objc > A_INDEX) {
 								int pathc;
+								TEST_OK_LABEL(path_exists_finally, code, Reuri_GetPathFromObj(interp, path, &pathlist));
 								TEST_OK_LABEL(path_exists_finally, code, Tcl_ListObjLength(interp, pathlist, &pathc));
 								TEST_OK_LABEL(path_exists_finally, code, Idx_Exists(interp, pathc, objv[A_INDEX], &res));
 							} else {
@@ -1095,11 +1096,22 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						break;
 						//>>>
 					default:
-						THROW_ERROR_LABEL(finally, code, "Unhandled uri path case");
+						THROW_ERROR_LABEL(path_finally, code, "Unhandled uri path case");
 				}
 
 			path_finally:
 				replace_tclobj(&path, NULL);
+			}
+			break;
+			//>>>
+		case M_NORMALIZE: //<<<
+			{
+				struct uri* uri = NULL;
+				enum {A_cmd=1, A_URI, A_objc};
+				CHECK_ARGS_LABEL(finally, code, "uri");
+				TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, objv[A_URI], &uri));
+				Tcl_InvalidateStringRep(objv[A_URI]);
+				Tcl_SetObjResult(interp, objv[A_URI]);
 			}
 			break;
 			//>>>

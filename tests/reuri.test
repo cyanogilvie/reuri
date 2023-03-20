@@ -35,6 +35,31 @@ append allchars_fragment	%E3%81%AF
 
 # TODO: test that a leading ":" in the first path segment is percent encoded in the no-scheme case
 
+test reuri-0.1 {bad method}		-body {reuri::uri nonesuch}			-returnCodes error -result {bad method "nonesuch": must be *} -errorCode {TCL LOOKUP INDEX method nonesuch} -match glob
+test reuri-0.2 {no method}		-body {reuri::uri}					-returnCodes error -result {wrong # args: should be "reuri::uri method ?arg ...?"} -errorCode {TCL WRONGARGS}
+test reuri-0.3.1 {uri exists}	-body {reuri::uri exists}			-returnCodes error -result {wrong # args: should be "reuri::uri exists uri part"} -errorCode {TCL WRONGARGS}
+test reuri-0.3.2 {uri exists}	-body {reuri::uri exists /x}		-returnCodes error -result {wrong # args: should be "reuri::uri exists uri part"} -errorCode {TCL WRONGARGS}
+test reuri-0.3.3 {uri exists}	-body {reuri::uri exists /x host x}	-returnCodes error -result {wrong # args: should be "reuri::uri exists uri part"} -errorCode {TCL WRONGARGS}
+test reuri-0.3.4 {uri exists}	-body {reuri::uri exists /x bad}	-returnCodes error -result {bad part "bad": must be *} -errorCode {TCL LOOKUP INDEX part bad} -match glob
+test reuri-0.3.5 {uri exists}	-body {reuri::uri exists l\0 host}	-returnCodes error -result {URI parse error at offset 0} -errorCode "REURI PARSE l\0 0"
+test reuri-0.4.1 {uri valid}	-body {reuri::uri valid}			-returnCodes error -result {wrong # args: should be "reuri::uri valid uri"} -errorCode {TCL WRONGARGS}
+test reuri-0.4.2 {uri valid}	-body {reuri::uri valid l x}		-returnCodes error -result {wrong # args: should be "reuri::uri valid uri"} -errorCode {TCL WRONGARGS}
+test reuri-0.5.1 {uri encode}	-body {reuri::uri encode}			-returnCodes error -result {wrong # args: should be "reuri::uri encode mode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.5.2 {uri encode}	-body {reuri::uri encode path}		-returnCodes error -result {wrong # args: should be "reuri::uri encode mode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.5.3 {uri encode}	-body {reuri::uri encode path a x}	-returnCodes error -result {wrong # args: should be "reuri::uri encode mode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.5.4 {uri encode}	-body {reuri::uri encode bad a}		-returnCodes error -result {bad mode "bad": must be *} -errorCode {TCL LOOKUP INDEX mode bad} -match glob
+test reuri-0.6.1 {uri deencode}	-body {reuri::uri decode}			-returnCodes error -result {wrong # args: should be "reuri::uri decode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.6.2 {uri deencode}	-body {reuri::uri decode x y}		-returnCodes error -result {wrong # args: should be "reuri::uri decode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.7.1 {uri query}	-body {reuri::uri query}			-returnCodes error -result {wrong # args: should be "reuri::uri query op uri ?arg ...?"} -errorCode {TCL WRONGARGS}
+test reuri-0.7.2 {uri query}	-body {reuri::uri query bad}		-returnCodes error -result {wrong # args: should be "reuri::uri query op uri ?arg ...?"} -errorCode {TCL WRONGARGS}
+test reuri-0.7.3 {uri query}	-body {reuri::uri query bad x}		-returnCodes error -result {bad op "bad": must be *} -errorCode {TCL LOOKUP INDEX op bad} -match glob
+test reuri-0.7.4 {uri query}	-body {reuri::uri query exists x\0}	-returnCodes error -result {URI parse error at offset 0} -errorCode "REURI PARSE x\0 0"
+test reuri-0.7.5 {uri query}	-body {set u x\0; reuri::uri query set u a b}	-returnCodes error -result {URI parse error at offset 0} -errorCode "REURI PARSE x\0 0" -cleanup {unset -nocomplain u}
+test reuri-0.7.6 {uri query}	-body {reuri::uri query get x u a b}			-returnCodes error -result {bad option "a": must be *} -errorCode {TCL LOOKUP INDEX option a} -match glob
+test reuri-0.7.7 {uri query}	-body {reuri::uri query get x y -default}		-returnCodes error -result {missing argument to "-default"} -errorCode {TCL ARGUMENT MISSING}
+test reuri-0.8.1 {uri query}	-body {reuri::uri query values x}				-returnCodes error -result {wrong # args: should be "reuri::uri query values uri param"} -errorCode {TCL WRONGARGS}
+test reuri-0.8.2 {uri query}	-body {reuri::uri query values x y z}			-returnCodes error -result {wrong # args: should be "reuri::uri query values uri param"} -errorCode {TCL WRONGARGS}
+
 test reuri-1.1 {} -setup { #<<<
 	set uri http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
 } -body {
@@ -150,6 +175,9 @@ test reuri-5.9 {normalize} { reuri::uri normalize {file://:81/one/two?three=3&fo
 test reuri-5.10 {normalize} { reuri::uri normalize {http://localhost:81/one/two#endbit} } {http://localhost:81/one/two#endbit}
 test reuri-5.11 {normalize} { reuri::uri normalize {http://localhost:81#endbit} } {http://localhost:81#endbit}
 test reuri-5.12 {normalize} { reuri::uri normalize {http://localhost:81?} } {http://localhost:81}
+test reuri-5.14 {normalize} -body { reuri::uri normalize } -returnCodes error -result {wrong # args: should be "reuri::uri normalize uri"} -errorCode {TCL WRONGARGS}
+test reuri-5.15 {normalize} -body { reuri::uri normalize /foo bar } -returnCodes error -result {wrong # args: should be "reuri::uri normalize uri"} -errorCode {TCL WRONGARGS}
+test reuri-5.16 {normalize} -body { reuri::uri normalize local\u306fhost/foo } -returnCodes error -result {URI parse error at offset 0} -errorCode "REURI PARSE local\u306fhost/foo 0"
 
 test reuri_valid-1.1 {http://localhost}			{ reuri::uri valid http://localhost 		}		1
 test reuri_valid-2.1 {http://local\u306fhost}	{ reuri::uri valid http://local\u306fhost	}		0
@@ -240,6 +268,43 @@ test reuri_encode-8.6 {encode fragment, subst: /}	{ reuri::uri encode fragment f
 test reuri_encode-8.7 {encode fragment, subst: \0}	{ reuri::uri encode fragment fo\0o	} fo%00o
 test reuri_encode-8.8 {encode fragment, subst: :}	{ reuri::uri encode fragment fo:o	} fo:o
 test reuri_encode-8.9 {encode fragment, subst: @}	{ reuri::uri encode fragment fo@o	} fo@o
+
+test reuri_encode-9.1 {encode awssig, no substs}		{ reuri::uri encode awssig foo			} foo
+test reuri_encode-9.2 {encode awssig, subst: #}			{ reuri::uri encode awssig fo#o			} fo%23o
+test reuri_encode-9.3 {encode awssig, subst: ?}			{ reuri::uri encode awssig fo?o			} fo%3Fo
+test reuri_encode-9.4 {encode awssig, subst: &}			{ reuri::uri encode awssig fo&o			} fo%26o
+test reuri_encode-9.5 {encode awssig, subst: =}			{ reuri::uri encode awssig fo=o			} fo%3Do
+test reuri_encode-9.6 {encode awssig, subst: /}			{ reuri::uri encode awssig fo/o			} fo%2Fo
+test reuri_encode-9.7 {encode awssig, subst: \0}		{ reuri::uri encode awssig fo\0o		} fo%00o
+test reuri_encode-9.8 {encode awssig, subst: :}			{ reuri::uri encode awssig fo:o			} fo%3Ao
+test reuri_encode-9.9 {encode awssig, subst: @}			{ reuri::uri encode awssig fo@o			} fo%40o
+test reuri_encode-9.10 {encode awssig, subst: \u306f}	{ reuri::uri encode awssig fo\u306fo	} fo%E3%81%AFo
+test reuri_encode-9.11 {encode awssig, leading res}		{ reuri::uri encode awssig \u306fo		} %E3%81%AFo
+test reuri_encode-9.12 {encode awssig, leading res}		{ reuri::uri encode awssig \0o			} %00o
+
+for {set c 0} {$c < 0xff} {incr c} {
+	set char	[format %c $c]
+	if {[regexp {^[A-Za-z0-9._~-]$} $char]} {
+		dict set map $c $char
+	} else {
+		dict set map $c [format %%%02X $c]
+	}
+}
+set ref {str {
+	upvar 1 map map
+	set out	{}
+	binary scan [encoding convertto utf-8 $str] cu* bytes
+	foreach c $bytes {
+		append out [dict get $map $c]
+	}
+	set out
+}}
+set n	0
+for {set c 0} {$c <= 0xff} {incr c} {
+	test reuri_encode-10.[incr n] [format {encode awssig, codepoint %%%02x} $c] "reuri::uri encode awssig fo\\x[format %02x $c]o" [apply $ref [subst -nocommands -novariables "fo\\x[format %02x $c]o"]]
+}
+unset -nocomplain c char map ref n
+
 
 test reuri_decode-1.1 {nop} -body { #<<<
 	reuri::uri decode foo

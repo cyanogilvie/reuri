@@ -1,6 +1,6 @@
-% reuri(3) 0.5 | URI Manipulation for Tcl
+% reuri(3) 0.6 | URI Manipulation for Tcl
 % Cyan Ogilvie
-% 0.5
+% 0.6
 
 
 # NAME
@@ -10,7 +10,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.5?
+**package require reuri** ?0.6?
 
 **reuri::uri** **get** *uri* ?*part* ?*default*??\
 **reuri::uri** **exists** *uri* *part*\
@@ -19,10 +19,11 @@ reuri - URI Manipulation for Tcl
 ?? **reuri::uri** **context** *uri* *script*\
 ?? **reuri::uri** **resolve** *uri*\
 ?? **reuri::uri** **absolute** *uri*\
-**reuri::uri** **encode** **query**|**path**|**host** *value*\
+**reuri::uri** **encode** **query**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*\
 **reuri::uri** **decode** *value*\
 **reuri::uri** **query** *op* *uri* ?*arg* ...?\
-**reuri::uri** **path** *op* *uri* ?*arg* ...?
+**reuri::uri** **path** *op* *uri* ?*arg* ...?\
+**reuri::uri** **normalize** *uri*
 
 **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??\
 **reuri::query** **values** *query* *param*\
@@ -102,9 +103,12 @@ CODE IS NOT RECOMMENDED.**</span>
 **reuri::uri** **absolute** *uri*
 :   Return true if *uri* is absolute (ie. not a relative URI).
 
-**reuri::uri** **encode** **query**|**path**|**host** *value*
+**reuri::uri** **encode** **query**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*
 :   Percent-encode the UTF-8 representation of *value*, suitable for inclusion as
-    component of the part given by **query**, **path** or **host**.
+    component of the part given by **query**, **path** or **host**, etc.  **path2** differs
+    from **path** in that it permits ":" un-encoded, that is, **segment-nz-nc**
+    vs **segment** in RFC 3986 Section 3.2.2.  **awssig** uses the rules required
+    for calculating AWS v4 signatures.
 
 **reuri::uri** **decode** *value*
 :   Percent decode *value*, the inverse of **reuri::uri** **encode**.  For compatibility
@@ -113,9 +117,12 @@ CODE IS NOT RECOMMENDED.**</span>
 
 **reuri::uri** **query** *op* *uri* ?*arg* ...?
 :   Equivalent to calling **reuri::query** *op* ?*arg* ...? on the query portion of *uri*.
- 
+
 **reuri::uri** **path** *op* *uri* ?*arg* ...?
 :   Equivalent to calling **reuri::path** *op* ?*arg* ...? on the path portion of *uri*.
+
+**reuri::uri** **normalize** *uri*
+:   Return a canonical representation of *uri*, as described in RFC3986.
 
 **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??
 :   Retrieve the value for the named *param* in the *query* part.  If *param*

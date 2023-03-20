@@ -22,6 +22,7 @@ const char* reuri_encode_mode_str[] = {
 	"host",
 	"userinfo",
 	"fragment",
+	"awssig",
 	NULL				// NULL here so we can point Tcl_GetIndexFromObj at this
 };
 
@@ -647,6 +648,7 @@ Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode,
 		case REURI_ENCODE_USERINFO: return percent_encode(interp, objPtr, REURI_ENCODE_USERINFO);
 		case REURI_ENCODE_HOST:     return percent_encode(interp, objPtr, REURI_ENCODE_HOST);
 		case REURI_ENCODE_FRAGMENT: return percent_encode(interp, objPtr, REURI_ENCODE_FRAGMENT);
+		case REURI_ENCODE_AWSSIG:	return percent_encode_awssig(interp, objPtr);
 		default:					Tcl_Panic("Invalid encode mode: %d", mode); return NULL;
 	}
 }
@@ -698,11 +700,8 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 	};
 	int	methodidx;
 
-	if (objc < 2) {
-		Tcl_WrongNumArgs(interp, 1, objv, "method ?arg ...?");
-		code = TCL_ERROR;
-		goto finally;
-	}
+	enum {A_cmd=0, M_METHOD, A_args};
+	CHECK_MIN_ARGS_LABEL(finally, code, "method ?arg ...?");
 
 	TEST_OK_LABEL(finally, code, Tcl_GetIndexFromObj(interp, objv[1], methods, "method", TCL_EXACT, &methodidx));
 
@@ -746,20 +745,11 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			//>>>
 		case M_EXISTS: //<<<
 			{
-				enum {
-					A_METHOD=1,
-					A_URI,
-					A_PART,
-					A_objc
-				};
 				int				exists;
 				enum reuri_part	part;
 
-				if (objc != A_objc) {
-					Tcl_WrongNumArgs(interp, 2, objv, "uri part");
-					code = TCL_ERROR;
-					goto finally;
-				}
+				enum {A_cmd=1, A_URI, A_PART, A_objc};
+				CHECK_ARGS_LABEL(finally, code, "uri part");
 
 				TEST_OK_LABEL(finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
 				TEST_OK_LABEL(finally, code, Reuri_URIObjPartExists(interp, objv[A_URI], part, &exists));
@@ -806,21 +796,12 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			//>>>
 		case M_ENCODE: //<<<
 			{
-				enum args {
-					A_METHOD = 1,
-					A_MODE,
-					A_VAL,
-					A_objc
-				};
 				int						imode;
 				enum reuri_encode_mode	mode;
 				Tcl_Obj*	res = NULL;
 
-				if (objc != A_objc) {
-					Tcl_WrongNumArgs(interp, 2, objv, "mode value");
-					code = TCL_ERROR;
-					goto finally;
-				}
+				enum args { A_cmd = 1, A_MODE, A_VAL, A_objc };
+				CHECK_ARGS_LABEL(finally, code, "mode value");
 
 				TEST_OK_LABEL(finally, code,
 						Tcl_GetIndexFromObj(interp, objv[A_MODE], reuri_encode_mode_str,
@@ -835,18 +816,10 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			//>>>
 		case M_DECODE: //<<<
 			{
-				enum args {
-					A_METHOD = 1,
-					A_VAL,
-					A_objc
-				};
 				Tcl_Obj*	res = NULL;
 
-				if (objc != A_objc) {
-					Tcl_WrongNumArgs(interp, 2, objv, "value");
-					code = TCL_ERROR;
-					goto finally;
-				}
+				enum args { A_cmd = 1, A_VAL, A_objc };
+				CHECK_ARGS_LABEL(finally, code, "value");
 
 				res = Reuri_PercentDecodeObj(objv[A_VAL]);
 
@@ -888,8 +861,8 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				Tcl_Obj*	luri = NULL;
 				int			setvar = 0;
 
-				enum args {A_cmd=1, A_OP, A_URI, A_objc};
-				if (objc < A_objc) CHECK_ARGS_LABEL(query_finally, code, "op uri ?arg ...?");
+				enum args {A_cmd=1, A_OP, A_URI, A_args};
+				CHECK_MIN_ARGS_LABEL(query_finally, code, "op uri ?arg ...?");
 
 				TEST_OK_LABEL(query_finally, code, Tcl_GetIndexFromObj(interp, objv[A_OP], ops, "op", TCL_EXACT, &opidx));
 				switch (opidx) {
@@ -914,9 +887,8 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				switch (opidx) {
 					case OP_GET: //<<<
 						{
-							enum {A_cmd=2, A_URI, A_args, A_objc};
-							if (objc < A_args)
-								CHECK_ARGS_LABEL(query_finally, code, "uri ?param ?-default default??");
+							enum {A_cmd=2, A_URI, A_args};
+							CHECK_MIN_ARGS_LABEL(query_finally, code, "uri ?param ?-default default??");
 
 							TEST_OK_LABEL(query_finally, code,
 									query_get(interp, objc, objv, A_args-1, query, "uri", &res));
@@ -1107,15 +1079,27 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		case M_NORMALIZE: //<<<
 			{
 				struct uri* uri = NULL;
+				Tcl_Obj*	tmp = NULL;
+
 				enum {A_cmd=1, A_URI, A_objc};
-				CHECK_ARGS_LABEL(finally, code, "uri");
-				TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, objv[A_URI], &uri));
+				CHECK_ARGS_LABEL(normalize_finally, code, "uri");
+				TEST_OK_LABEL(normalize_finally, code, ReuriGetURIFromObj(interp, objv[A_URI], &uri));
+				if (uri->path) {
+					TEST_OK_LABEL(normalize_finally, code, Reuri_GetPathFromObj(interp, uri->path, &tmp));
+					Tcl_InvalidateStringRep(uri->path);
+				}
+				if (uri->query) {
+					TEST_OK_LABEL(normalize_finally, code, ReuriGetQueryFromObj(interp, uri->query, &tmp, NULL));
+					Tcl_InvalidateStringRep(uri->query);
+				}
 				Tcl_InvalidateStringRep(objv[A_URI]);
 				Tcl_SetObjResult(interp, objv[A_URI]);
+			normalize_finally:
+				replace_tclobj(&tmp, NULL);
 			}
 			break;
 			//>>>
-		default: Tcl_Panic("Invalid method index: %d", methodidx);
+		default: THROW_PRINTF_LABEL(finally, code, "Invalid method index: %d", methodidx);
 	}
 
 finally:

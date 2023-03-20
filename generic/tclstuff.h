@@ -56,7 +56,7 @@
 #define CHECK_ARGS_LABEL(label, rc, msg) \
 	do { \
 		if (objc != A_objc) { \
-			Tcl_WrongNumArgs(interp, A_cmd+1, objv, "method ?arg ...?"); \
+			Tcl_WrongNumArgs(interp, A_cmd+1, objv, msg); \
 			rc = TCL_ERROR; \
 			goto label; \
 		} \
@@ -65,7 +65,7 @@
 #define CHECK_MIN_ARGS_LABEL(label, rc, msg) \
 	do { \
 		if (objc < A_args) { \
-			Tcl_WrongNumArgs(interp, A_cmd+1, objv, "method ?arg ...?"); \
+			Tcl_WrongNumArgs(interp, A_cmd+1, objv, msg); \
 			rc = TCL_ERROR; \
 			goto label; \
 		} \

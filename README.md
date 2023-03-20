@@ -4,7 +4,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.5?
+**package require reuri** ?0.6?
 
 **reuri::uri** **get** *uri* ?*part* ?*default*??  
 **reuri::uri** **exists** *uri* *part*  
@@ -13,10 +13,11 @@ reuri - URI Manipulation for Tcl
 ?? **reuri::uri** **context** *uri* *script*  
 ?? **reuri::uri** **resolve** *uri*  
 ?? **reuri::uri** **absolute** *uri*  
-**reuri::uri** **encode** **query**|**path**|**host** *value*  
+**reuri::uri** **encode** **query**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*  
 **reuri::uri** **decode** *value*  
 **reuri::uri** **query** *op* *uri* ?*arg* …?  
-**reuri::uri** **path** *op* *uri* ?*arg* …?
+**reuri::uri** **path** *op* *uri* ?*arg* …?  
+**reuri::uri** **normalize** *uri*
 
 **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??  
 **reuri::query** **values** *query* *param*  
@@ -70,8 +71,8 @@ While this package is in the 0 major version series this API is not stable and w
   - **reuri::uri** **absolute** *uri*  
     Return true if *uri* is absolute (ie. not a relative URI).
 
-  - **reuri::uri** **encode** **query**|**path**|**host** *value*  
-    Percent-encode the UTF-8 representation of *value*, suitable for inclusion as component of the part given by **query**, **path** or **host**.
+  - **reuri::uri** **encode** **query**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*  
+    Percent-encode the UTF-8 representation of *value*, suitable for inclusion as component of the part given by **query**, **path** or **host**, etc. **path2** differs from **path** in that it permits “:” un-encoded, that is, **segment-nz-nc** vs **segment** in RFC 3986 Section 3.2.2. **awssig** uses the rules required for calculating AWS v4 signatures.
 
   - **reuri::uri** **decode** *value*  
     Percent decode *value*, the inverse of **reuri::uri** **encode**. For compatibility with other implementations, “`+`” is replaced with a space and invalid percent-encoded sequences are transcribed as-is.
@@ -81,6 +82,9 @@ While this package is in the 0 major version series this API is not stable and w
 
   - **reuri::uri** **path** *op* *uri* ?*arg* …?  
     Equivalent to calling **reuri::path** *op* ?*arg* …? on the path portion of *uri*.
+
+  - **reuri::uri** **normalize** *uri*  
+    Return a canonical representation of *uri*, as described in RFC3986.
 
   - **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??  
     Retrieve the value for the named *param* in the *query* part. If *param* occurs multiple times in the query part, returns the value for the last instance, unless **-index** is given, in which case it returns the value(s) named by *index* (see **INDEX SYNTAX** for details on *index*). If *param* doesn’t exist and *default* is supplied, return that in its place, otherwise throw the **REURI** **PARAM\_NOT\_SET** exception. If *param* is not supplied, return all of the query parameters as a list of alternating parameter names and their values, in the order they appear in *query* (similar to a dictionary but multiple instances of the same param name can occur).

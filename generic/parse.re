@@ -115,6 +115,7 @@ static inline int conditionally_allowed(enum reuri_encode_mode mode, const char 
 		case REURI_ENCODE_HOST:		return (yych=='=' || yych=='&');
 		case REURI_ENCODE_USERINFO:	return (yych=='=' || yych=='&' || yych==':');
 		case REURI_ENCODE_FRAGMENT:	return (yych=='@' || yych=='/' || yych=='?' || yych=='=' || yych=='&' || yych==':');
+		case REURI_ENCODE_AWSSIG:	return 0;		// Should not get here - AWSSIG rules exclude more than this function can
 	}
 	return 0;
 }
@@ -186,6 +187,92 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 			sprintf(buf, "%%%02X", yych);
 			Tcl_DStringAppend(&val, buf, 3);
 		}
+		u = s;
+		goto yyc_mixed;
+	}
+	<mixed> allowed+ {
+		Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
+		u = s;
+		goto yyc_mixed;
+	}
+	<mixed> end {
+		res = Dedup_NewStringObj(l->dedup_pool, \
+				Tcl_DStringValue(&val), Tcl_DStringLength(&val));
+		goto finally;
+	}
+
+	<*> *	{
+		Tcl_Panic("Unable to percent_encode byte at ofs %d: 0x%02x", (int)(s-str), *s);
+	}
+	*/
+
+finally:
+	Tcl_DStringFree(&val);
+	return res;
+}
+
+//>>>
+Tcl_Obj* percent_encode_awssig(Tcl_Interp* interp, Tcl_Obj* objPtr) //<<<
+{
+	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
+	Tcl_Obj*				res = NULL;
+	const unsigned char*	u;
+	const unsigned char*	str = NULL;	// CESU-8
+	const unsigned char*	s;
+	int						c = yycstart;
+	Tcl_DString				val;
+	/*!stags:re2c:percent_encode_awssig format = "const unsigned char *@@{tag}; "; */
+
+	u = s = str = (const unsigned char*)Tcl_GetString(objPtr);
+
+	Tcl_DStringInit(&val);
+
+	/*!local:re2c:percent_encode_awssig
+    re2c:api:style             = free-form;
+    re2c:define:YYCTYPE        = "unsigned char";
+    re2c:define:YYCURSOR       = s;
+	re2c:yyfill:enable         = 0;
+	re2c:flags:tags            = 1;
+	re2c:define:YYGETCONDITION = "c";
+	re2c:define:YYSETCONDITION = "c = @@;";
+
+	!use:common;
+
+	// URI encode every byte except the unreserved characters: 'A'-'Z', 'a'-'z', '0'-'9', '-', '.', '_', and '~'.
+	allowed		= [A-Za-z0-9._~-];
+	reserved	= [^] \ end \ allowed;
+
+	<start> allowed* / end {
+		res = objPtr;
+		goto finally;
+	}
+	<start> allowed* / reserved {
+		if (s>str)
+			Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
+
+		u = s;
+		c = yycmixed;
+		goto yyc_mixed;
+	}
+	<start> allowed* / cesu8null {
+		if (s>str)
+			Tcl_DStringAppend(&val, (const char*)u, (int)(s-u));
+
+		u = s;
+		c = yycmixed;
+		goto yyc_mixed;
+	}
+
+	<mixed> cesu8null {
+		Tcl_DStringAppend(&val, "%00", 3);
+		u = s;
+		goto yyc_mixed;
+	}
+	<mixed> reserved {
+		char buf[4];
+
+		sprintf(buf, "%%%02X", yych);
+		Tcl_DStringAppend(&val, buf, 3);
 		u = s;
 		goto yyc_mixed;
 	}

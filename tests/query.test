@@ -91,6 +91,7 @@ test $t-2.2 {exists, single}	{ reuri::query get {?foo=a}						} {foo a}
 test $t-2.3 {exists, multiple}	{ reuri::query get {?foo=a&foo=bar}				} {foo a foo bar}
 test $t-2.4 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar}			} {foo a x y foo bar}
 test $t-2.5 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar}			} {foo a x y foo bar}
+test $t-2.6 {exists, novals}	{ reuri::query get {foo&bar}					} {foo {} bar {}}
 if 0 {
 test $t-3.0 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 0	} a
 test $t-3.1 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 1	} bar

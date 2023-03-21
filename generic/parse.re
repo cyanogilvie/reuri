@@ -534,6 +534,13 @@ top:
 		c = yycvalue;
 		goto yyc_value;
 	}
+	<name> "&" {
+		if (Tcl_DStringLength(&acc)) {
+			TEST_OK_LABEL(finally, code, _add_name(interp, l, &acc, res_params, res_index, pnum++));
+			TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, l->empty));
+		}
+		goto yyc_name;
+	}
 	<name> end {
 		if (Tcl_DStringLength(&acc)) {
 			TEST_OK_LABEL(finally, code, _add_name(interp, l, &acc, res_params, res_index, pnum++));

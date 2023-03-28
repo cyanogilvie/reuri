@@ -14,7 +14,7 @@ config.log
 config.status
 configure
 pkgIndex.tcl
-doc/hyprdom.n
+doc/reuri.n
 tags
 memdebug.sh
 optimised.sh
@@ -28,4 +28,3 @@ prof/
 tools/bin/
 generic/reuri.h
 reuriConfig.sh
-doc/reuri.n

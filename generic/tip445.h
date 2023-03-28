@@ -9,6 +9,9 @@
 /* Just enough of TIP445 to build reuri on Tcl 8.6 */
 
 #ifndef Tcl_ObjInternalRep
+#ifdef Tcl_ObjIntRep
+#define Tcl_ObjInternalRep Tcl_ObjIntRep
+#else
 typedef union Tcl_ObjInternalRep {
 	struct {
 		void*	ptr1;
@@ -19,6 +22,7 @@ typedef union Tcl_ObjInternalRep {
 		unsigned long	value;
 	} ptrAndLongRep;
 } Tcl_ObjInternalRep;
+#endif
 #endif
 
 #ifndef Tcl_FetchInternalRep
@@ -35,8 +39,8 @@ typedef union Tcl_ObjInternalRep {
 #else
 static inline void Tcl_FreeInternalRep(Tcl_Obj* obj)
 {
-	if (obj->typePtr && obj->typePtr->freeInternalRepProc)
-		obj->typePtr->freeInternalRepProc(obj);
+	if (obj->typePtr && obj->typePtr->freeIntRepProc)
+		obj->typePtr->freeIntRepProc(obj);
 }
 #endif
 #endif

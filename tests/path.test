@@ -16,6 +16,7 @@ test $t-1.5 {trailing /}	{ reuri::path split /one/two/		} {/ one two}
 test $t-1.6 {bare /}		{ reuri::path split /				} {/}
 test $t-1.7 {bare x}		{ reuri::path split x				} {x}
 test $t-1.8 {lenient chars}	{ reuri::path split /foo:?#=%&bar/baz%2fx	} {/ foo:?#=%&bar baz/x}
+test $t-1.9 {utf-8}			{ reuri::path split /foo\u306fbar/baz		} "/ foo\u306fbar baz"
 
 set t	path_get
 test $t-0.0 {empty}			{ reuri::path get {}					} {}
@@ -51,6 +52,7 @@ test $t-3.1 {all, twice}	{ reuri::path get /one/two/three 0..end,end..0	} {/ one
 test $t-3.2 {picked}		{ reuri::path get /one/two/three 1,end,-1,end-1	} {one three {} two}
 
 test $t-10.1 {uri path get}		{ reuri::uri path get http://localhost/one/two/three	}	{/ one two three}
+test $t-10.1.2 {uri path get}	{ reuri::uri path get http://localhost/one\u306ftwo		}	"/ one\u306ftwo"
 test $t-10.2.0 {uri path get}	{ reuri::uri path get http://localhost/one/two/three 0	}	/
 test $t-10.2.1 {uri path get}	{ reuri::uri path get http://localhost/one/two/three 1	}	one
 test $t-10.2.2 {uri path get}	{ reuri::uri path get http://localhost/one/two/three 2	}	two

@@ -7,31 +7,33 @@
 
 void parse_uri(struct parse_context* pc, const char* str) //<<<
 {
+	const unsigned char*			base = (const unsigned char*)str;
 	struct interp_cx*	l = Tcl_GetAssocData(pc->interp, "reuri", NULL);
-    const char
-        *s1, *u1, *h1, *h3, *h5, *r1, *p1, *p3, *q1, *f1,
-        *s2, *u2, *h2, *h4, *h6, *h7, *h8, *r2, *p2, *p4,
+	const unsigned char
+		*s1, *u1, *h1, *h3, *h5, *r1, *p1, *p3, *q1, *f1,
+		*s2, *u2, *h2, *h4, *h6, *h7, *h8, *r2, *p2, *p4,
 		*q2, *f2;
-	const char*			s = str;
-	const char*			YYMARKER;
+	const unsigned char*			s = base;
+	const unsigned char*			YYMARKER;
 	Tcl_DString			val;
-	/*!stags:re2c:parse_uri format = "const char *@@{tag}; "; */
+	/*!stags:re2c:parse_uri format = "const unsigned char *@@{tag}; "; */
 
 	Tcl_DStringInit(&val);
 
 	/*!local:re2c:parse_uri
-    re2c:api:style             = free-form;
-    re2c:define:YYCTYPE        = "char";
-    re2c:define:YYCURSOR       = s;
+	re2c:api:style             = free-form;
+	re2c:encoding:utf8         = 1;
+	re2c:define:YYCTYPE        = "unsigned char";
+	re2c:define:YYCURSOR       = s;
 	re2c:yyfill:enable         = 0;
 	re2c:flags:tags            = 1;
 
 	!use:uri;
 
-    *   {
+	*   {
 		Tcl_Obj*	ofsObj = NULL;
 
-		pc->fail_ofs = (int)(s-1-str);
+		pc->fail_ofs = (int)(s-1-base);
 		replace_tclobj(&ofsObj, Tcl_NewIntObj(pc->fail_ofs));
 		Tcl_SetErrorCode(pc->interp, "REURI", "PARSE", str, Tcl_GetString(ofsObj), NULL);
 		replace_tclobj(&ofsObj, NULL);
@@ -39,34 +41,34 @@ void parse_uri(struct parse_context* pc, const char* str) //<<<
 		pc->rc = TCL_ERROR;
 		goto finally;
 	}
-    uri end {
-		if (s1) replace_tclobj(&pc->uri->scheme,	Dedup_NewStringObj(l->dedup_pool, s1, (int)(s2-s1)));
-		if (u1) replace_tclobj(&pc->uri->userinfo,	Dedup_NewStringObj(l->dedup_pool, u1, (int)(u2-u1)));
+	uri end {
+		if (s1) replace_tclobj(&pc->uri->scheme,	Dedup_NewStringObj(l->dedup_pool, (const char*)s1, (int)(s2-s1)));
+		if (u1) replace_tclobj(&pc->uri->userinfo,	Dedup_NewStringObj(l->dedup_pool, (const char*)u1, (int)(u2-u1)));
 
 		if (h1) {
-			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h1, (int)(h2 - h1)));
+			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, (const char*)h1, (int)(h2 - h1)));
 			pc->uri->hosttype = REURI_HOST_IPV6;
 		}
 		if (h3) {
-			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h3, (int)(h4 - h3)));
+			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, (const char*)h3, (int)(h4 - h3)));
 			pc->uri->hosttype = REURI_HOST_IPV4;
 		}
 		if (h5 && h6 > h5) {
-			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h5, (int)(h6 - h5)));
+			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, (const char*)h5, (int)(h6 - h5)));
 			pc->uri->hosttype = REURI_HOST_HOSTNAME;
 		}
 		if (h7) {
-			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, h7, (int)(h8 - h7)));
+			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_pool, (const char*)h7, (int)(h8 - h7)));
 			pc->uri->hosttype = REURI_HOST_UNIX;
 		}
 
-		if (r1) replace_tclobj(&pc->uri->port,     Dedup_NewStringObj(l->dedup_pool, r1, (int)(r2 - r1)));
-		if (p1 && p2>p1) replace_tclobj(&pc->uri->path,     Dedup_NewStringObj(l->dedup_pool, p1, (int)(p2 - p1)));
-		if (p3 && p4>p3) replace_tclobj(&pc->uri->path,     Dedup_NewStringObj(l->dedup_pool, p3, (int)(p4 - p3)));
-		if (q1) replace_tclobj(&pc->uri->query,    Dedup_NewStringObj(l->dedup_pool, q1, (int)(q2 - q1)));
-		if (f1) replace_tclobj(&pc->uri->fragment, Dedup_NewStringObj(l->dedup_pool, f1, (int)(f2 - f1)));
+		if (r1) replace_tclobj(&pc->uri->port,          Dedup_NewStringObj(l->dedup_pool, (const char*)r1, (int)(r2 - r1)));
+		if (p1 && p2>p1) replace_tclobj(&pc->uri->path, Dedup_NewStringObj(l->dedup_pool, (const char*)p1, (int)(p2 - p1)));
+		if (p3 && p4>p3) replace_tclobj(&pc->uri->path, Dedup_NewStringObj(l->dedup_pool, (const char*)p3, (int)(p4 - p3)));
+		if (q1) replace_tclobj(&pc->uri->query,         Dedup_NewStringObj(l->dedup_pool, (const char*)q1, (int)(q2 - q1)));
+		if (f1) replace_tclobj(&pc->uri->fragment,      Dedup_NewStringObj(l->dedup_pool, (const char*)f1, (int)(f2 - f1)));
 		goto finally;
-    }
+	}
 	*/
 
 finally:
@@ -95,7 +97,7 @@ int uri_valid(const char* str) //<<<
 	re2c:yyfill:enable         = 0;
 	re2c:flags:tags            = 1;
 
-	!use:uri;
+	!use:uri_strict;
 
     uri end	{return 1;}
     *		{return 0;}
@@ -145,7 +147,7 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 	re2c:define:YYGETCONDITION = "c";
 	re2c:define:YYSETCONDITION = "c = @@;";
 
-	!use:uri;
+	!use:uri_strict;
 
 	<start> allowed* / end {
 		res = objPtr;
@@ -314,7 +316,7 @@ top:
 	re2c:yyfill:enable         = 0;
 	re2c:flags:tags            = 1;
 
-	!use:uri;
+	!use:uri_strict;
 
 	end {
 		return;
@@ -491,9 +493,10 @@ int parse_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj**
 
 top:
 	/*!local:re2c:parse_query
-    re2c:api:style             = free-form;
-    re2c:define:YYCTYPE        = "unsigned char";
-    re2c:define:YYCURSOR       = s;
+	re2c:api:style             = free-form;
+	re2c:encoding:utf8         = 1;
+	re2c:define:YYCTYPE        = "unsigned char";
+	re2c:define:YYCURSOR       = s;
 	re2c:yyfill:enable         = 0;
 	re2c:flags:tags            = 1;
 	re2c:define:YYGETCONDITION = "c";
@@ -601,6 +604,7 @@ int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist) //<<<
 top:
 	/*!local:re2c:parse_path
 	re2c:api:style             = free-form;
+	re2c:encoding:utf8         = 1;
 	re2c:define:YYCTYPE        = "unsigned char";
 	re2c:define:YYCURSOR       = s;
 	re2c:yyfill:enable         = 0;

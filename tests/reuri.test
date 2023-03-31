@@ -162,7 +162,7 @@ test reuri-3.1 {Interp cleanup} -body { #<<<
 	return -level 0 ok
 } -result ok
 #>>>
-test reuri-4.1 {http://local\u306fhost}	-body { reuri::uri get http://local\u306fhost host	} -returnCodes error -result {URI parse error at offset 0} -errorCode "REURI PARSE http://local\u306fhost 0"
+test reuri-4.1 {http://local\u306fhost}	{ reuri::uri get http://local\u306fhost host	} local\u306fhost
 test reuri-5.1 {normalize} { reuri::uri normalize http://foo:bar@localhost:81/one/two?three=3&four=4#endbit } http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
 test reuri-5.2 {normalize} { reuri::uri normalize http://localhost:81/one/two?three=3&four=4#endbit } http://localhost:81/one/two?three=3&four=4#endbit
 test reuri-5.3 {normalize} { reuri::uri normalize {http://[::1]:81/one/two?three=3&four=4#endbit} } {http://[::1]:81/one/two?three=3&four=4#endbit}
@@ -177,10 +177,18 @@ test reuri-5.11 {normalize} { reuri::uri normalize {http://localhost:81#endbit} 
 test reuri-5.12 {normalize} { reuri::uri normalize {http://localhost:81?} } {http://localhost:81}
 test reuri-5.14 {normalize} -body { reuri::uri normalize } -returnCodes error -result {wrong # args: should be "reuri::uri normalize uri"} -errorCode {TCL WRONGARGS}
 test reuri-5.15 {normalize} -body { reuri::uri normalize /foo bar } -returnCodes error -result {wrong # args: should be "reuri::uri normalize uri"} -errorCode {TCL WRONGARGS}
-test reuri-5.16 {normalize} -body { reuri::uri normalize local\u306fhost/foo } -returnCodes error -result {URI parse error at offset 0} -errorCode "REURI PARSE local\u306fhost/foo 0"
+test reuri-5.16 {normalize} -body { reuri::uri normalize local\u306fhost/foo } -result local%E3%81%AFhost/foo
+test reuri-5.17 {normalize} -body { reuri::uri normalize http://f\u306foo:bar@local\u306fhost:123/foo\u306f/bar?f\u306fo=b\u306far&x=#some\u306ffrag } -result http://f%E3%81%AFoo:bar@local%E3%81%AFhost:123/foo%E3%81%AF/bar?f%E3%81%AFo=b%E3%81%AFar&x#some%E3%81%AFfrag
 
-test reuri_valid-1.1 {http://localhost}			{ reuri::uri valid http://localhost 		}		1
-test reuri_valid-2.1 {http://local\u306fhost}	{ reuri::uri valid http://local\u306fhost	}		0
+test reuri_valid-0.1 {http://localhost}					{ reuri::uri valid http://localhost 				}		1
+test reuri_valid-1.1 {ht\u306ftp://localhost}			{ reuri::uri valid ht\u306ftp://localhost 			}		0
+test reuri_valid-2.1 {http://local\u306fhost}			{ reuri::uri valid http://local\u306fhost			}		0
+test reuri_valid-3.1 {http://f\u306foo@localhost}		{ reuri::uri valid http://f\u306foo@localhost		}		0
+test reuri_valid-4.1 {http://localhost:1\u306f}			{ reuri::uri valid http://localhost:1\u306f			}		0
+test reuri_valid-5.1 {http://localhost/f\u306foo}		{ reuri::uri valid http://localhost/f\u306foo		}		0
+test reuri_valid-6.1 {http://localhost?f\u306foo}		{ reuri::uri valid http://localhost?f\u306foo		}		0
+test reuri_valid-7.1 {http://localhost?foo=b\u306far}	{ reuri::uri valid http://localhost?foo=b\u306far	}		0
+test reuri_valid-8.1 {http://localhost#b\u306far}		{ reuri::uri valid http://localhost#b\u306far		}		0
 
 test reuri_encode-1.1 {encode query, all codepoints < 0x80} -body { #<<<
 	reuri::uri encode query $allchars_raw

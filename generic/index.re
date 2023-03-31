@@ -95,7 +95,7 @@ int parse_index(Tcl_Interp* interp, const char* str, struct parse_idx_cx** index
 	const unsigned char*const	base = (const unsigned char*const)str;
 	const unsigned char*		s = base;
 	const unsigned char			*n, *hex_s, *decimal_s, *octal_s, *binary_s;
-	/*!stags:re2c:index format = "const unsigned char *@@;\n"; */
+	/*!stags:re2c:index format = "const unsigned char *@@ = NULL;\n"; */
 	const unsigned char*		YYMARKER;
 	long						c = yycindex;
 	struct idx_range			range = {0};

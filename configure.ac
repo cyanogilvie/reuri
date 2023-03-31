@@ -28,7 +28,7 @@ AC_INIT([reuri], [0.7])
 #--------------------------------------------------------------------
 
 #AC_PROG_AWK
-CHECK_TESTMODE
+ENABLE_TESTMODE
 
 touch generic/reuri.h
 
@@ -79,7 +79,7 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-REURI_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c type_uri.c type_query.c type_path.c type_index.c testmode.c reuriStubInit.c])
+TEABASE_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c type_uri.c type_query.c type_path.c type_index.c testmode.c reuriStubInit.c])
 TEA_ADD_HEADERS([generic/reuri.h generic/reuriDecls.h])
 TEA_ADD_INCLUDES([-Igeneric ${dedup_INCLUDE_SPEC}])
 TEA_ADD_LIBS([])
@@ -154,6 +154,8 @@ TEA_CONFIG_CFLAGS
 # Check for required polyfill
 TIP445
 DEDUP_STUBS
+
+TEABASE_INIT()
 
 # Build tools needed on the build host to produce some of the source
 # files.  This macro attempts to set CC_FOR_BUILD to a compiler that

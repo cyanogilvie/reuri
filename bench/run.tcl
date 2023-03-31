@@ -1,4 +1,3 @@
-#!/usr/bin/env tclsh
 # vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4
 
 set ::env(REURI_TESTMODE)	1
@@ -7,16 +6,16 @@ set big	[string repeat a [expr {int(1e8)}]]	;# Allocate 100MB to pre-expand the 
 unset big
 
 set here	[file dirname [file normalize [info script]]]
-tcl::tm::path add $here
+tcl::tm::path add [file join $here ../teabase]
 
-package require bench
+package require teabase_bench
 
 
 proc main {} {
 	try {
 		set here	[file dirname [file normalize [info script]]]
 		puts "[string repeat - 80]\nStarting benchmarks\n"
-		bench::run_benchmarks $here {*}$::argv
+		teabase_bench::run_benchmarks $here {*}$::argv
 	} on ok {} {
 		exit 0
 	} trap {BENCH BAD_RESULT} {errmsg options} {

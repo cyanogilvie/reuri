@@ -87,6 +87,11 @@ CODE IS NOT RECOMMENDED.**</span>
 
 **reuri::uri** **valid** *uri*
 :   Return true if *uri* is a syntactically valid URI and can be parsed by this package.
+    Note that this will return false for some values of *uri* that are accepted
+    by the other commands in this package - it applies a strict interpretation of
+    the RFC rules whereas the other commands accept unambiguous but non-compliant
+    input.  In particular Unicode characters in the range 0x80 to \x10FFFF are
+    accepted on input to the other commands but rejected here.
 
 **reuri::uri** **context** *uri* *script*
 :	Evaluate *script* in the current call frame but treat *uri* as the context for

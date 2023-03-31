@@ -102,7 +102,7 @@ int Reuri_CompilePath(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* pathListPtr)
 	if (oc == 0)
 		return code;
 
-	if (strcmp(Tcl_GetString(ov[1]), "/") != 0)
+	if (strcmp(Tcl_GetString(ov[0]), "/") != 0)
 		percent_encode_ds(REURI_ENCODE_PATH, ds, Tcl_GetString(ov[0]));
 
 	for (i=1; i<oc; i++) {

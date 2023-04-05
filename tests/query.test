@@ -20,7 +20,7 @@ test $t-2.4 {%00}				{ reuri::query values {?f%00=a%00} f\0			} a\0
 test $t-2.5 {%00}				{ reuri::query values {?f%00} f\0				} {{}}
 test $t-2.5 {no val}			{ reuri::query values {?foo} foo				} {{}}
 test $t-2.6 {no name}			{ reuri::query values {?=foo} {}				} {foo}
-test $t-2.7 {no name}			{ reuri::query values {?=foo&} {}				} {foo}
+test $t-2.7 {no name}			{ reuri::query values {?=foo&} {}				} {foo {}}
 test $t-2.8 {no name}			{ reuri::query values {?} {}					} {}
 
 set t	uri_query_values
@@ -109,6 +109,11 @@ test $t-3.8.1 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&fo
 test $t-3.8.2 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1 -default def	} -result def
 test $t-3.8.3 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 2,0..0,1 -default def	} -result {def def}
 }
+test $t-4.1 {unicode}	{ reuri::query get fo\u306fo=b\u306far	} [list fo\u306fo b\u306far]
+test $t-4.2 {null}		{ reuri::query get fo\0o=b\0ar			} [list fo\0o b\0ar]
+test $t-4.3 {?}			{ reuri::query get fo?o=b?ar			} [list fo?o b?ar]
+test $t-4.4 {/}			{ reuri::query get fo/o=b/ar			} [list fo/o b/ar]
+test $t-4.5 {hash}		{ reuri::query get fo#o=b#ar			} [list fo#o b#ar]
 
 set t	uri_query_get
 test $t-1.0.0 {empty}		{ reuri::uri query get {}									} {}
@@ -211,7 +216,7 @@ test $t-2.2	{same}	{*}[{*}$std /a?foo=x]	-body { reuri::uri query add u foo bar;
 test $t-3.1	{index}	{*}[{*}$std /a?foo=x]	-body { reuri::uri query add u foo bar; reuri::uri query values $u foo	} -result {x bar}
 test $t-4.1	{encoding}	{*}[{*}$std /a]		-body { reuri::uri query add u f=o b&ar				} -result /a?f%3Do=b%26ar
 test $t-4.2	{unicode}	{*}[{*}$std /a]		-body { reuri::uri query add u f\0o b\u306far		} -result /a?f%00o=b%E3%81%AFar
-test $t-5.1	{uri get}	{*}[{*}$std /a?x=y]	-body { reuri::uri query add u f\0o b\u306far; reuri::uri get $u query		} -result x=y&f%00o=b%E3%81%AFar
+test $t-5.1	{uri get}	{*}[{*}$std /a?x=y]	-body { reuri::uri query add u f\0o b\u306far; reuri::uri extract $u query		} -result x=y&f%00o=b%E3%81%AFar
 test $t-6.1	{trace} -setup { #<<<
 	unset -nocomplain u
 	trace add variable u write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}

@@ -48,6 +48,16 @@ struct parse_context {
 
 struct interp_cx {
 	struct dedup_pool*	dedup_pool;
+	struct dedup_pool*	dedup_scheme;
+	struct dedup_pool*	dedup_userinfo;
+	struct dedup_pool*	dedup_host_reg_name;
+	struct dedup_pool*	dedup_host_ipv4;
+	struct dedup_pool*	dedup_host_ipv6;
+	struct dedup_pool*	dedup_host_local;
+	struct dedup_pool*	dedup_port;
+	struct dedup_pool*	dedup_path;
+	struct dedup_pool*	dedup_query;
+	struct dedup_pool*	dedup_fragment;
 	const Tcl_ObjType*	typeInt;
 	Tcl_Obj*			hosttype[REURI_HOST_SIZE];
 	Tcl_Obj*			empty;
@@ -58,6 +68,16 @@ struct interp_cx {
 	Tcl_Obj*			apply;
 	Tcl_Obj*			sort_unique;
 };
+
+typedef int (update_rep)(Tcl_Interp* interp, Tcl_Obj* obj);		// interp may be NULL
+
+// Extend Tcl_ObjType with a callback for generating the normalized rep
+struct Reuri_ObjType {
+	Tcl_ObjType		base;
+	update_rep*		Reuri_UpdateDecodedProc;		// string rep -> fully decoded
+	update_rep*		Reuri_UpdateNormalizedProc;		// decoded -> normalized encoded
+};
+typedef struct Reuri_ObjType Reuri_ObjType;
 
 // reuri.c internal API <<<
 int ReuriGetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* part);
@@ -74,14 +94,21 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 Tcl_Obj* percent_encode_awssig(Tcl_Interp* interp, Tcl_Obj* objPtr);
 void percent_encode_ds(enum reuri_encode_mode mode, Tcl_DString* ds, const char* str);
 int percent_decode(Tcl_Obj* str, Tcl_Obj** res);
-int parse_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj** index);
-int parse_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist);
+void percent_decode_ds(const char* str, Tcl_DString* ds);
+int decode_query(Tcl_Interp* interp, const char* str, Tcl_Obj** params, Tcl_Obj** index);
+int decode_path(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist);
+void ascii_lowercase_ds(Tcl_DString* ds, const char* str);
+int parse_host_local(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist);
+int parse_host_ipv6(Tcl_Interp* interp, const char* str, Tcl_Obj** addr);
+int decode_port(Tcl_Interp* interp, const char* str, int* portnum);
+int parse_scheme  (Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);
+int parse_userinfo(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);
+int parse_host(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out, enum reuri_hosttype* hosttype);
+int parse_port(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);
+int parse_path(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);
+int parse_query(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);
+int parse_fragment(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);
 // parse.re internal API >>>
-// type_query.c internal API <<<
-int query_add_index(Tcl_Interp* interp, Tcl_Obj* index, Tcl_Obj* name, const int pnum);
-int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, Tcl_Obj** index);
-void ReuriSetQuery(Tcl_Obj* query, Tcl_Obj* params, Tcl_Obj* index);
-// type_query.c internal API >>>
 // type_index.c internal API <<<
 enum idx_atom_type {
 	IDX_NONE=0,
@@ -127,6 +154,29 @@ void free_parse_idx_cx(struct parse_idx_cx** cx);
 void throw(struct parse_idx_cx* cx, const char* failtype, size_t failofs);
 void push_range(struct parse_idx_cx* cx, struct idx_range* r);
 // type_index.c internal API >>>
+// type_uri_part.c internal API <<<
+extern Reuri_ObjType	scheme_objtype;
+extern Reuri_ObjType	userinfo_objtype;
+extern Reuri_ObjType	host_reg_name_objtype;
+extern Reuri_ObjType	host_ipv4_objtype;
+extern Reuri_ObjType	host_ipv6_objtype;
+extern Reuri_ObjType	host_local_objtype;
+extern Reuri_ObjType	port_objtype;
+extern Reuri_ObjType	path_objtype;
+extern Reuri_ObjType	query_objtype;
+extern Reuri_ObjType	fragment_objtype;
+
+int Reuri_GetDecodedFromPart(Tcl_Interp* interp, Tcl_Obj* obj, Reuri_ObjType* objtype, Tcl_Obj** decoded);
+int Reuri_GetNormalizedFromPart(Tcl_Interp* interp, Tcl_Obj* obj, Reuri_ObjType* objtype, Tcl_Obj** normalized);
+Reuri_ObjType* host_objtype(enum reuri_hosttype hosttype);
+Tcl_Obj* Reuri_NewPartFromString(Reuri_ObjType* objtype, const char* str, int len);
+int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlistPtrPtr);
+int Reuri_CompilePath(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* pathListPtr);
+int query_add_index(Tcl_Interp* interp, Tcl_Obj* index, Tcl_Obj* name, const int pnum);
+int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, Tcl_Obj** index);
+void ReuriSetQuery(Tcl_Obj* query, Tcl_Obj* params, Tcl_Obj* index);
+enum reuri_pathtype Reuri_PathType(Tcl_Obj* pathPtr);
+// type_uri_part.c internal API >>>
 // index.re internal API <<<
 int parse_index(Tcl_Interp* interp, const char* str, struct parse_idx_cx** indexPtrPtr);
 int IdxGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_cx** index);

@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([reuri], [0.8])
+AC_INIT([reuri], [0.9])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -79,7 +79,7 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-TEABASE_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c type_uri.c type_query.c type_path.c type_index.c testmode.c reuriStubInit.c])
+TEABASE_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c type_uri.c type_uri_part.c type_index.c testmode.c reuriStubInit.c])
 TEA_ADD_HEADERS([generic/reuri.h generic/reuriDecls.h])
 TEA_ADD_INCLUDES([-Igeneric ${dedup_INCLUDE_SPEC}])
 TEA_ADD_LIBS([])

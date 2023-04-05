@@ -82,19 +82,26 @@ static void update_string_rep(Tcl_Obj* obj) //<<<
 //>>>
 
 // Internal API <<<
+static void append_part(Tcl_DString* ds, Tcl_Obj* part, Reuri_ObjType* objtype) //<<<
+{
+	Tcl_Obj* norm = NULL;
+	
+	if (TCL_OK != Reuri_GetNormalizedFromPart(NULL, part, objtype, &norm))
+		Tcl_Panic("Could not get normalized form of URI part");
+
+	int len;
+	const char*	str = Tcl_GetStringFromObj(norm, &len);
+	Tcl_DStringAppend(ds, str, len);
+	replace_tclobj(&norm, NULL);
+}
+
+//>>>
 void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 {
-#define APPEND_PART(part) \
-	do { \
-		int len; \
-		const char*	str = Tcl_GetStringFromObj(part, &len); \
-		Tcl_DStringAppend(ds, str, len); \
-	} while(0)
-
 	if (uri->scheme) {
 		// Must conform to:
 		//	scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-		APPEND_PART(uri->scheme);
+		append_part(ds, uri->scheme, &scheme_objtype);
 		Tcl_DStringAppend(ds, ":", 1);
 	}
 
@@ -102,29 +109,25 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 		Tcl_DStringAppend(ds, "//", 2);
 
 		if (uri->userinfo) {
-			percent_encode_ds(REURI_ENCODE_USERINFO, ds, Tcl_GetString(uri->userinfo));
+			append_part(ds, uri->userinfo, &userinfo_objtype);
 			Tcl_DStringAppend(ds, "@", 1);
 		}
 
 		switch (uri->hosttype) {
 			case REURI_HOST_IPV6:
 				// Must conform to: IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
-				Tcl_DStringAppend(ds, "[", 1);
-				APPEND_PART(uri->host);
-				Tcl_DStringAppend(ds, "]", 1);
+				append_part(ds, uri->host, &host_ipv6_objtype);
 				break;
 			case REURI_HOST_IPV4:
 				// Must conform to:	IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
-				APPEND_PART(uri->host);
+				append_part(ds, uri->host, &host_ipv4_objtype);
 				break;
 			case REURI_HOST_HOSTNAME:
-				percent_encode_ds(REURI_ENCODE_HOST, ds, Tcl_GetString(uri->host));
+				append_part(ds, uri->host, &host_reg_name_objtype);
 				break;
 			case REURI_HOST_UNIX:
 				// Must confirm to: "/" pchar+ ("/" pchar+)*
-				Tcl_DStringAppend(ds, "[", 1);
-				APPEND_PART(uri->host);
-				Tcl_DStringAppend(ds, "]", 1);
+				append_part(ds, uri->host, &host_local_objtype);
 				break;
 			case REURI_HOST_NONE:
 				break;
@@ -137,7 +140,7 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 			// Must conform to:
 			//	port        = *DIGIT
 			Tcl_DStringAppend(ds, ":", 1);
-			APPEND_PART(uri->port);
+			append_part(ds, uri->port, &port_objtype);
 		}
 	}
 
@@ -145,20 +148,20 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 		// Must be empty or start with a /
 		// First segment must be non-zero length
 		// TODO: what to do if path is relative?
-		APPEND_PART(uri->path);
+		append_part(ds, uri->path, &path_objtype);
 	}
 
 	if (uri->query) {
 		Tcl_DStringAppend(ds, "?", 1);
 		const int end = Tcl_DStringLength(ds);
-		APPEND_PART(uri->query);
+		append_part(ds, uri->query, &query_objtype);
 		// If the query was empty, walk back the ?
 		if (Tcl_DStringLength(ds) == end) Tcl_DStringTrunc(ds, end-1);
 	}
 
 	if (uri->fragment) {
 		Tcl_DStringAppend(ds, "#", 1);
-		percent_encode_ds(REURI_ENCODE_FRAGMENT, ds, Tcl_GetString(uri->fragment));
+		append_part(ds, uri->fragment, &fragment_objtype);
 	}
 }
 

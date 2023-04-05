@@ -38,9 +38,9 @@ test $t-7.1 {path, true}		{ uri exists http:foo							path		}	1
 test $t-7.1.1 {path, true}		{ uri get http:foo								path		}	foo
 test $t-7.1.2 {path, false}		{ uri exists http:								path		}	0
 test $t-7.2 {path, true}		{ uri exists ./http:foo							path		}	1
-test $t-7.2.1 {path, true}		{ uri get ./http:foo							path		}	./http:foo
+test $t-7.2.1 {path, true}		{ uri get ./http:foo							path		}	{. http:foo}
 test $t-7.3 {path, true}		{ uri exists http%3Afoo							path		}	1
-test $t-7.3.1 {path, true}		{ uri get http%3Afoo							path		}	http%3Afoo
+test $t-7.3.1 {path, true}		{ uri get http%3Afoo							path		}	http:foo
 
 test $t-6.1 {query, path}		{ uri exists http://localhost/one?two=3&four=4	query		}	1
 test $t-6.2 {query, no path}	{ uri exists http://localhost?three=3&four=4	query		}	1

@@ -4,11 +4,12 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.6?
+**package require reuri** ?0.9?
 
-**reuri::uri** **get** *uri* ?*part* ?*default*??  
+**reuri::uri** **get** *uri* ?*part* ?**-default** *defaultVal*??  
+**reuri::uri** **extract** *uri* ?*part* ?**-default** *defaultVal*??  
 **reuri::uri** **exists** *uri* *part*  
-?? **reuri::uri** **set** *variable* *part* *value*  
+**reuri::uri** **set** *variable* *part* *value*  
 **reuri::uri** **valid** *uri*  
 ?? **reuri::uri** **context** *uri* *script*  
 ?? **reuri::uri** **resolve** *uri*  
@@ -46,21 +47,26 @@ This package allows efficient manipulation of URI strings from Tcl. A fast parse
 
 This package serves a similar purpose to the **uri** module of tcllib, but is much faster. Where splitting a typical http url using the tcllib module might take half a millisecond typically, parsing and extracting a part with this package is on the order of 100 times faster, which matters if hundreds of URLs have to be manipulated in the time budget of serving a hit on a website.
 
+The **reuri::uri query** and **reuri::query** commands operate on the query portion of the URI assuming it follows the HTTP scheme query format (parameters separated by &, names separated from values with =).
+
 While this package is in the 0 major version series this API is not stable and will change in backwards-incompatible ways. Starting with a 1 series release the API will preserve backwards compatibility within a major version number sequence. <span color="red">**USING THE 0 SERIES VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
 
 ## COMMANDS
 
-  - **reuri::uri** **get** *uri* ?*part* ?*default*??  
-    Return the URL *part* from *uri* or throw an exception if *uri* can’t be parsed or doesn’t have the specified *part* and no *default* was specified. If *part* isn’t defined in *uri* (but is a valid part name) and a *default* is given, that will be returned instead. If *part* isn’t specified, return a dictionary containing all parts. See **PARTS** below for valid parts, and **EXCEPTIONS** for the exceptions that might be thrown.
+  - **reuri::uri** **get** *uri* ?*part* ?**-default** *defaultVal*??  
+    Return the fully decoded URL *part* from *uri* or throw an exception if G*uri* can’t be parsed or doesn’t have the specified *part* and no *defaultVal* was specified. If *part* isn’t defined in *uri* (but is a valid part name) and a *defaultVal* is given, that will be returned instead. If *part* isn’t specified, return a dictionary containing all parts. See **PARTS** below for valid parts, and **EXCEPTIONS** for the exceptions that might be thrown.
+
+  - **reuri::uri** **extract** *uri* ?*part* ?**-default** *defaultVal*??  
+    Return the encoded URL *part* from *uri* or throw an exception if *uri* can’t be parsed or doesn’t have the specified *part* and no *defaultVal* was specified. If *part* isn’t defined in *uri* (but is a valid part name) and a *defaultVal* is given, that will be returned instead. If *part* isn’t specified, return a dictionary containing all parts. See **PARTS** below for valid parts, and **EXCEPTIONS** for the exceptions that might be thrown.
 
   - **reuri::uri** **exists** *uri* *part*  
     Return true if *uri* contains *part*, false otherwise.
 
   - **reuri::uri** **set** *variable* *part* *value*  
-    Replace the *part* of the URI value contained in *variable* with *value*, returning the updated uri value stored in *variable*.
+    Replace the *part* of the URI value contained in *variable* with the *value* (which must parse correctly as that part), returning the updated uri value stored in *variable*. If *value* is an empty string, unset the *part*.
 
   - **reuri::uri** **valid** *uri*  
-    Return true if *uri* is a syntactically valid URI and can be parsed by this package.
+    Return true if *uri* is a syntactically valid URI and can be parsed by this package. Note that this will return false for some values of *uri* that are accepted by the other commands in this package - it applies a strict interpretation of the RFC rules whereas the other commands accept unambiguous but non-compliant input. In particular Unicode characters in the range 0x80 to 10FFFF are accepted on input to the other commands but rejected here.
 
   - **reuri::uri** **context** *uri* *script*  
     Evaluate *script* in the current call frame but treat *uri* as the context for resolving any relative references that occur while processing *script*. The return state of *script* is transparently propagated to the return state of this command, including exceptions and return codes like break and continue. This command can be nested, with each successive call creating an inner scope with a reference URI that is resolved relative to its context.
@@ -350,7 +356,7 @@ The uri module of tcllib.
 ## TODO
 
   - [x] Implement http://\[/tmp/mysock.80\]/foo style unix domain sockets support
-  - [ ] Implement **reuri::uri set**
+  - [x] Implement **reuri::uri set**
   - [x] Implement **reuri::uri valid**
   - [ ] Implement **reuri::uri context**
   - [ ] Implement **reuri::uri resolve**
@@ -367,7 +373,7 @@ The uri module of tcllib.
   - [x] Implement **reuri::path split**
   - [x] Implement **reuri::path get**
   - [ ] Implement **reuri::path set**
-  - [ ] Implement **reuri::path join**
+  - [x] Implement **reuri::path join**
   - [ ] Implement **reuri::path resolve**
 
 ## LICENSE

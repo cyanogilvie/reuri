@@ -22,9 +22,16 @@ enum reuri_part {
 	REURI_FRAGMENT
 };
 
+enum reuri_pathtype {
+	REURI_PATH_EMPTY,
+	REURI_PATH_ABSOLUTE,
+	REURI_PATH_ROOTLESS
+};
+
 // Must be kept in sync with reuri_encode_mode_str
 enum reuri_encode_mode {
 	REURI_ENCODE_QUERY,
+	REURI_ENCODE_QUERYVAL,
 	REURI_ENCODE_PATH,
 	REURI_ENCODE_PATH2,		// More permissive, for segments other than the first relative segment (which can't include ':' to avoid confusion with the scheme)
 	REURI_ENCODE_HOST,

@@ -17,6 +17,7 @@ const char*	reuri_part_str[] = {
 
 const char* reuri_encode_mode_str[] = {
 	"query",
+	"queryval",
 	"path",
 	"path2",
 	"host",
@@ -81,10 +82,18 @@ static void free_interp_cx(ClientData cdata, Tcl_Interp* interp) //<<<
 	int					i;
 
 	if (l) {
-		if (l->dedup_pool) {
-			Dedup_FreePool(l->dedup_pool);
-			l->dedup_pool = NULL;
-		}
+		if (l->dedup_pool)			{ Dedup_FreePool(l->dedup_pool);			l->dedup_pool = NULL; }
+
+		if (l->dedup_scheme)		{ Dedup_FreePool(l->dedup_scheme);			l->dedup_scheme = NULL; }
+		if (l->dedup_userinfo)		{ Dedup_FreePool(l->dedup_userinfo);		l->dedup_userinfo = NULL; }
+		if (l->dedup_host_reg_name) { Dedup_FreePool(l->dedup_host_reg_name);	l->dedup_host_reg_name = NULL; }
+		if (l->dedup_host_ipv4)		{ Dedup_FreePool(l->dedup_host_ipv4);		l->dedup_host_ipv4 = NULL; }
+		if (l->dedup_host_ipv6)		{ Dedup_FreePool(l->dedup_host_ipv6);		l->dedup_host_ipv6 = NULL; }
+		if (l->dedup_host_local)	{ Dedup_FreePool(l->dedup_host_local);		l->dedup_host_local = NULL; }
+		if (l->dedup_port)			{ Dedup_FreePool(l->dedup_port);			l->dedup_port = NULL; }
+		if (l->dedup_path)			{ Dedup_FreePool(l->dedup_path);			l->dedup_path = NULL; }
+		if (l->dedup_query)			{ Dedup_FreePool(l->dedup_query);			l->dedup_query = NULL; }
+		if (l->dedup_fragment)		{ Dedup_FreePool(l->dedup_fragment);		l->dedup_fragment = NULL; }
 
 		for (i=0; reuri_hosttype_str[i]; i++)
 			replace_tclobj(&l->hosttype[i], NULL);
@@ -541,25 +550,27 @@ int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part par
 	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
 	int					code = TCL_OK;
 	struct uri*			uri = NULL;
-	Tcl_Obj*			res = NULL;
+	Tcl_Obj*			p = NULL;
+	Tcl_Obj*			decoded = NULL;
+	Reuri_ObjType*		objtype = NULL;
 
 	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri));
 
 	switch (part) {
-		case REURI_SCHEME:		res = uri->scheme;		break;
-		case REURI_USERINFO:	res = uri->userinfo;	break;
-		case REURI_HOST:		res = uri->host;		break;
-		case REURI_PORT:		res = uri->port;		break;
-		case REURI_PATH:		res = uri->path;		break;
-		case REURI_QUERY:		res = uri->query;		break;
-		case REURI_FRAGMENT:	res = uri->fragment;	break;
-		case REURI_HOSTTYPE:	res = l->hosttype[uri->hosttype];	break;
+		case REURI_SCHEME:		p = uri->scheme;	objtype = &scheme_objtype;				break;
+		case REURI_USERINFO:	p = uri->userinfo;	objtype = &userinfo_objtype;			break;
+		case REURI_HOST:		p = uri->host;		objtype = host_objtype(uri->hosttype);	break;
+		case REURI_PORT:		p = uri->port;		objtype = &port_objtype;				break;
+		case REURI_PATH:		p = uri->path;		objtype = &path_objtype;				break;
+		case REURI_QUERY:		p = uri->query;		objtype = &query_objtype;				break;
+		case REURI_FRAGMENT:	p = uri->fragment;	objtype = &fragment_objtype;			break;
+		case REURI_HOSTTYPE:	p = l->hosttype[uri->hosttype];								break;
 		default: THROW_ERROR_LABEL(finally, code, "Invalid part");
 	}
 
-	if (res == NULL) {
+	if (p == NULL) {
 		if (defaultPtr) {
-			res = defaultPtr;
+			replace_tclobj(valuePtrPtr, defaultPtr);
 		} else {
 			Tcl_SetErrorCode(interp, "REURI", "PART_NOT_SET", reuri_part_str[part], NULL);
 			Tcl_SetObjResult(interp, Tcl_ObjPrintf("%s part is not defined in %s",
@@ -567,10 +578,55 @@ int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part par
 			code = TCL_ERROR;
 			goto finally;
 		}
+	} else {
+		if (objtype)
+			TEST_OK_LABEL(finally, code, Reuri_GetDecodedFromPart(interp, p, objtype, &decoded));
+
+		replace_tclobj(valuePtrPtr, (part == REURI_HOSTTYPE) ? p : decoded);
+		p = NULL;
 	}
 
-	replace_tclobj(valuePtrPtr, res);
-	res = NULL;
+finally:
+	replace_tclobj(&decoded, NULL);
+	return code;
+}
+
+//>>>
+int Reuri_URIObjExtractPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* defaultPtr, Tcl_Obj** valuePtrPtr) //<<<
+{
+	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
+	int					code = TCL_OK;
+	struct uri*			uri = NULL;
+	Tcl_Obj*			p = NULL;
+
+	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri));
+
+	switch (part) {
+		case REURI_SCHEME:		p = uri->scheme;				break;
+		case REURI_USERINFO:	p = uri->userinfo;				break;
+		case REURI_HOST:		p = uri->host;					break;
+		case REURI_PORT:		p = uri->port;					break;
+		case REURI_PATH:		p = uri->path;					break;
+		case REURI_QUERY:		p = uri->query;					break;
+		case REURI_FRAGMENT:	p = uri->fragment;				break;
+		case REURI_HOSTTYPE:	p = l->hosttype[uri->hosttype];	break;
+		default: THROW_ERROR_LABEL(finally, code, "Invalid part");
+	}
+
+	if (p == NULL) {
+		if (defaultPtr) {
+			replace_tclobj(valuePtrPtr, defaultPtr);
+		} else {
+			Tcl_SetErrorCode(interp, "REURI", "PART_NOT_SET", reuri_part_str[part], NULL);
+			Tcl_SetObjResult(interp, Tcl_ObjPrintf("%s part is not defined in %s",
+						reuri_part_str[part], Tcl_GetString(uriPtr)));
+			code = TCL_ERROR;
+			goto finally;
+		}
+	} else {
+		replace_tclobj(valuePtrPtr, p);
+		p = NULL;
+	}
 
 finally:
 	return code;
@@ -613,14 +669,65 @@ int Reuri_URIObjGetAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res) //<<<
 	struct uri*			uri = NULL;
 	Tcl_Obj*			d = NULL;
 	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
+	Tcl_Obj*			val = NULL;
+
+	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri));
+
+	replace_tclobj(&d, Tcl_NewDictObj());
+
+#define ADD_PART(k, v, ot) \
+	do { \
+		if (v) { \
+			if (ot) { \
+				Reuri_GetDecodedFromPart(interp, v, ot, &val); \
+			} else { \
+				replace_tclobj(&val, v); \
+			} \
+			TEST_OK_LABEL(finally, code, Tcl_DictObjPut(interp, d, \
+						Dedup_NewStringObj(l->dedup_pool, k, sizeof(k)-1), val)); \
+		} \
+	} while(0);
+
+	_Pragma("GCC diagnostic push");
+	_Pragma("GCC diagnostic ignored \"-Waddress\"");
+	ADD_PART("scheme",    uri->scheme,					&scheme_objtype);
+	ADD_PART("userinfo",  uri->userinfo,				&userinfo_objtype);
+	ADD_PART("host",      uri->host,					host_objtype(uri->hosttype));
+	ADD_PART("hosttype",  l->hosttype[uri->hosttype],	NULL);
+	ADD_PART("port",      uri->port,					&port_objtype);
+	ADD_PART("path",      uri->path,					&path_objtype);
+	ADD_PART("query",     uri->query,					&query_objtype);
+	ADD_PART("fragment",  uri->fragment,				&fragment_objtype);
+	_Pragma("GCC diagnostic pop");
+#undef ADD_PART
+
+	replace_tclobj(res, d);
+
+finally:
+	replace_tclobj(&d, NULL);
+	replace_tclobj(&val, NULL);
+	return code;
+}
+
+//>>>
+int Reuri_URIObjExtractAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res) //<<<
+{
+	int					code = TCL_OK;
+	struct uri*			uri = NULL;
+	Tcl_Obj*			d = NULL;
+	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 
 	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri));
 
 	replace_tclobj(&d, Tcl_NewDictObj());
 
 #define ADD_PART(k, v) \
-	if (v) TEST_OK_LABEL(finally, code, Tcl_DictObjPut(interp, d, \
-			Dedup_NewStringObj(l->dedup_pool, k, -1), v));
+	do { \
+		if (v) { \
+			TEST_OK_LABEL(finally, code, Tcl_DictObjPut(interp, d, \
+						Dedup_NewStringObj(l->dedup_pool, k, sizeof(k)-1), v)); \
+		} \
+	} while(0);
 
 	ADD_PART("scheme",    uri->scheme);
 	ADD_PART("userinfo",  uri->userinfo);
@@ -630,11 +737,71 @@ int Reuri_URIObjGetAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res) //<<<
 	ADD_PART("path",      uri->path);
 	ADD_PART("query",     uri->query);
 	ADD_PART("fragment",  uri->fragment);
+#undef ADD_PART
 
 	replace_tclobj(res, d);
 
 finally:
 	replace_tclobj(&d, NULL);
+	return code;
+}
+
+//>>>
+int Reuri_URIObjSet(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* valuePtr, Tcl_Obj** resPtrPtr) //<<<
+{
+	int					code = TCL_OK;
+	struct uri*			uri = NULL;
+	Tcl_Obj*			newval = NULL;
+	Tcl_Obj*			res = NULL;
+	Tcl_Obj**			partPtr = NULL;
+
+	replace_tclobj(&res, uriPtr);
+
+	if (Tcl_IsShared(res))
+		replace_tclobj(&res, Tcl_DuplicateObj(res));
+
+	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, res, &uri));
+
+	enum reuri_hosttype	old_hosttype = uri->hosttype;
+
+	switch (part) {
+		case REURI_SCHEME:   partPtr = &uri->scheme;	TEST_OK_LABEL(finally, code, parse_scheme  (interp, valuePtr, &newval)); break;
+		case REURI_USERINFO: partPtr = &uri->userinfo;	TEST_OK_LABEL(finally, code, parse_userinfo(interp, valuePtr, &newval)); break;
+		case REURI_HOST:     partPtr = &uri->host;		TEST_OK_LABEL(finally, code, parse_host    (interp, valuePtr, &newval, &uri->hosttype)); break;
+		case REURI_PORT:     partPtr = &uri->port;		TEST_OK_LABEL(finally, code, parse_port    (interp, valuePtr, &newval)); break;
+		case REURI_PATH:     partPtr = &uri->path;		TEST_OK_LABEL(finally, code, parse_path    (interp, valuePtr, &newval)); break;
+		case REURI_QUERY:    partPtr = &uri->query;		TEST_OK_LABEL(finally, code, parse_query   (interp, valuePtr, &newval)); break;
+		case REURI_FRAGMENT: partPtr = &uri->fragment;	TEST_OK_LABEL(finally, code, parse_fragment(interp, valuePtr, &newval)); break;
+			THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+		default:
+			THROW_ERROR_LABEL(finally, code, "Unhandled part");
+	}
+
+	// Check consistency constraints
+	switch (part) {
+		case REURI_HOST:
+			if (uri->hosttype != REURI_HOST_NONE && Reuri_PathType(uri->path) == REURI_PATH_ROOTLESS) {
+				uri->hosttype = old_hosttype;
+				Tcl_SetErrorCode(interp, "REURI", "CONFLICT", NULL);
+				THROW_ERROR_LABEL(finally, code, "Can't add a host: path is rootless");
+			}
+			break;
+		case REURI_PATH:
+			if (uri->hosttype != REURI_HOST_NONE && Reuri_PathType(newval) == REURI_PATH_ROOTLESS) {
+				Tcl_SetErrorCode(interp, "REURI", "CONFLICT", NULL);
+				THROW_ERROR_LABEL(finally, code, "Can't set a rootless path with a host");
+			}
+			break;
+		default: break;
+	}
+
+	replace_tclobj(partPtr, newval);
+	Tcl_InvalidateStringRep(res);
+	replace_tclobj(resPtrPtr, res);
+
+finally:
+	replace_tclobj(&newval, NULL);
+	replace_tclobj(&res, NULL);
 	return code;
 }
 
@@ -671,6 +838,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 	static const char*	methods[] = {
 		"get",
+		"extract",
 		"exists",
 		"set",
 		"valid",
@@ -686,6 +854,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 	};
 	enum {
 		M_GET,
+		M_EXTRACT,
 		M_EXISTS,
 		M_SET,
 		M_VALID,
@@ -743,6 +912,43 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			}
 			break;
 			//>>>
+		case M_EXTRACT: //<<<
+			{
+				enum args {
+					A_METHOD = 1,
+					A_URI,
+					A_PART,
+					A_DEFAULT
+				};
+				Tcl_Obj*		def = NULL;
+				Tcl_Obj*		res = NULL;
+				enum reuri_part	part;
+
+				switch (objc) {
+					case 3:	// Return all parts in a dict
+						TEST_OK_LABEL(extract_finally, code, Reuri_URIObjExtractAll(interp, objv[A_URI], &res));
+						Tcl_SetObjResult(interp, res);
+						replace_tclobj(&res, NULL);
+						goto finally;
+
+					case 4:							break;
+					case 5:	def = objv[A_DEFAULT];	break;
+					default:
+						Tcl_WrongNumArgs(interp, 2, objv, "uri part ?default?");
+						code = TCL_ERROR;
+						goto finally;
+				}
+
+				TEST_OK_LABEL(extract_finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
+				TEST_OK_LABEL(extract_finally, code, Reuri_URIObjExtractPart(interp, objv[A_URI], part, def, &res));
+
+				Tcl_SetObjResult(interp, res);
+
+			extract_finally:
+				replace_tclobj(&res, NULL);
+			}
+			break;
+			//>>>
 		case M_EXISTS: //<<<
 			{
 				int				exists;
@@ -759,8 +965,26 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			//>>>
 		case M_SET: //<<<
 			{
-				// TODO: implement
-				THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+				enum reuri_part	part;
+                Tcl_Obj*        res = NULL;
+				Tcl_Obj*		uri = NULL;
+
+				enum {A_cmd=1, A_URI, A_PART, A_VALUE, A_objc};
+				CHECK_ARGS_LABEL(finally, code, "uri part value");
+
+				struct uri*	uri_ir = NULL;
+				uri = Tcl_ObjGetVar2(interp, objv[A_URI], NULL, 0);
+				if (!uri) replace_tclobj(&uri, Tcl_NewObj());
+				TEST_OK_LABEL(query_finally, code, ReuriGetURIFromObj(interp, uri, &uri_ir));
+				TEST_OK_LABEL(finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
+				TEST_OK_LABEL(finally, code, Reuri_URIObjSet(interp, uri, part, objv[A_VALUE], &res));
+				replace_tclobj(&res, Tcl_ObjSetVar2(interp, objv[A_URI], NULL, res, TCL_LEAVE_ERR_MSG));
+				if (res == NULL) {
+					code = TCL_ERROR;
+				} else {
+					Tcl_SetObjResult(interp, res);
+				}
+				replace_tclobj(&res, NULL);
 			}
 			break;
 			//>>>
@@ -881,7 +1105,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						}
 						break;
 					default:
-						TEST_OK_LABEL(query_finally, code, Reuri_URIObjGetPart(interp, objv[A_URI], REURI_QUERY, l->empty_query, &query));
+						TEST_OK_LABEL(query_finally, code, Reuri_URIObjExtractPart(interp, objv[A_URI], REURI_QUERY, l->empty_query, &query));
 				}
 
 				switch (opidx) {
@@ -1014,7 +1238,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				if (objc < A_objc) CHECK_ARGS_LABEL(path_finally, code, "op uri ?arg ...?");
 
 				TEST_OK_LABEL(path_finally, code, Tcl_GetIndexFromObj(interp, objv[A_OP], ops, "op", TCL_EXACT, &opidx));
-				TEST_OK_LABEL(path_finally, code, Reuri_URIObjGetPart(interp, objv[A_URI], REURI_PATH, l->empty_list, &path));
+				TEST_OK_LABEL(path_finally, code, Reuri_URIObjExtractPart(interp, objv[A_URI], REURI_PATH, l->empty_list, &path));
 
 				switch (opidx) {
 					case OP_GET: //<<<
@@ -1078,24 +1302,12 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			//>>>
 		case M_NORMALIZE: //<<<
 			{
-				struct uri* uri = NULL;
-				Tcl_Obj*	tmp = NULL;
-
+				struct uri*	uri;
 				enum {A_cmd=1, A_URI, A_objc};
-				CHECK_ARGS_LABEL(normalize_finally, code, "uri");
-				TEST_OK_LABEL(normalize_finally, code, ReuriGetURIFromObj(interp, objv[A_URI], &uri));
-				if (uri->path) {
-					TEST_OK_LABEL(normalize_finally, code, Reuri_GetPathFromObj(interp, uri->path, &tmp));
-					Tcl_InvalidateStringRep(uri->path);
-				}
-				if (uri->query) {
-					TEST_OK_LABEL(normalize_finally, code, ReuriGetQueryFromObj(interp, uri->query, &tmp, NULL));
-					Tcl_InvalidateStringRep(uri->query);
-				}
+				CHECK_ARGS_LABEL(finally, code, "uri");
+				TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, objv[A_URI], &uri));
 				Tcl_InvalidateStringRep(objv[A_URI]);
 				Tcl_SetObjResult(interp, objv[A_URI]);
-			normalize_finally:
-				replace_tclobj(&tmp, NULL);
 			}
 			break;
 			//>>>
@@ -1492,7 +1704,21 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 	l = (struct interp_cx*)ckalloc(sizeof *l);
 	*l = (struct interp_cx){0};
 
+	// General string dedup pool
 	l->dedup_pool = Dedup_NewPool(interp);
+
+	// Part-specific dedup pools
+	l->dedup_scheme			= Dedup_NewPool(interp);
+	l->dedup_userinfo		= Dedup_NewPool(interp);
+	l->dedup_host_reg_name	= Dedup_NewPool(interp);
+	l->dedup_host_ipv4		= Dedup_NewPool(interp);
+	l->dedup_host_ipv6		= Dedup_NewPool(interp);
+	l->dedup_host_local		= Dedup_NewPool(interp);
+	l->dedup_port			= Dedup_NewPool(interp);
+	l->dedup_path			= Dedup_NewPool(interp);
+	l->dedup_query			= Dedup_NewPool(interp);
+	l->dedup_fragment		= Dedup_NewPool(interp);
+
 	l->typeInt = Tcl_GetObjType("int");
 	{
 		int i;

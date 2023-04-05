@@ -45,20 +45,20 @@ proc main {} {
 		reuri_reparse {
 			set newuri	$uri_a$uri_b
 			list \
-				[reuri::uri get $newuri scheme] \
-				[reuri::uri get $newuri host] \
-				[reuri::uri get $newuri port 80] \
-				[reuri::uri get $newuri path]
+				[reuri::uri extract $newuri scheme] \
+				[reuri::uri extract $newuri host] \
+				[reuri::uri extract $newuri port 80] \
+				[reuri::uri extract $newuri path]
 		}
 		reuri_reuse {
 			list \
-				[reuri::uri get $uri scheme] \
-				[reuri::uri get $uri host] \
-				[reuri::uri get $uri port 80] \
-				[reuri::uri get $uri path]
+				[reuri::uri extract $uri scheme] \
+				[reuri::uri extract $uri host] \
+				[reuri::uri extract $uri port 80] \
+				[reuri::uri extract $uri path]
 		}
 		reuri_dict_reparse {
-			set parts	[reuri::uri get $uri_a$uri_b]
+			set parts	[reuri::uri extract $uri_a$uri_b]
 			list \
 				[dict get $parts scheme] \
 				[dict get $parts host] \
@@ -66,7 +66,7 @@ proc main {} {
 				[dict get $parts path]
 		}
 		reuri_dict_reuse {
-			set parts	[reuri::uri get $uri]
+			set parts	[reuri::uri extract $uri]
 			list \
 				[dict get $parts scheme] \
 				[dict get $parts host] \

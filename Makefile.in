@@ -182,6 +182,8 @@ PGO=
 
 CFLAGS		= @CFLAGS@ $(PGO)
 
+CONTAINER = cyanogilvie/alpine-tcl:v0.9.66-gdb
+
 .SUFFIXES: .c .$(OBJEXT)
 
 #========================================================================
@@ -511,9 +513,12 @@ pgo:
 coverage:
 	make -C . PGO="--coverage" clean binaries libraries test
 
+test-container:
+	docker run --rm -it -v "$(realpath $(srcdir)):/src/local:ro" $(CONTAINER) /src/local/teabase/dtest.tcl "$(TESTFLAGS)"
+
 .PHONY: all binaries clean depend distclean doc install libraries test
 .PHONY: gdb gdb-test valgrind valgrindshell genstubs lexers tools
-.PHONY: vim-gdb vim-core vim-gdb-benchmark pgo coverage benchmark
+.PHONY: vim-gdb vim-core vim-gdb-benchmark pgo coverage benchmark test-container
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

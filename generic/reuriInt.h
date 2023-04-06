@@ -2,6 +2,7 @@
 #define _REURIINT_H
 
 #include "reuri.h"
+#include "polyfill.h"
 #include "tclstuff.h"
 #include <dedup.h>
 #include <stdint.h>

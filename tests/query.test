@@ -8,20 +8,20 @@ package require reuri
 
 set t	query_values
 test $t-1.0.0 {empty}			{ reuri::query values {} foo					} {}
-test $t-1.0.1 {empty}			{ reuri::query values {?} foo					} {}
-test $t-1.1 {missing}			{ reuri::query values {?xyz=a} foo				} {}
-test $t-1.2 {exists, single}	{ reuri::query values {?foo=a} foo				} a
-test $t-1.3 {exists, multiple}	{ reuri::query values {?foo=a&foo=bar} foo		} {a bar}
-test $t-1.4 {exists, multiple}	{ reuri::query values {?foo=a&x=y&foo=bar} foo	} {a bar}
-test $t-2.1 {%00}				{ reuri::query values {?f%00oo=a%00b} f\0oo		} a\0b
-test $t-2.2 {bad %}				{ reuri::query values {?f%0oo=a%0x} f%0oo		} a%0x
-test $t-2.3 {bad %}				{ reuri::query values {?f%oo=a%x} f%oo			} a%x
-test $t-2.4 {%00}				{ reuri::query values {?f%00=a%00} f\0			} a\0
-test $t-2.5 {%00}				{ reuri::query values {?f%00} f\0				} {{}}
-test $t-2.5 {no val}			{ reuri::query values {?foo} foo				} {{}}
-test $t-2.6 {no name}			{ reuri::query values {?=foo} {}				} {foo}
-test $t-2.7 {no name}			{ reuri::query values {?=foo&} {}				} {foo {}}
-test $t-2.8 {no name}			{ reuri::query values {?} {}					} {}
+test $t-1.0.1 {empty}			{ reuri::query values {} foo					} {}
+test $t-1.1 {missing}			{ reuri::query values {xyz=a} foo				} {}
+test $t-1.2 {exists, single}	{ reuri::query values {foo=a} foo				} a
+test $t-1.3 {exists, multiple}	{ reuri::query values {foo=a&foo=bar} foo		} {a bar}
+test $t-1.4 {exists, multiple}	{ reuri::query values {foo=a&x=y&foo=bar} foo	} {a bar}
+test $t-2.1 {%00}				{ reuri::query values {f%00oo=a%00b} f\0oo		} a\0b
+test $t-2.2 {bad %}				{ reuri::query values {f%0oo=a%0x} f%0oo		} a%0x
+test $t-2.3 {bad %}				{ reuri::query values {f%oo=a%x} f%oo			} a%x
+test $t-2.4 {%00}				{ reuri::query values {f%00=a%00} f\0			} a\0
+test $t-2.5 {%00}				{ reuri::query values {f%00} f\0				} {{}}
+test $t-2.5 {no val}			{ reuri::query values {foo} foo					} {{}}
+test $t-2.6 {no name}			{ reuri::query values {=foo} {}					} {foo}
+test $t-2.7 {no name}			{ reuri::query values {=foo&} {}				} {foo {}}
+test $t-2.8 {no name}			{ reuri::query values {} {}						} {}
 
 set t	uri_query_values
 test $t-1.0.0 {empty}			{ reuri::uri query values {} foo					} {}
@@ -34,12 +34,11 @@ test $t-1.3 {exists, multiple}	{ reuri::uri query values {http://localhost/a?foo
 test $t-1.4 {exists, multiple}	{ reuri::uri query values {http://localhost/a?foo=a&x=y&foo=bar} foo	} {a bar}
 
 set t	query_exists
-test $t-1.0.0 {empty}			{ reuri::query exists {} foo					} 0
-test $t-1.0.1 {empty}			{ reuri::query exists {?} foo					} 0
-test $t-1.1 {missing}			{ reuri::query exists {?xyz=a} foo				} 0
-test $t-1.2 {exists, single}	{ reuri::query exists {?foo=a} foo				} 1
-test $t-1.3 {exists, multiple}	{ reuri::query exists {?foo=a&foo=bar} foo		} 1
-test $t-1.4 {exists, multiple}	{ reuri::query exists {?foo=a&x=y&foo=bar} foo	} 1
+test $t-1.0 {empty}				{ reuri::query exists {} foo					} 0
+test $t-1.1 {missing}			{ reuri::query exists {xyz=a} foo				} 0
+test $t-1.2 {exists, single}	{ reuri::query exists {foo=a} foo				} 1
+test $t-1.3 {exists, multiple}	{ reuri::query exists {foo=a&foo=bar} foo		} 1
+test $t-1.4 {exists, multiple}	{ reuri::query exists {foo=a&x=y&foo=bar} foo	} 1
 test $t-1.5 {exists, multiple}	{ reuri::query exists {foo=a&x=y&foo=bar} foo	} 1
 test $t-1.6 {exists, multiple}	{ reuri::query exists {foo=a&x=y&foo=bar} bar	} 0
 
@@ -54,12 +53,11 @@ test $t-1.5 {exists, multiple}	{ reuri::uri query exists {http://localhost/x?foo
 test $t-1.6 {exists, multiple}	{ reuri::uri query exists {http://localhost/x?foo=a&x=y&foo=bar} bar	} 0
 
 set t	query_names
-test $t-1.0.0 {empty}			{ reuri::query names {}						} {}
-test $t-1.0.1 {empty}			{ reuri::query names {?}					} {}
-test $t-1.1 {missing}			{ reuri::query names {?xyz=a}				} xyz
-test $t-1.2 {exists, single}	{ reuri::query names {?foo=a}				} foo
-test $t-1.3 {exists, multiple}	{ reuri::query names {?foo=a&foo=bar}		} {foo foo}
-test $t-1.4 {exists, multiple}	{ reuri::query names {?foo=a&x=y&foo=bar}	} {foo x foo}
+test $t-1.0 {empty}				{ reuri::query names {}						} {}
+test $t-1.1 {missing}			{ reuri::query names {xyz=a}				} xyz
+test $t-1.2 {exists, single}	{ reuri::query names {foo=a}				} foo
+test $t-1.3 {exists, multiple}	{ reuri::query names {foo=a&foo=bar}		} {foo foo}
+test $t-1.4 {exists, multiple}	{ reuri::query names {foo=a&x=y&foo=bar}	} {foo x foo}
 
 set t	uri_query_names
 test $t-1.0.0 {empty}			{ reuri::uri query names {}						} {}
@@ -73,41 +71,39 @@ test $t-1.3 {exists, multiple}	{ reuri::uri query names {http://localhost/z?foo=
 test $t-1.4 {exists, multiple}	{ reuri::uri query names {http://localhost/z?foo=a&x=y&foo=bar}	} {foo x foo}
 
 set t	query_get
-test $t-1.0.0.0 {empty}	-body   { reuri::query get {} foo						} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
-test $t-1.0.0.1 {empty} -body	{ reuri::query get {} foo -default				} -returnCodes error -errorCode {TCL ARGUMENT MISSING} -result {missing argument to "-default"}
-test $t-1.0.0.1 {empty}			{ reuri::query get {} foo -default def			} def
-test $t-1.0.1.0 {empty}	-body   { reuri::query get {?} foo						} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
-test $t-1.0.1.1 {empty}			{ reuri::query get {?} foo -default def			} def
-test $t-1.1.0 {missing} -body	{ reuri::query get {?xyz=a} foo					} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
-test $t-1.1.1 {missing}			{ reuri::query get {?xyz=a} foo -default def	} def
-test $t-1.2.0 {exists, single}	{ reuri::query get {?foo=a} foo					} a
-test $t-1.2.1 {exists, single}	{ reuri::query get {?foo=a} foo	-default def	} a
-test $t-1.3 {exists, multiple}	{ reuri::query get {?foo=a&foo=bar} foo			} bar
-test $t-1.4 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar} foo		} bar
+test $t-1.0.0 {empty}	-body	{ reuri::query get {} foo						} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-1.0.1 {empty}	-body	{ reuri::query get {} foo -default				} -returnCodes error -errorCode {TCL ARGUMENT MISSING} -result {missing argument to "-default"}
+test $t-1.0.1 {empty}			{ reuri::query get {} foo -default def			} def
+test $t-1.1.0 {missing} -body	{ reuri::query get {xyz=a} foo					} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo" doesn't exist}
+test $t-1.1.1 {missing}			{ reuri::query get {xyz=a} foo -default def		} def
+test $t-1.2.0 {exists, single}	{ reuri::query get {foo=a} foo					} a
+test $t-1.2.1 {exists, single}	{ reuri::query get {foo=a} foo	-default def	} a
+test $t-1.3 {exists, multiple}	{ reuri::query get {foo=a&foo=bar} foo			} bar
+test $t-1.4 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar} foo		} bar
 test $t-2.0.0 {empty}			{ reuri::query get {}							} {}
-test $t-2.0.1 {empty}			{ reuri::query get {?}							} {}
-test $t-2.1 {missing}			{ reuri::query get {?xyz=a}						} {xyz a}
-test $t-2.2 {exists, single}	{ reuri::query get {?foo=a}						} {foo a}
-test $t-2.3 {exists, multiple}	{ reuri::query get {?foo=a&foo=bar}				} {foo a foo bar}
-test $t-2.4 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar}			} {foo a x y foo bar}
+test $t-2.0.1 {empty}			{ reuri::query get {}							} {}
+test $t-2.1 {missing}			{ reuri::query get {xyz=a}						} {xyz a}
+test $t-2.2 {exists, single}	{ reuri::query get {foo=a}						} {foo a}
+test $t-2.3 {exists, multiple}	{ reuri::query get {foo=a&foo=bar}				} {foo a foo bar}
+test $t-2.4 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar}			} {foo a x y foo bar}
 test $t-2.5 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar}			} {foo a x y foo bar}
 test $t-2.6 {exists, novals}	{ reuri::query get {foo&bar}					} {foo {} bar {}}
 if 0 {
-test $t-3.0 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 0	} a
-test $t-3.1 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 1	} bar
-test $t-3.2 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 2	} z
-test $t-3.3 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index end	} z
-test $t-3.4 {exists, multiple}	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index end-1	} bar
-test $t-3.5.1 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 3				} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo"[3] doesn't exist}
-test $t-3.5.2 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 3 -default def	} -result def
-test $t-3.5.3 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index end+1			} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo"[end+1] doesn't exist}
-test $t-3.5.4 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index end+1 -default def		} -result def
-test $t-3.5.5 {exists, multiple}		{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foo -index 3 -default def			} def
-test $t-3.6 {exists, multiple}			{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..end -default def	} {}
-test $t-3.7 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0					} {}
-test $t-3.8.1 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1				} -returnCodes error -errorCode {REURI PARAM_NOT_SET foox} -result {param "foox"[1] doesn't exist}
-test $t-3.8.2 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1 -default def	} -result def
-test $t-3.8.3 {exists, multiple} -body	{ reuri::query get {?foo=a&x=y&foo=bar&foo=z} foox -index 2,0..0,1 -default def	} -result {def def}
+test $t-3.0 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index 0	} a
+test $t-3.1 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index 1	} bar
+test $t-3.2 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index 2	} z
+test $t-3.3 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index end	} z
+test $t-3.4 {exists, multiple}	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index end-1	} bar
+test $t-3.5.1 {exists, multiple} -body	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index 3				} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo"[3] doesn't exist}
+test $t-3.5.2 {exists, multiple} -body	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index 3 -default def	} -result def
+test $t-3.5.3 {exists, multiple} -body	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index end+1			} -returnCodes error -errorCode {REURI PARAM_NOT_SET foo} -result {param "foo"[end+1] doesn't exist}
+test $t-3.5.4 {exists, multiple} -body	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index end+1 -default def		} -result def
+test $t-3.5.5 {exists, multiple}		{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foo -index 3 -default def			} def
+test $t-3.6 {exists, multiple}			{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foox -index 0..end -default def	} {}
+test $t-3.7 {exists, multiple} -body	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foox -index 0..0					} {}
+test $t-3.8.1 {exists, multiple} -body	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1				} -returnCodes error -errorCode {REURI PARAM_NOT_SET foox} -result {param "foox"[1] doesn't exist}
+test $t-3.8.2 {exists, multiple} -body	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foox -index 0..0,1 -default def	} -result def
+test $t-3.8.3 {exists, multiple} -body	{ reuri::query get {foo=a&x=y&foo=bar&foo=z} foox -index 2,0..0,1 -default def	} -result {def def}
 }
 test $t-4.1 {unicode}	{ reuri::query get fo\u306fo=b\u306far	} [list fo\u306fo b\u306far]
 test $t-4.2 {null}		{ reuri::query get fo\0o=b\0ar			} [list fo\0o b\0ar]
@@ -166,13 +162,11 @@ set t	query_add
 set std	{apply {init {list -setup [list set q $init] -cleanup {unset -nocomplain q}}}}
 test $t-0.1 {var not set}	-setup {unset -nocomplain q} -body {reuri::query add q foo bar; set q		} -result foo=bar				-cleanup {unset -nocomplain q}
 test $t-0.2 {dup}			-setup {set q x=y}  -body {set d $q; reuri::query add q foo bar; list $d $q	} -result {x=y x=y&foo=bar}		-cleanup {unset -nocomplain d q}
-test $t-0.3 {dup}			-setup {set q ?x=y} -body {set d $q; reuri::query add q foo bar; list $d $q	} -result {?x=y x=y&foo=bar}	-cleanup {unset -nocomplain d q}
 test $t-0.4 {dup}			-setup {set q x=y}  -body {set d $q; reuri::query add q foo bar; list $d $q	} -result {x=y x=y&foo=bar}		-cleanup {unset -nocomplain d q}
 test $t-1.1	{empty}	{*}[{*}$std {}]		-body { list [reuri::query add q foo bar] $q	} -result {foo=bar foo=bar}
-test $t-1.2	{empty}	{*}[{*}$std ?]		-body { list [reuri::query add q foo bar] $q	} -result {foo=bar foo=bar}
-test $t-2.1	{other}	{*}[{*}$std ?x=y]	-body { reuri::query add q foo bar; set q		} -result x=y&foo=bar
-test $t-2.2	{same}	{*}[{*}$std ?foo=x]	-body { reuri::query add q foo bar; set q		} -result foo=x&foo=bar
-test $t-3.1	{index}	{*}[{*}$std ?foo=x]	-body { reuri::query add q foo bar; reuri::query values $q foo	} -result {x bar}
+test $t-2.1	{other}	{*}[{*}$std x=y]	-body { reuri::query add q foo bar; set q		} -result x=y&foo=bar
+test $t-2.2	{same}	{*}[{*}$std foo=x]	-body { reuri::query add q foo bar; set q		} -result foo=x&foo=bar
+test $t-3.1	{index}	{*}[{*}$std foo=x]	-body { reuri::query add q foo bar; reuri::query values $q foo	} -result {x bar}
 test $t-4.1	{encoding}	{*}[{*}$std {}]	-body { reuri::query add q f=o b&ar				} -result f%3Do=b%26ar
 test $t-4.2	{unicode}	{*}[{*}$std {}]	-body { reuri::query add q f\0o b\u306far		} -result f%00o=b%E3%81%AFar
 test $t-6.1	{trace} -setup { #<<<
@@ -249,16 +243,14 @@ set t	query_unset
 set std	{apply {init {list -setup [list set q $init] -cleanup {unset -nocomplain q}}}}
 test $t-0.1 {var not set}	-setup {unset -nocomplain q} -body {reuri::query unset q foo; set q					} -result {}					-cleanup {unset -nocomplain q}
 test $t-0.2 {dup}			-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query unset q foo; list $d $q	} -result {x=y&foo=bar x=y}		-cleanup {unset -nocomplain d q}
-test $t-0.3 {dup}			-setup {set q ?x=y&foo=bar} -body {set d $q; reuri::query unset q foo; list $d $q	} -result {?x=y&foo=bar x=y}	-cleanup {unset -nocomplain d q}
 test $t-0.4 {dup}			-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query unset q foo; list $d $q	} -result {x=y&foo=bar x=y}		-cleanup {unset -nocomplain d q}
 test $t-1.1	{empty}	{*}[{*}$std {}]		-body { list [reuri::query unset q foo] $q	} -result {{} {}}
-test $t-1.2	{empty}	{*}[{*}$std ?]		-body { list [reuri::query unset q foo] $q	} -result {{} {}}
-test $t-2.1	{other}	{*}[{*}$std ?x=y]	-body { reuri::query unset q foo; set q		} -result x=y
-test $t-2.2	{same}	{*}[{*}$std ?foo=x]	-body { reuri::query unset q foo; set q		} -result {}
-test $t-2.3	{multi}	{*}[{*}$std ?a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query unset q a; set q		} -result x=y&foo=bar
-test $t-2.4	{multi}	{*}[{*}$std ?a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query unset q a foo; set q	} -result x=y
-test $t-2.5	{nop}	{*}[{*}$std ?a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query unset q; set q			} -result ?a=1&x=y&a=2&foo=bar&a=3
-test $t-3.1	{index}	{*}[{*}$std ?foo=x]	-body { reuri::query unset q foo; reuri::query values $q foo	} -result {}
+test $t-2.1	{other}	{*}[{*}$std x=y]	-body { reuri::query unset q foo; set q		} -result x=y
+test $t-2.2	{same}	{*}[{*}$std foo=x]	-body { reuri::query unset q foo; set q		} -result {}
+test $t-2.3	{multi}	{*}[{*}$std a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query unset q a; set q		} -result x=y&foo=bar
+test $t-2.4	{multi}	{*}[{*}$std a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query unset q a foo; set q	} -result x=y
+test $t-2.5	{nop}	{*}[{*}$std a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query unset q; set q			} -result a=1&x=y&a=2&foo=bar&a=3
+test $t-3.1	{index}	{*}[{*}$std foo=x]	-body { reuri::query unset q foo; reuri::query values $q foo	} -result {}
 test $t-4.1	{encoding}	{*}[{*}$std {f%3do=bar&x=y}]	-body { reuri::query unset q f=o				} -result x=y
 test $t-4.2	{unicode}	{*}[{*}$std {f%00o=bar&x=y}]	-body { reuri::query unset q f\0o				} -result x=y
 test $t-6.1	{trace} -setup { #<<<
@@ -335,15 +327,13 @@ set t	query_set
 set std	{apply {init {list -setup [list set q $init] -cleanup {unset -nocomplain q}}}}
 test $t-0.1 {var not set}	-setup {unset -nocomplain q} -body {reuri::query set q foo bar; set q			} -result {foo=bar}							-cleanup {unset -nocomplain q}
 test $t-0.2 {dup}			-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query set q a b; list $d $q	} -result {x=y&foo=bar x=y&foo=bar&a=b}		-cleanup {unset -nocomplain d q}
-test $t-0.3 {dup}			-setup {set q ?x=y&foo=bar} -body {set d $q; reuri::query set q a b; list $d $q	} -result {?x=y&foo=bar x=y&foo=bar&a=b}	-cleanup {unset -nocomplain d q}
 test $t-0.4 {dup}			-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query set q a b; list $d $q	} -result {x=y&foo=bar x=y&foo=bar&a=b}		-cleanup {unset -nocomplain d q}
 test $t-1.1	{empty}	{*}[{*}$std {}]		-body { list [reuri::query set q foo bar] $q	} -result {foo=bar foo=bar}
-test $t-1.2	{empty}	{*}[{*}$std ?]		-body { list [reuri::query set q foo bar] $q	} -result {foo=bar foo=bar}
-test $t-2.1	{other}	{*}[{*}$std ?x=y]	-body { reuri::query set q foo bar; set q		} -result x=y&foo=bar
-test $t-2.2	{same}	{*}[{*}$std ?foo=x]	-body { reuri::query set q foo bar; set q		} -result foo=bar
-test $t-2.3	{multi}	{*}[{*}$std ?a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query set q a 4; set q		} -result a=4&x=y&foo=bar
-test $t-2.4	{multi}	{*}[{*}$std ?a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query set q foo x; set q		} -result a=1&x=y&a=2&foo=x&a=3
-test $t-3.1	{index}	{*}[{*}$std ?foo=x]						-body { reuri::query set q foo y; reuri::query values $q foo	} -result y
+test $t-2.1	{other}	{*}[{*}$std x=y]	-body { reuri::query set q foo bar; set q		} -result x=y&foo=bar
+test $t-2.2	{same}	{*}[{*}$std foo=x]	-body { reuri::query set q foo bar; set q		} -result foo=bar
+test $t-2.3	{multi}	{*}[{*}$std a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query set q a 4; set q		} -result a=4&x=y&foo=bar
+test $t-2.4	{multi}	{*}[{*}$std a=1&x=y&a=2&foo=bar&a=3]	-body { reuri::query set q foo x; set q		} -result a=1&x=y&a=2&foo=x&a=3
+test $t-3.1	{index}	{*}[{*}$std foo=x]						-body { reuri::query set q foo y; reuri::query values $q foo	} -result y
 test $t-4.1	{encoding}	{*}[{*}$std f%3do=bar&x=y]	-body { reuri::query set q f=o	z			} -result f%3Do=z&x=y
 test $t-4.2	{unicode}	{*}[{*}$std f%00o=bar&x=y]	-body { reuri::query set q f\0o	z			} -result f%00o=z&x=y
 test $t-6.1	{trace} -setup { #<<<
@@ -414,6 +404,218 @@ test $t-6.3	{trace} -setup { #<<<
 } -cleanup {
 	unset -nocomplain u
 } -result [list trace:/abc?x=y&f%00o=z trace:/abc?x=y&f%00o=z]
+#>>>
+
+set t	query_new
+test $t-1.0  {}			{reuri::query new						}	{}
+test $t-1.1  {} -body	{reuri::query new foo					} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-1.2  {}			{reuri::query new foo bar				}	foo=bar
+test $t-1.3  {}	-body	{reuri::query new foo bar baz			} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-1.4  {}			{reuri::query new foo bar baz {}		}	foo=bar&baz
+test $t-1.5  {}			{reuri::query new foo bar baz quux		}	foo=bar&baz=quux
+test $t-1.6  {}			{reuri::query new foo bar foo two		}	foo=bar&foo=two
+test $t-1.7  {}			{reuri::query new {} {} {} {} {} {}		}	&&
+test $t-1.8  {}			{reuri::query new {} =					}	==
+test $t-1.9  {}			{reuri::query new fo%32o ba%32r			}	fo%2532o=ba%2532r
+test $t-1.10 {}			{reuri::query new fo=o ba=r				}	fo%3Do=ba=r
+test $t-1.11 {}			{reuri::query new fo+o ba+r				}	fo%2Bo=ba%2Br
+test $t-1.12 {}			{reuri::query new fo#o ba#r				}	fo%23o=ba%23r
+test $t-1.13 {}			{reuri::query new fo?o ba?r				}	fo?o=ba?r
+test $t-1.14 {}			{reuri::query new fo&o ba&r				}	fo%26o=ba%26r
+test $t-1.15 {}			{reuri::query new fo^o ba^r				}	fo%5Eo=ba%5Er
+test $t-1.16 {}			{reuri::query new fo~o ba~r				}	fo~o=ba~r
+test $t-1.17 {}			{reuri::query new fo@o ba@r				}	fo@o=ba@r
+test $t-1.18 {}			{reuri::query new fo:o ba:r				}	fo:o=ba:r
+test $t-1.19 {}			{reuri::query new f\u306fo b\u306fr		}	f%E3%81%AFo=b%E3%81%AFr
+test $t-1.20 {}			{reuri::query new f\0o b\0r				}	f%00o=b%00r
+test $t-2.0  {}			{reuri::query new {}					}	{}
+test $t-2.1  {} -body	{reuri::query new {foo}					} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-2.2  {}			{reuri::query new {foo bar}				}	foo=bar
+test $t-2.3  {}	-body	{reuri::query new {foo bar baz}			} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-2.4  {}			{reuri::query new {foo bar baz {}}		}	foo=bar&baz
+test $t-2.5  {}			{reuri::query new {foo bar baz quux}	}	foo=bar&baz=quux
+test $t-2.6  {}			{reuri::query new {foo bar foo two}		}	foo=bar&foo=two
+test $t-2.7  {}			{reuri::query new {{} {} {} {} {} {}}	}	&&
+test $t-2.8  {}			{reuri::query new {{} =}				}	==
+test $t-2.9  {}			{reuri::query new {fo%32o ba%32r}		}	fo%2532o=ba%2532r
+test $t-2.10 {}			{reuri::query new {fo=o ba=r}			}	fo%3Do=ba=r
+test $t-2.11 {}			{reuri::query new {fo+o ba+r}			}	fo%2Bo=ba%2Br
+test $t-2.12 {}			{reuri::query new {fo#o ba#r}			}	fo%23o=ba%23r
+test $t-2.13 {}			{reuri::query new {fo?o ba?r}			}	fo?o=ba?r
+test $t-2.14 {}			{reuri::query new {fo&o ba&r}			}	fo%26o=ba%26r
+test $t-2.15 {}			{reuri::query new {fo^o ba^r}			}	fo%5Eo=ba%5Er
+test $t-2.16 {}			{reuri::query new {fo~o ba~r}			}	fo~o=ba~r
+test $t-2.17 {}			{reuri::query new {fo@o ba@r}			}	fo@o=ba@r
+test $t-2.18 {}			{reuri::query new {fo:o ba:r}			}	fo:o=ba:r
+test $t-2.19 {}			{reuri::query new {f\u306fo b\u306fr}	}	f%E3%81%AFo=b%E3%81%AFr
+test $t-2.20 {}			{reuri::query new {f\0o b\0r}			}	f%00o=b%00r
+
+set t	query_encode
+test $t-1.0  {}			{reuri::query encode						}	{}
+test $t-1.1  {} -body	{reuri::query encode foo					} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-1.2  {}			{reuri::query encode foo bar				}	?foo=bar
+test $t-1.3  {}	-body	{reuri::query encode foo bar baz			} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-1.4  {}			{reuri::query encode foo bar baz {}			}	?foo=bar&baz
+test $t-1.5  {}			{reuri::query encode foo bar baz quux		}	?foo=bar&baz=quux
+test $t-1.6  {}			{reuri::query encode foo bar foo two		}	?foo=bar&foo=two
+test $t-1.7  {}			{reuri::query encode {} {} {} {} {} {}		}	?&&
+test $t-1.8  {}			{reuri::query encode {} =					}	?==
+test $t-1.9  {}			{reuri::query encode fo%32o ba%32r			}	?fo%2532o=ba%2532r
+test $t-1.10 {}			{reuri::query encode fo=o ba=r				}	?fo%3Do=ba=r
+test $t-1.11 {}			{reuri::query encode fo+o ba+r				}	?fo%2Bo=ba%2Br
+test $t-1.12 {}			{reuri::query encode fo#o ba#r				}	?fo%23o=ba%23r
+test $t-1.13 {}			{reuri::query encode fo?o ba?r				}	?fo?o=ba?r
+test $t-1.14 {}			{reuri::query encode fo&o ba&r				}	?fo%26o=ba%26r
+test $t-1.15 {}			{reuri::query encode fo^o ba^r				}	?fo%5Eo=ba%5Er
+test $t-1.16 {}			{reuri::query encode fo~o ba~r				}	?fo~o=ba~r
+test $t-1.17 {}			{reuri::query encode fo@o ba@r				}	?fo@o=ba@r
+test $t-1.18 {}			{reuri::query encode fo:o ba:r				}	?fo:o=ba:r
+test $t-1.19 {}			{reuri::query encode f\u306fo b\u306fr		}	?f%E3%81%AFo=b%E3%81%AFr
+test $t-1.20 {}			{reuri::query encode f\0o b\0r				}	?f%00o=b%00r
+test $t-2.0  {}			{reuri::query encode {}						}	{}
+test $t-2.1  {} -body	{reuri::query encode {foo}					} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-2.2  {}			{reuri::query encode {foo bar}				}	?foo=bar
+test $t-2.3  {}	-body	{reuri::query encode {foo bar baz}			} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-2.4  {}			{reuri::query encode {foo bar baz {}}		}	?foo=bar&baz
+test $t-2.5  {}			{reuri::query encode {foo bar baz quux}		}	?foo=bar&baz=quux
+test $t-2.6  {}			{reuri::query encode {foo bar foo two}		}	?foo=bar&foo=two
+test $t-2.7  {}			{reuri::query encode {{} {} {} {} {} {}}	}	?&&
+test $t-2.8  {}			{reuri::query encode {{} =}					}	?==
+test $t-2.9  {}			{reuri::query encode {fo%32o ba%32r}		}	?fo%2532o=ba%2532r
+test $t-2.10 {}			{reuri::query encode {fo=o ba=r}			}	?fo%3Do=ba=r
+test $t-2.11 {}			{reuri::query encode {fo+o ba+r}			}	?fo%2Bo=ba%2Br
+test $t-2.12 {}			{reuri::query encode {fo#o ba#r}			}	?fo%23o=ba%23r
+test $t-2.13 {}			{reuri::query encode {fo?o ba?r}			}	?fo?o=ba?r
+test $t-2.14 {}			{reuri::query encode {fo&o ba&r}			}	?fo%26o=ba%26r
+test $t-2.15 {}			{reuri::query encode {fo^o ba^r}			}	?fo%5Eo=ba%5Er
+test $t-2.16 {}			{reuri::query encode {fo~o ba~r}			}	?fo~o=ba~r
+test $t-2.17 {}			{reuri::query encode {fo@o ba@r}			}	?fo@o=ba@r
+test $t-2.18 {}			{reuri::query encode {fo:o ba:r}			}	?fo:o=ba:r
+test $t-2.19 {}			{reuri::query encode {f\u306fo b\u306fr}	}	?f%E3%81%AFo=b%E3%81%AFr
+test $t-2.20 {}			{reuri::query encode {f\0o b\0r}			}	?f%00o=b%00r
+
+set t	query_get
+test $t-1.0  {}			{reuri::query get {}						}	{}
+test $t-1.1  {}			{reuri::query get ?foo						}	{?foo {}}
+test $t-1.2  {}			{reuri::query get foo=bar					}	{foo bar}
+test $t-1.3  {}			{reuri::query get ?foo=bar					}	{?foo bar}
+test $t-1.4  {}			{reuri::query get foo=bar&baz				}	{foo bar baz {}}
+test $t-1.5  {}			{reuri::query get foo=bar&baz=quux			}	{foo bar baz quux}
+test $t-1.6  {}			{reuri::query get foo=bar&foo=two			}	{foo bar foo two}
+test $t-1.7  {}			{reuri::query get &&						}	{{} {} {} {} {} {}}
+test $t-1.8  {}			{reuri::query get ==						}	{{} =}
+test $t-1.9  {}			{reuri::query get fo%2532o=ba%2532r			}	{fo%32o ba%32r}
+test $t-1.10 {}			{reuri::query get fo%3Do=ba=r				}	{fo=o ba=r}
+test $t-1.11 {}			{reuri::query get fo%2Bo=ba%2Br				}	{fo+o ba+r}
+test $t-1.12 {}			{reuri::query get fo%23o=ba%23r				}	{fo#o ba#r}
+test $t-1.13 {}			{reuri::query get fo?o=ba?r					}	{fo?o ba?r}
+test $t-1.14 {}			{reuri::query get fo%26o=ba%26r				}	{fo&o ba&r}
+test $t-1.15 {}			{reuri::query get fo%5Eo=ba%5Er				}	{fo^o ba^r}
+test $t-1.16 {}			{reuri::query get fo~o=ba~r					}	{fo~o ba~r}
+test $t-1.17 {}			{reuri::query get fo@o=ba@r					}	{fo@o ba@r}
+test $t-1.18 {}			{reuri::query get fo:o=ba:r					}	{fo:o ba:r}
+test $t-1.19 {}			{reuri::query get f%E3%81%AFo=b%E3%81%AFr	}	[list f\u306fo b\u306fr]
+test $t-1.20 {}			{reuri::query get f%00o=b%00r				}	[list f\0o b\0r]
+
+set t	query_decode
+test $t-1.0  {}			{reuri::query decode {}							}	{}
+test $t-1.0.1 {}		{reuri::query decode ?							}	{}
+test $t-1.1  {}			{reuri::query decode ?foo						}	{foo {}}
+test $t-1.2  {}			{reuri::query decode foo=bar					}	{foo bar}
+test $t-1.3  {}			{reuri::query decode ?foo=bar					}	{foo bar}
+test $t-1.4  {}			{reuri::query decode foo=bar&baz				}	{foo bar baz {}}
+test $t-1.5  {}			{reuri::query decode foo=bar&baz=quux			}	{foo bar baz quux}
+test $t-1.6  {}			{reuri::query decode foo=bar&foo=two			}	{foo bar foo two}
+test $t-1.7  {}			{reuri::query decode &&							}	{{} {} {} {} {} {}}
+test $t-1.8  {}			{reuri::query decode ==							}	{{} =}
+test $t-1.9  {}			{reuri::query decode fo%2532o=ba%2532r			}	{fo%32o ba%32r}
+test $t-1.10 {}			{reuri::query decode fo%3Do=ba=r				}	{fo=o ba=r}
+test $t-1.11 {}			{reuri::query decode fo%2Bo=ba%2Br				}	{fo+o ba+r}
+test $t-1.12 {}			{reuri::query decode fo%23o=ba%23r				}	{fo#o ba#r}
+test $t-1.13 {}			{reuri::query decode fo?o=ba?r					}	{fo?o ba?r}
+test $t-1.14 {}			{reuri::query decode fo%26o=ba%26r				}	{fo&o ba&r}
+test $t-1.15 {}			{reuri::query decode fo%5Eo=ba%5Er				}	{fo^o ba^r}
+test $t-1.16 {}			{reuri::query decode fo~o=ba~r					}	{fo~o ba~r}
+test $t-1.17 {}			{reuri::query decode fo@o=ba@r					}	{fo@o ba@r}
+test $t-1.18 {}			{reuri::query decode fo:o=ba:r					}	{fo:o ba:r}
+test $t-1.19 {}			{reuri::query decode f%E3%81%AFo=b%E3%81%AFr	}	[list f\u306fo b\u306fr]
+test $t-1.20 {}			{reuri::query decode f%00o=b%00r				}	[list f\0o b\0r]
+
+set t	uri_query_new
+set std	{apply {init {list -setup [list set u $init] -cleanup {unset -nocomplain u}}}}
+test $t-0.1 {var not set}	-setup {unset -nocomplain u} -body {reuri::uri query new u foo bar; set u				} -result {?foo=bar}			-cleanup {unset -nocomplain u}
+test $t-0.2 {dup}			-setup {set u ?x=y&foo=b}    -body {set d $u; reuri::uri query new u a b; list $d $u	} -result {?x=y&foo=b ?a=b}		-cleanup {unset -nocomplain d u}
+test $t-0.3 {dup}			-setup {set u /x?x=y&foo=b}  -body {set d $u; reuri::uri query new u a b; list $d $u	} -result {/x?x=y&foo=b /x?a=b}	-cleanup {unset -nocomplain d u}
+test $t-0.4 {dup}			-setup {set u /x?x=y&foo=b}  -body {set d $u; reuri::uri query new u {};  list $d $u	} -result {/x?x=y&foo=b /x}		-cleanup {unset -nocomplain d u}
+test $t-0.5 {dup}			-setup {set u /x?x=y&foo=b}  -body {set d $u; reuri::uri query new u;     list $d $u	} -result {/x?x=y&foo=b /x}		-cleanup {unset -nocomplain d u}
+test $t-1.0  {}	{*}[{*}$std {}] -body	{reuri::uri query new u							} -result {}
+test $t-1.1  {}	{*}[{*}$std {}] -body	{reuri::uri query new u foo						} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-1.2  {}	{*}[{*}$std {}] -body	{reuri::uri query new u foo bar					} -result ?foo=bar
+test $t-1.3  {}	{*}[{*}$std {}]	-body	{reuri::uri query new u foo bar baz				} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-1.4  {}	{*}[{*}$std {}] -body	{reuri::uri query new u foo bar baz {}			} -result ?foo=bar&baz
+test $t-1.5  {} {*}[{*}$std {}] -body	{reuri::uri query new u foo bar baz quux		} -result ?foo=bar&baz=quux
+test $t-1.6  {} {*}[{*}$std {}] -body	{reuri::uri query new u foo bar foo two			} -result ?foo=bar&foo=two
+test $t-1.7  {} {*}[{*}$std {}] -body	{reuri::uri query new u {} {} {} {} {} {}		} -result ?&&
+test $t-1.8  {} {*}[{*}$std {}] -body	{reuri::uri query new u {} =					} -result ?==
+test $t-1.9  {} {*}[{*}$std {}] -body	{reuri::uri query new u fo%32o ba%32r			} -result ?fo%2532o=ba%2532r
+test $t-1.10 {} {*}[{*}$std {}] -body	{reuri::uri query new u fo=o ba=r				} -result ?fo%3Do=ba=r
+test $t-1.11 {} {*}[{*}$std {}] -body	{reuri::uri query new u fo+o ba+r				} -result ?fo%2Bo=ba%2Br
+test $t-1.12 {} {*}[{*}$std {}] -body	{reuri::uri query new u fo#o ba#r				} -result ?fo%23o=ba%23r
+test $t-1.13 {} {*}[{*}$std {}] -body	{reuri::uri query new u fo?o ba?r				} -result ?fo?o=ba?r
+test $t-1.14 {} {*}[{*}$std {}] -body	{reuri::uri query new u fo&o ba&r				} -result ?fo%26o=ba%26r
+test $t-1.15 {} {*}[{*}$std {}] -body	{reuri::uri query new u fo^o ba^r				} -result ?fo%5Eo=ba%5Er
+test $t-1.16 {} {*}[{*}$std {}] -body	{reuri::uri query new u fo~o ba~r				} -result ?fo~o=ba~r
+test $t-1.17 {} {*}[{*}$std {}] -body	{reuri::uri query new u fo@o ba@r				} -result ?fo@o=ba@r
+test $t-1.18 {} {*}[{*}$std {}] -body	{reuri::uri query new u fo:o ba:r				} -result ?fo:o=ba:r
+test $t-1.19 {} {*}[{*}$std {}] -body	{reuri::uri query new u f\u306fo b\u306fr		} -result ?f%E3%81%AFo=b%E3%81%AFr
+test $t-1.20 {} {*}[{*}$std {}] -body	{reuri::uri query new u f\0o b\0r				} -result ?f%00o=b%00r
+test $t-2.0  {} {*}[{*}$std {}] -body	{reuri::uri query new u {}						} -result {}
+test $t-2.1  {} {*}[{*}$std {}] -body	{reuri::uri query new u {foo}					} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-2.2  {} {*}[{*}$std {}] -body	{reuri::uri query new u {foo bar}				} -result ?foo=bar
+test $t-2.3  {} {*}[{*}$std {}] -body	{reuri::uri query new u {foo bar baz}			} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
+test $t-2.4  {} {*}[{*}$std {}] -body	{reuri::uri query new u {foo bar baz {}}		} -result ?foo=bar&baz
+test $t-2.5  {} {*}[{*}$std {}] -body	{reuri::uri query new u {foo bar baz quux}		} -result ?foo=bar&baz=quux
+test $t-2.6  {} {*}[{*}$std {}] -body	{reuri::uri query new u {foo bar foo two}		} -result ?foo=bar&foo=two
+test $t-2.7  {} {*}[{*}$std {}] -body	{reuri::uri query new u {{} {} {} {} {} {}}		} -result ?&&
+test $t-2.8  {} {*}[{*}$std {}] -body	{reuri::uri query new u {{} =}					} -result ?==
+test $t-2.9  {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo%32o ba%32r}			} -result ?fo%2532o=ba%2532r
+test $t-2.10 {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo=o ba=r}				} -result ?fo%3Do=ba=r
+test $t-2.11 {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo+o ba+r}				} -result ?fo%2Bo=ba%2Br
+test $t-2.12 {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo#o ba#r}				} -result ?fo%23o=ba%23r
+test $t-2.13 {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo?o ba?r}				} -result ?fo?o=ba?r
+test $t-2.14 {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo&o ba&r}				} -result ?fo%26o=ba%26r
+test $t-2.15 {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo^o ba^r}				} -result ?fo%5Eo=ba%5Er
+test $t-2.16 {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo~o ba~r}				} -result ?fo~o=ba~r
+test $t-2.17 {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo@o ba@r}				} -result ?fo@o=ba@r
+test $t-2.18 {} {*}[{*}$std {}] -body	{reuri::uri query new u {fo:o ba:r}				} -result ?fo:o=ba:r
+test $t-2.19 {} {*}[{*}$std {}] -body	{reuri::uri query new u {f\u306fo b\u306fr}		} -result ?f%E3%81%AFo=b%E3%81%AFr
+test $t-2.20 {} {*}[{*}$std {}] -body	{reuri::uri query new u {f\0o b\0r}				} -result ?f%00o=b%00r
+test $t-3.1	{trace} -setup { #<<<
+	unset -nocomplain u
+	trace add variable u write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}
+} -body {
+	list [reuri::uri query new u f\0o z] $u
+} -cleanup {
+	unset -nocomplain u
+} -result [list trace:?f%00o=z trace:?f%00o=z]
+#>>>
+test $t-3.2	{trace} -setup { #<<<
+	set u	{}
+	trace add variable u write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}
+} -body {
+	list [reuri::uri query new u f\0o z] $u
+} -cleanup {
+	unset -nocomplain u
+} -result [list trace:?f%00o=z trace:?f%00o=z]
+#>>>
+test $t-3.3	{trace} -setup { #<<<
+	set u	/abc?x=y
+	trace add variable u write {apply {{n1 n2 op} { upvar 1 $n1 v; set v trace:$v }}}
+} -body {
+	list [reuri::uri query new u f\0o z] $u
+} -cleanup {
+	unset -nocomplain u
+} -result [list trace:/abc?f%00o=z trace:/abc?f%00o=z]
 #>>>
 
 # cleanup

@@ -781,7 +781,7 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 	if (ir == NULL) {
 		Tcl_ObjInternalRep	newir = {0};
 		const char*			str = Tcl_GetString(query);
-		const char*			s = str[0] == '?' ? str+1 : str;
+		const char*			s = str;
 
 		Tcl_Obj*	irv[2] = {0};
 		code = decode_query(interp, s, &irv[0], &irv[1]);
@@ -795,7 +795,6 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 		replace_tclobj(&irv[1], NULL);
 
 		Tcl_StoreInternalRep(query, (Tcl_ObjType*)&query_objtype, &newir);
-		if (s > str) Tcl_InvalidateStringRep(query);	// A leading ? was trimmed, have to discard the old stringrep
 		ir = Tcl_FetchInternalRep(query, (Tcl_ObjType*)&query_objtype);
 	}
 

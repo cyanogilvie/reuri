@@ -810,6 +810,7 @@ Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode,
 {
 	switch (mode) {
 		case REURI_ENCODE_QUERY:    return percent_encode(interp, objPtr, REURI_ENCODE_QUERY);
+		case REURI_ENCODE_QUERYVAL: return percent_encode(interp, objPtr, REURI_ENCODE_QUERYVAL);
 		case REURI_ENCODE_PATH:     return percent_encode(interp, objPtr, REURI_ENCODE_PATH);
 		case REURI_ENCODE_PATH2:    return percent_encode(interp, objPtr, REURI_ENCODE_PATH2);
 		case REURI_ENCODE_USERINFO: return percent_encode(interp, objPtr, REURI_ENCODE_USERINFO);
@@ -1066,6 +1067,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 					"unset",
 					"names",
 					"reorder",
+					"new",
 					NULL
 				};
 				enum {
@@ -1076,7 +1078,8 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 					OP_SET,
 					OP_UNSET,
 					OP_NAMES,
-					OP_REORDER
+					OP_REORDER,
+					OP_NEW
 				};
 				int			opidx;
 				Tcl_Obj*	query = NULL;
@@ -1093,6 +1096,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 					case OP_ADD:
 					case OP_UNSET:
 					case OP_SET:
+					case OP_NEW:
 						{
 							struct uri*	uri_ir = NULL;
 							uri = Tcl_ObjGetVar2(interp, objv[A_URI], NULL, 0);
@@ -1177,6 +1181,26 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 							CHECK_ARGS_LABEL(query_finally, code, "uri");
 							TEST_OK_LABEL(query_finally, code, query_names(interp, query, &res));
 							Tcl_SetObjResult(interp, res);
+						}
+						break;
+						//>>>
+					case OP_NEW: //<<<
+						{
+							Tcl_Obj* const*	ov = NULL;
+							int				oc;
+
+							switch (objc - A_args) {
+								case 1:
+									TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, objv[A_args], &oc, (Tcl_Obj***)&ov));
+									break;
+								default:
+									ov = objv + A_args;
+									oc = objc - A_args;
+									break;
+							}
+
+							TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, oc, ov, &res));
+							replace_tclobj(&query, res);
 						}
 						break;
 						//>>>
@@ -1332,6 +1356,7 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 		"unset",
 		"names",
 		"reorder",
+		"new",
 		"encode",
 		"decode",
 		NULL
@@ -1345,6 +1370,7 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 		M_UNSET,
 		M_NAMES,
 		M_REORDER,
+		M_NEW,
 		M_ENCODE,
 		M_DECODE
 	};
@@ -1450,6 +1476,26 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			}
 			break;
 			//>>>
+		case M_NEW: //<<<
+			{
+				Tcl_Obj* const*	ov = NULL;
+				int				oc;
+
+				switch (objc) {
+					case 3:
+						TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, objv[2], &oc, (Tcl_Obj***)&ov));
+						break;
+					default:
+						ov = objv+2;
+						oc = objc-2;
+						break;
+				}
+
+				TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, oc, ov, &res));
+				Tcl_SetObjResult(interp, res);
+			}
+			break;
+			//>>>
 		case M_ENCODE: //<<<
 			{
 				Tcl_Obj* const*	ov = NULL;
@@ -1478,11 +1524,19 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 			//>>>
 		case M_DECODE: //<<<
 			{
+				Tcl_Obj*	q = NULL;
 				enum {A_cmd=1, A_QUERY, A_objc};
-				CHECK_ARGS_LABEL(finally, code, "query");
+				CHECK_ARGS_LABEL(decode_finally, code, "query");
+				replace_tclobj(&q, objv[A_QUERY]);
 
-				TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, objv[A_QUERY], &res, NULL));
+				int			len;
+				const char*	str = Tcl_GetStringFromObj(q, &len);
+				if (str[0] == '?') replace_tclobj(&q, Tcl_NewStringObj(str+1, len-1));
+
+				TEST_OK_LABEL(decode_finally, code, ReuriGetQueryFromObj(interp, q, &res, NULL));
 				Tcl_SetObjResult(interp, res);
+			decode_finally:
+				replace_tclobj(&q, NULL);
 			}
 			break;
 			//>>>

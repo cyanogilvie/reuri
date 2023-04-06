@@ -1,6 +1,6 @@
-% reuri(3) 0.9 | URI Manipulation for Tcl
+% reuri(3) 0.10 | URI Manipulation for Tcl
 % Cyan Ogilvie
-% 0.9
+% 0.10
 
 
 # NAME
@@ -10,17 +10,17 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.9?
+**package require reuri** ?0.10?
 
-**reuri::uri** **get** *uri* ?*part* ?**-default** *defaultVal*??\
-**reuri::uri** **extract** *uri* ?*part* ?**-default** *defaultVal*??\
+**reuri::uri** **get** *uri* ?*part* ?*defaultVal*??\
+**reuri::uri** **extract** *uri* ?*part* ?*defaultVal*??\
 **reuri::uri** **exists** *uri* *part*\
 **reuri::uri** **set** *variable* *part* *value*\
 **reuri::uri** **valid** *uri*\
 ?? **reuri::uri** **context** *uri* *script*\
 ?? **reuri::uri** **resolve** *uri*\
 ?? **reuri::uri** **absolute** *uri*\
-**reuri::uri** **encode** **query**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*\
+**reuri::uri** **encode** **query**|**queryval**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*\
 **reuri::uri** **decode** *value*\
 **reuri::uri** **query** *op* *uri* ?*arg* ...?\
 **reuri::uri** **path** *op* *uri* ?*arg* ...?\
@@ -34,6 +34,7 @@ reuri - URI Manipulation for Tcl
 **reuri::query** **unset** *variable* ?*param* ...?\
 **reuri::query** **names** *query*\
 ?? **reuri::query** **reorder** *variable* *params*\
+**reuri::query** **new** *params*|?*param* *value* ...?\
 **reuri::query** **encode** *params*|?*param* *value* ...?\
 **reuri::query** **decode** *query*
 
@@ -75,7 +76,7 @@ CODE IS NOT RECOMMENDED.**</span>
 
 ## COMMANDS
 
-**reuri::uri** **get** *uri* ?*part* ?**-default** *defaultVal*??
+**reuri::uri** **get** *uri* ?*part* ?*defaultVal*??
 :   Return the fully decoded URL *part* from *uri* or throw an exception if
     G*uri* can't be parsed or doesn't have the specified *part* and no *defaultVal*
     was specified.  If *part* isn't defined in *uri* (but is a valid part name)
@@ -83,7 +84,7 @@ CODE IS NOT RECOMMENDED.**</span>
     specified, return a dictionary containing all parts.  See **PARTS** below
     for valid parts, and **EXCEPTIONS** for the exceptions that might be thrown.
 
-**reuri::uri** **extract** *uri* ?*part* ?**-default** *defaultVal*??
+**reuri::uri** **extract** *uri* ?*part* ?*defaultVal*??
 :   Return the encoded URL *part* from *uri* or throw an exception if *uri* can't be parsed or
     doesn't have the specified *part* and no *defaultVal* was specified.  If *part* isn't
     defined in *uri* (but is a valid part name) and a *defaultVal* is given, that will be
@@ -122,9 +123,11 @@ CODE IS NOT RECOMMENDED.**</span>
 **reuri::uri** **absolute** *uri*
 :   Return true if *uri* is absolute (ie. not a relative URI).
 
-**reuri::uri** **encode** **query**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*
+**reuri::uri** **encode** **query**|**queryval**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*
 :   Percent-encode the UTF-8 representation of *value*, suitable for inclusion as
-    component of the part given by **query**, **path** or **host**, etc.  **path2** differs
+    component of the part given by **query**, **path** or **host**, etc.
+    **queryval** applies the slightly different rules for parameter values, **query**
+    applies the rules for parameter names.  **path2** differs
     from **path** in that it permits ":" un-encoded, that is, **segment-nz-nc**
     vs **segment** in RFC 3986 Section 3.2.2.  **awssig** uses the rules required
     for calculating AWS v4 signatures.
@@ -185,6 +188,11 @@ CODE IS NOT RECOMMENDED.**</span>
     in the position given in *names*, with the instances preserving their relative
     positions.
 
+**reuri::query** **new** *params*|?*param* *value* ...?
+:   Create a new query with the supplied *params* (as a list with pairs of param and value),
+    or in the *param* and *value* arguments and return a properly formatted query
+    string.
+
 **reuri::query** **encode** *params*|?*param* *value* ...?
 :   Percent-encode the supplied *params* (as a list with pairs of param and value),
     or in the *param* and *value* arguments and return a properly formatted query
@@ -193,7 +201,9 @@ CODE IS NOT RECOMMENDED.**</span>
     empty corresponding value are encoded without an "=".
 
 **reuri::query** **decode** *query*
-:   Decode *query* into a list of params and their values.
+:   Decode *query* into a list of params and their values.  A single leading
+    "?" character will be stripped off if it exists and is unencoded.  (Inverse of
+    **reuri::query encode**)
 
 **reuri::path** **get** *path* ?*index*?
 :   Return decoded elements of a path.  See **INDEX SYNTAX** for details on *index*.
@@ -282,8 +292,8 @@ Exceptions with errorcodes matching the following patterns will be thrown by the
 if the supplied URIs aren't valid, the specified part isn't valid, or some other assumption
 was violated:
 
-**REURI** **PARSE_ERROR** *uri* *offset*
-:   Parsing the supplied URI value *uri* failed at character offset *offset*.
+**REURI** **PARSE_ERROR** *str* *offset*
+:   Parsing the supplied value *str* failed at character offset *offset*.
 
 **REURI** **INVALID_PART** *part*
 :   The specified *part* isn't a valid part (possibly for this type of URI).
@@ -297,6 +307,11 @@ was violated:
 
 **REURI** **BAD_OFFSET** *param* *offset*
 :   The specified *offset* wasn't valid for *param* in the supplied URI.
+
+**REURI** **CONFLICT**
+:   The requested update could not be performed because it would move the state represented
+    by the uri out of the range that can be serialised (like setting a host when the uri
+    has a relative path).
 
 **REURI** **UNBALANCED_PARAMS**
 :   The supplied set of parameters isn't even.  Each parameter name must have a matching value.
@@ -508,6 +523,6 @@ The uri module of tcllib.
 
 ## LICENSE
 
-This package is Copyright 2021 Cyan Ogilvie, and is made available under the
+This package is Copyright 2023 Cyan Ogilvie, and is made available under the
 same license terms as the Tcl Core
 

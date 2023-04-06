@@ -18,7 +18,7 @@ for {set i 0} {$i < 0x80} {incr i} {
 	} else {
 		append allchars_path	[format %%%02X $i]
 	}
-	if {[regexp {^[-a-zA-Z0-9._~!$'()*+,;:@/?]$} $c]} {
+	if {[regexp {^[-a-zA-Z0-9._~!$'()*,;:@/?]$} $c]} {
 		append allchars_query	$c
 	} else {
 		append allchars_query	[format %%%02X $i]

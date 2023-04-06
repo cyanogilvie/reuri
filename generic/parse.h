@@ -27,7 +27,7 @@
 	query_uchar			= [^] \ end \ "#"           | pct_encoded;
 	fragment_uchar		= [^] \ end                 | pct_encoded;
 	
-	allowed     = unreserved | sub_delims \ [=&];	// Remove =& from the universally allowed sub_delims, since the query rules don't allow them
+	allowed     = unreserved | sub_delims \ [=&+];	// Remove =&+ from the universally allowed sub_delims, since the query rules don't allow them
 	reserved    = ([^] \ end) \ allowed;
 
 	scheme = @s1 alpha (alpha | digit | [-+.])* @s2;
@@ -82,7 +82,7 @@
 	unreserved  = alpha | digit | [-._~];
 	sub_delims  = [!$&'()*+,;=];
 	pchar       = unreserved | pct_encoded | sub_delims | [:@];
-	allowed     = unreserved | sub_delims \ [=&];	// Remove =& from the universally allowed sub_delims, since the query rules don't allow them
+	allowed     = unreserved | sub_delims \ [=&+];	// Remove =&+ from the universally allowed sub_delims, since the query rules don't allow them
 	reserved    = ([^] \ end) \ allowed;
 
 	scheme = @s1 alpha (alpha | digit | [-+.])* @s2;

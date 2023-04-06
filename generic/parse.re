@@ -243,11 +243,11 @@ static inline int conditionally_allowed(enum reuri_encode_mode mode, const char 
 	switch (mode) {
 		case REURI_ENCODE_QUERY:	return (yych=='/' || yych==':' || yych=='@' || yych=='?');
 		case REURI_ENCODE_QUERYVAL:	return (yych=='/' || yych==':' || yych=='@' || yych=='?' || yych=='=');
-		case REURI_ENCODE_PATH:		return (yych=='@' || yych=='=' || yych=='&');
-		case REURI_ENCODE_PATH2:	return (yych=='@' || yych=='=' || yych=='&' || yych==':');
-		case REURI_ENCODE_HOST:		return (yych=='=' || yych=='&');
-		case REURI_ENCODE_USERINFO:	return (yych=='=' || yych=='&' || yych==':');
-		case REURI_ENCODE_FRAGMENT:	return (yych=='@' || yych=='/' || yych=='?' || yych=='=' || yych=='&' || yych==':');
+		case REURI_ENCODE_PATH:		return (yych=='@' || yych=='=' || yych=='&' || yych=='+');
+		case REURI_ENCODE_PATH2:	return (yych=='@' || yych=='=' || yych=='&' || yych==':' || yych=='+');
+		case REURI_ENCODE_HOST:		return (yych=='=' || yych=='&' || yych=='+');
+		case REURI_ENCODE_USERINFO:	return (yych=='=' || yych=='&' || yych==':' || yych=='+');
+		case REURI_ENCODE_FRAGMENT:	return (yych=='@' || yych=='/' || yych=='?' || yych=='=' || yych=='&' || yych==':' || yych=='+');
 		case REURI_ENCODE_AWSSIG:	return 0;		// Should not get here - AWSSIG rules exclude more than this function can
 	}
 	return 0;
@@ -270,9 +270,9 @@ Tcl_Obj* percent_encode(Tcl_Interp* interp, Tcl_Obj* objPtr, enum reuri_encode_m
 	Tcl_DStringInit(&val);
 
 	/*!local:re2c:percent_encode
-    re2c:api:style             = free-form;
-    re2c:define:YYCTYPE        = "unsigned char";
-    re2c:define:YYCURSOR       = s;
+	re2c:api:style             = free-form;
+	re2c:define:YYCTYPE        = "unsigned char";
+	re2c:define:YYCURSOR       = s;
 	re2c:yyfill:enable         = 0;
 	re2c:flags:tags            = 1;
 	re2c:define:YYGETCONDITION = "c";
@@ -728,17 +728,13 @@ top:
 		goto yyc_value;
 	}
 	<name> "&" {
-		if (Tcl_DStringLength(&acc)) {
-			TEST_OK_LABEL(finally, code, _add_name(interp, l, &acc, res_params, res_index, pnum++));
-			TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, empty));
-		}
+        TEST_OK_LABEL(finally, code, _add_name(interp, l, &acc, res_params, res_index, pnum++));
+        TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, empty));
 		goto yyc_name;
 	}
 	<name> end {
-		if (1 || Tcl_DStringLength(&acc)) {
-			TEST_OK_LABEL(finally, code, _add_name(interp, l, &acc, res_params, res_index, pnum++));
-			TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, empty));
-		}
+        TEST_OK_LABEL(finally, code, _add_name(interp, l, &acc, res_params, res_index, pnum++));
+        TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res_params, empty));
 		goto finally;
 	}
 
@@ -763,24 +759,7 @@ top:
 			goto top;
 		}
 
-		if (interp) {
-			int			char_ofs;
-			size_t		byte_fail_ofs = fail - base;
-			const char*	p = (const char*)base;
-			for (
-				char_ofs = 0;
-				p < (const char*)(base + byte_fail_ofs);
-				p = Tcl_UtfNext(p), char_ofs++
-			);
-
-			Tcl_Obj*	ofsObj = NULL;
-			replace_tclobj(&ofsObj, Tcl_NewIntObj(char_ofs));
-			Tcl_SetErrorCode(interp, "REURI", "PARSE", str, Tcl_GetString(ofsObj), NULL);
-			replace_tclobj(&ofsObj, NULL);
-			Tcl_SetObjResult(interp, Tcl_ObjPrintf("Failed to parse query at ofs %d", (int)char_ofs));
-		}
-		code = TCL_ERROR;
-		goto finally;
+        PARSE_ERROR_LABEL(finally, code, "query");
 	}
 	*/
 

@@ -109,6 +109,29 @@ proc main {} {
 		unset -nocomplain uri_a uri_b newuri
 	} -result 0
 	#>>>
+	bench reuri_edit-1.1 {Apply a query edit list} -batch auto -setup { #<<<
+	} -compare {
+		native {
+			reuri::uri query edit https://localhost/x/y?foo=bar&x=y&foo=baz#frag a first -foo b
+		}
+		tcl {
+			set uri	https://localhost/x/y?foo=bar&x=y&foo=baz#frag
+			unset -nocomplain name
+			foreach arg {a first -foo b} {
+				if {[info exists name]} {
+					reuri::uri query set uri $name $arg
+				} elseif {[string match -* $arg]} {
+					reuri::uri query unset uri [string range $arg 1 end]
+				} else {
+					set name	$arg
+				}
+			}
+			set uri
+		}
+	} -cleanup {
+		unset -nocomplain uri arg name
+	} -result https://localhost/x/y?x=y&a=first&b#frag
+	#>>>
 }
 
 main

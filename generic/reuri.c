@@ -1068,6 +1068,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 					"names",
 					"reorder",
 					"new",
+					"edit",
 					NULL
 				};
 				enum {
@@ -1079,13 +1080,15 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 					OP_UNSET,
 					OP_NAMES,
 					OP_REORDER,
-					OP_NEW
+					OP_NEW,
+					OP_EDIT
 				};
 				int			opidx;
 				Tcl_Obj*	query = NULL;
 				Tcl_Obj*	res = NULL;
 				Tcl_Obj*	uri = NULL;
 				Tcl_Obj*	luri = NULL;
+				Tcl_Obj*	tmp = NULL;
 				int			setvar = 0;
 
 				enum args {A_cmd=1, A_OP, A_URI, A_args};
@@ -1161,9 +1164,10 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						//>>>
 					case OP_SET: //<<<
 						{
-							enum {A_cmd=2, A_URIVAR, A_PARAM, A_VALUE, A_objc};
-							CHECK_ARGS_LABEL(query_finally, code, "uri param value");
-							TEST_OK_LABEL(query_finally, code, query_set(interp, query, objv[A_PARAM], objv[A_VALUE], &query));
+							enum {A_cmd=2, A_URIVAR, A_args};
+							CHECK_MIN_ARGS_LABEL(query_finally, code, "uri ?param value ...?");
+							for (int i=A_args; i<objc; i+=2)
+								TEST_OK_LABEL(query_finally, code, query_set(interp, query, objv[i], i+1<objc ? objv[i+1] : l->empty, &query));
 						}
 						break;
 						//>>>
@@ -1204,6 +1208,30 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						}
 						break;
 						//>>>
+					case OP_EDIT: //<<<
+						{
+							enum {A_cmd=2, A_URI, A_args};
+							for (int i=A_args; i<objc; i++) {
+								if ((Tcl_GetString(objv[i]))[0] == '-') {
+									replace_tclobj(&tmp, Tcl_NewStringObj(Tcl_GetString(objv[i])+1, -1));
+									TEST_OK_LABEL(query_finally, code, query_unset(interp, query, 1, &tmp, &query));
+								} else {
+									i++;
+									TEST_OK_LABEL(query_finally, code, query_set(interp, query, objv[i-1], i<objc ? objv[i] : l->empty, &query));
+								}
+							}
+
+							struct uri* uri_ir = NULL;
+							replace_tclobj(&luri, Tcl_IsShared(objv[A_URI]) ? Tcl_DuplicateObj(objv[A_URI]) : objv[A_URI]);
+							TEST_OK_LABEL(query_finally, code, ReuriGetURIFromObj(interp, luri, &uri_ir));
+							replace_tclobj(&uri_ir->query, query);
+							Tcl_InvalidateStringRep(luri);
+
+							replace_tclobj(&res, luri);
+							Tcl_SetObjResult(interp, res);
+						}
+						break;
+						//>>>
 					default:
 						THROW_ERROR_LABEL(query_finally, code, "Unhandled uri query case");
 				}
@@ -1239,6 +1267,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				replace_tclobj(&query, NULL);
 				replace_tclobj(&res, NULL);
 				replace_tclobj(&luri, NULL);
+				replace_tclobj(&tmp, NULL);
 			}
 			break;
 			//>>>
@@ -1437,10 +1466,16 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 		case M_SET: //<<<
 			{
 				Tcl_Obj*	queryObj = NULL;
-				enum {A_cmd=1, A_QUERYVAR, A_PARAM, A_VALUE, A_objc};
-				CHECK_ARGS_LABEL(finally, code, "queryVarName param value");
-				TEST_OK_LABEL(finally, code, query_set(interp, Tcl_ObjGetVar2(interp, objv[A_QUERYVAR], NULL, 0), objv[A_PARAM], objv[A_VALUE], &res));
-				queryObj = Tcl_ObjSetVar2(interp, objv[A_QUERYVAR], NULL, res, TCL_LEAVE_ERR_MSG);
+				Tcl_Obj*	tmp = NULL;
+				enum {A_cmd=1, A_QUERYVAR, A_args};
+				CHECK_MIN_ARGS_LABEL(finally, code, "queryVarName ?param value ...?");
+				tmp = Tcl_ObjGetVar2(interp, objv[A_QUERYVAR], NULL, 0);
+				if (tmp == NULL) tmp = l->empty;
+				for (int i=A_args; i<objc; i+=2) {
+					TEST_OK_LABEL(finally, code, query_set(interp, tmp, objv[i], i+1<objc ? objv[i+1] : l->empty, &res));
+					tmp = res;
+				}
+				queryObj = Tcl_ObjSetVar2(interp, objv[A_QUERYVAR], NULL, res ? res : tmp, TCL_LEAVE_ERR_MSG);
 				if (queryObj == NULL) { code = TCL_ERROR; goto finally; }
 				replace_tclobj(&res, queryObj);
 				Tcl_SetObjResult(interp, res);

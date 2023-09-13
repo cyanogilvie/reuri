@@ -328,6 +328,10 @@ set std	{apply {init {list -setup [list set q $init] -cleanup {unset -nocomplain
 test $t-0.1 {var not set}	-setup {unset -nocomplain q} -body {reuri::query set q foo bar; set q			} -result {foo=bar}							-cleanup {unset -nocomplain q}
 test $t-0.2 {dup}			-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query set q a b; list $d $q	} -result {x=y&foo=bar x=y&foo=bar&a=b}		-cleanup {unset -nocomplain d q}
 test $t-0.4 {dup}			-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query set q a b; list $d $q	} -result {x=y&foo=bar x=y&foo=bar&a=b}		-cleanup {unset -nocomplain d q}
+test $t-0.5.1 {empty}		-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query set q; list $d $q			} -result {x=y&foo=bar x=y&foo=bar}			-cleanup {unset -nocomplain d q}
+test $t-0.5.2 {just name}	-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query set q a; list $d $q		} -result {x=y&foo=bar x=y&foo=bar&a}		-cleanup {unset -nocomplain d q}
+test $t-0.5.3 {extra name}	-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query set q a b c; list $d $q	} -result {x=y&foo=bar x=y&foo=bar&a=b&c}	-cleanup {unset -nocomplain d q}
+test $t-0.5.4 {two pairs}	-setup {set q x=y&foo=bar}  -body {set d $q; reuri::query set q a b c d; list $d $q	} -result {x=y&foo=bar x=y&foo=bar&a=b&c=d}	-cleanup {unset -nocomplain d q}
 test $t-1.1	{empty}	{*}[{*}$std {}]		-body { list [reuri::query set q foo bar] $q	} -result {foo=bar foo=bar}
 test $t-2.1	{other}	{*}[{*}$std x=y]	-body { reuri::query set q foo bar; set q		} -result x=y&foo=bar
 test $t-2.2	{same}	{*}[{*}$std foo=x]	-body { reuri::query set q foo bar; set q		} -result foo=bar
@@ -369,6 +373,10 @@ set std	{apply {init {list -setup [list set u $init] -cleanup {unset -nocomplain
 test $t-0.1 {var not set}	-setup {unset -nocomplain u} -body {reuri::uri query set u foo bar; set u				} -result {?foo=bar}							-cleanup {unset -nocomplain u}
 test $t-0.2 {dup}			-setup {set u ?x=y&foo=bar}  -body {set d $u; reuri::uri query set u a b; list $d $u	} -result {?x=y&foo=bar ?x=y&foo=bar&a=b}		-cleanup {unset -nocomplain d u}
 test $t-0.3 {dup}			-setup {set u /x?x=y&foo=bar} -body {set d $u; reuri::uri query set u a b; list $d $u	} -result {/x?x=y&foo=bar /x?x=y&foo=bar&a=b}	-cleanup {unset -nocomplain d u}
+test $t-0.5.1 {empty}		-setup {set u ?x=y&foo=bar}  -body {set d $u; reuri::uri query set u; list $d $u			} -result {?x=y&foo=bar ?x=y&foo=bar}			-cleanup {unset -nocomplain d u}
+test $t-0.5.2 {just name}	-setup {set u ?x=y&foo=bar}  -body {set d $u; reuri::uri query set u a; list $d $u			} -result {?x=y&foo=bar ?x=y&foo=bar&a}			-cleanup {unset -nocomplain d u}
+test $t-0.5.3 {extra name}	-setup {set u ?x=y&foo=bar}  -body {set d $u; reuri::uri query set u a b c; list $d $u		} -result {?x=y&foo=bar ?x=y&foo=bar&a=b&c}		-cleanup {unset -nocomplain d q}
+test $t-0.5.4 {two pairs}	-setup {set u ?x=y&foo=bar}  -body {set d $u; reuri::uri query set u a b c d; list $d $u	} -result {?x=y&foo=bar ?x=y&foo=bar&a=b&c=d}	-cleanup {unset -nocomplain d u}
 test $t-1.1	{empty}	{*}[{*}$std {}]		-body { list [reuri::uri query set u foo bar] $u	} -result {?foo=bar ?foo=bar}
 test $t-1.2	{empty}	{*}[{*}$std ?]		-body { list [reuri::uri query set u foo bar] $u	} -result {?foo=bar ?foo=bar}
 test $t-2.1	{other}	{*}[{*}$std ?x=y]	-body { reuri::uri query set u foo bar; set u		} -result ?x=y&foo=bar
@@ -617,6 +625,11 @@ test $t-3.3	{trace} -setup { #<<<
 	unset -nocomplain u
 } -result [list trace:/abc?f%00o=z trace:/abc?f%00o=z]
 #>>>
+
+set t	uri_query_edit
+test $t-1.1 {}	{ reuri::uri query edit ?foo=bar&x=y&foo=baz a first -foo b second		} ?x=y&a=first&b=second
+test $t-1.2 {}	{ reuri::uri query edit ?foo=bar&x=y&foo=baz a first -foo b				} ?x=y&a=first&b
+test $t-1.3 {}	{ reuri::uri query edit https://localhost/x/y?foo=bar&x=y&foo=baz#frag a first -foo b	} https://localhost/x/y?x=y&a=first&b#frag
 
 # cleanup
 ::tcltest::cleanupTests

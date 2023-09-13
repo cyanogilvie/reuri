@@ -4,7 +4,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.10?
+**package require reuri** ?0.11?
 
 **reuri::uri** **get** *uri* ?*part* ?*defaultVal*??  
 **reuri::uri** **extract** *uri* ?*part* ?*defaultVal*??  
@@ -24,7 +24,7 @@ reuri - URI Manipulation for Tcl
 **reuri::query** **values** *query* *param*  
 **reuri::query** **add** *variable* *param* *value*  
 **reuri::query** **exists** *query* *param*  
-**reuri::query** **set** *variable* *param* *value*  
+**reuri::query** **set** *variable* ?*param* *value* …?  
 **reuri::query** **unset** *variable* ?*param* …?  
 **reuri::query** **names** *query*  
 ?? **reuri::query** **reorder** *variable* *params*  
@@ -105,7 +105,7 @@ While this package is in the 0 major version series this API is not stable and w
   - **reuri::query** **exists** *query* *param*  
     Return true if *param* exists in *query*.
 
-  - **reuri::query** **set** *variable* *param* *value*  
+  - **reuri::query** **set** *variable* ?*param* *value* …?  
     Replace any instances of *param* in the query part stored in *variable* with a single instance containing *value*.
 
   - **reuri::query** **unset** *variable* ?*param* …?  

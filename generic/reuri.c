@@ -1686,23 +1686,17 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 			//>>>
 		case M_JOIN: //<<<
 			{
-				enum {
-					A_cmd=1,
-					A_SEGMENTS,
-					A_objc
-				};
-				Tcl_Obj**	segmentv = NULL;
-				int			segmentc;
 				Tcl_DString	ds;
 
 				Tcl_DStringInit(&ds);
 
-				CHECK_ARGS_LABEL(join_finally, code, "segments");
+				enum {A_cmd=1, A_args};
+				CHECK_MIN_ARGS_LABEL(join_finally, code, "?segment ...?");
 
-				TEST_OK_LABEL(join_finally, code, Tcl_ListObjGetElements(interp, objv[A_SEGMENTS], &segmentc, &segmentv));
+				int segmentc	= objc - A_args;
 				if (segmentc > 0) {
 					int			len;
-					const char* seg = Tcl_GetStringFromObj(segmentv[0], &len);
+					const char* seg = Tcl_GetStringFromObj(objv[A_args], &len);
 					if (len == 1 && seg[0] == '/') {
 						// Root
 						if (segmentc == 1) Tcl_DStringAppend(&ds, "/", 1);
@@ -1710,8 +1704,8 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 						percent_encode_ds(REURI_ENCODE_PATH, &ds, seg);
 					}
 
-					for (int i=1; i<segmentc; i++) {
-						seg = Tcl_GetString(segmentv[i]);
+					for (int i=A_args+1; i<segmentc+A_args; i++) {
+						seg = Tcl_GetString(objv[i]);
 						Tcl_DStringAppend(&ds, "/", 1);
 						percent_encode_ds(REURI_ENCODE_PATH2, &ds, seg);
 					}

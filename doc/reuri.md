@@ -1,6 +1,6 @@
-% reuri(3) 0.11 | URI Manipulation for Tcl
+% reuri(3) 0.12 | URI Manipulation for Tcl
 % Cyan Ogilvie
-% 0.11
+% 0.12
 
 
 # NAME
@@ -10,7 +10,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.11?
+**package require reuri** ?0.12?
 
 **reuri::uri** **get** *uri* ?*part* ?*defaultVal*??\
 **reuri::uri** **extract** *uri* ?*part* ?*defaultVal*??\
@@ -40,7 +40,7 @@ reuri - URI Manipulation for Tcl
 
 **reuri::path** **get** *path* ?*index*?\
 **reuri::path** **exists** *path* *index*\
-**reuri::path** **join** *segments*\
+**reuri::path** **join** ?*segment* ...?\
 ?? **reuri::path** **set** *variable* *index* *value*\
 ?? **reuri::path** **resolve** *path*
 
@@ -225,8 +225,8 @@ CODE IS NOT RECOMMENDED.**</span>
 **reuri::path** **split** *path*
 :   Deprecated - use **reuri::path** **get** *path* instead.
 
-**reuri::path** **join** *segments*
-:   Produce a properly encoded URI path part given the list of *segments*.
+**reuri::path** **join** ?*segment* ...?
+:   Produce a properly encoded URI path part given the list of *segment*s.
 
 **reuri::path** **resolve** *path*
 :   Return *path* resolved in the context of all the URIs on the callstack from

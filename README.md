@@ -4,7 +4,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.11?
+**package require reuri** ?0.12?
 
 **reuri::uri** **get** *uri* ?*part* ?*defaultVal*??  
 **reuri::uri** **extract** *uri* ?*part* ?*defaultVal*??  
@@ -34,7 +34,7 @@ reuri - URI Manipulation for Tcl
 
 **reuri::path** **get** *path* ?*index*?  
 **reuri::path** **exists** *path* *index*  
-**reuri::path** **join** *segments*  
+**reuri::path** **join** ?*segment* …?  
 ?? **reuri::path** **set** *variable* *index* *value*  
 ?? **reuri::path** **resolve** *path*
 
@@ -137,8 +137,8 @@ While this package is in the 0 major version series this API is not stable and w
   - **reuri::path** **split** *path*  
     Deprecated - use **reuri::path** **get** *path* instead.
 
-  - **reuri::path** **join** *segments*  
-    Produce a properly encoded URI path part given the list of *segments*.
+  - **reuri::path** **join** ?*segment* …?  
+    Produce a properly encoded URI path part given the list of *segment*s.
 
   - **reuri::path** **resolve** *path*  
     Return *path* resolved in the context of all the URIs on the callstack from **reuri::uri** **context** calls.

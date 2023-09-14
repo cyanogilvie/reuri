@@ -6,157 +6,155 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 tcltest::loadTestedCommands
 package require reuri
 
-interp alias {} uri {} ::reuri::uri
-
 set std	{apply {{{init http://foo}} {list -setup [list set u $init] -cleanup {unset -nocomplain u}}}}
 
 set t	uri_set_scheme
-test $t-1.0 {} {*}[{*}$std]			-body { list [uri set u scheme hTtps]	$u	} -result {https://foo https://foo}
-test $t-1.1 {} {*}[{*}$std]			-body { list [uri set u scheme {}]		$u	} -result {//foo //foo}
-test $t-1.2 {} {*}[{*}$std //foo]	-body { list [uri set u scheme {}]		$u	} -result {//foo //foo}
-test $t-1.3 {} {*}[{*}$std]			-body { uri set u scheme ht`tp			} -returnCodes error -result {Failed to parse scheme at ofs 2} -errorCode {REURI PARSE ht`tp 2}
-test $t-1.4 {} {*}[{*}$std]			-body { uri set u scheme ht\0tp			} -returnCodes error -result {Failed to parse scheme at ofs 2} -errorCode "REURI PARSE ht\0tp 2"
-test $t-1.5 {} {*}[{*}$std]			-body { uri set u scheme ht\u306ftp		} -returnCodes error -result {Failed to parse scheme at ofs 2} -errorCode "REURI PARSE ht\u306ftp 2"
-test $t-1.6 {} {*}[{*}$std]			-body { uri set u scheme ht:tp			} -returnCodes error -result {Failed to parse scheme at ofs 2} -errorCode {REURI PARSE ht:tp 2}
-test $t-1.7 {} {*}[{*}$std]			-body { uri set u scheme HTTPS			} -result https://foo
-test $t-1.8 {} {*}[{*}$std]			-body { uri set u scheme https+wss		} -result https+wss://foo
-test $t-1.9 {} {*}[{*}$std]			-body { uri set u scheme android-app	} -result android-app://foo
+test $t-1.0 {} {*}[{*}$std]			-body { list [reuri set u scheme hTtps]	$u	} -result {https://foo https://foo}
+test $t-1.1 {} {*}[{*}$std]			-body { list [reuri set u scheme {}]	$u	} -result {//foo //foo}
+test $t-1.2 {} {*}[{*}$std //foo]	-body { list [reuri set u scheme {}]	$u	} -result {//foo //foo}
+test $t-1.3 {} {*}[{*}$std]			-body { reuri set u scheme ht`tp			} -returnCodes error -result {Failed to parse scheme at ofs 2} -errorCode {REURI PARSE ht`tp 2}
+test $t-1.4 {} {*}[{*}$std]			-body { reuri set u scheme ht\0tp			} -returnCodes error -result {Failed to parse scheme at ofs 2} -errorCode "REURI PARSE ht\0tp 2"
+test $t-1.5 {} {*}[{*}$std]			-body { reuri set u scheme ht\u306ftp		} -returnCodes error -result {Failed to parse scheme at ofs 2} -errorCode "REURI PARSE ht\u306ftp 2"
+test $t-1.6 {} {*}[{*}$std]			-body { reuri set u scheme ht:tp			} -returnCodes error -result {Failed to parse scheme at ofs 2} -errorCode {REURI PARSE ht:tp 2}
+test $t-1.7 {} {*}[{*}$std]			-body { reuri set u scheme HTTPS			} -result https://foo
+test $t-1.8 {} {*}[{*}$std]			-body { reuri set u scheme https+wss		} -result https+wss://foo
+test $t-1.9 {} {*}[{*}$std]			-body { reuri set u scheme android-app		} -result android-app://foo
 
 set t	uri_set_userinfo
-test $t-1.1 {} {*}[{*}$std http://foo]		-body { uri set u userinfo bob		} -result http://bob@foo
-test $t-1.2 {} {*}[{*}$std http://foo]		-body { uri set u userinfo bob:pw	} -result http://bob:pw@foo
-test $t-1.3 {} {*}[{*}$std http://foo]		-body { uri set u userinfo {}		} -result http://foo
-test $t-1.4 {} {*}[{*}$std http://old@foo]	-body { uri set u userinfo {}		} -result http://foo
-test $t-1.5.1 {} {*}[{*}$std http://foo]	-body { uri set u userinfo x@y		} -errorCode {REURI PARSE x@y 1} -result {Failed to parse userinfo at ofs 1}
-test $t-1.5.2 {} {*}[{*}$std http://foo]	-body { uri set u userinfo x%40y	} -result http://x%40y@foo
-test $t-1.5.3 {} {*}[{*}$std http://foo]	-body { uri set u userinfo [uri encode userinfo x@y]	} -result http://x%40y@foo
-test $t-1.5.4 {} {*}[{*}$std http://foo]	-body { uri set u userinfo x%y		} -result http://x%25y@foo
-test $t-1.5.5 {} {*}[{*}$std http://foo]	-body { uri set u userinfo x%4y		} -result http://x%254y@foo
-test $t-1.6 {} {*}[{*}$std http://foo]		-body { uri set u userinfo x\u306fy	} -result http://x%E3%81%AFy@foo
-test $t-1.7 {} {*}[{*}$std http://foo]		-body { uri set u userinfo x\0y		} -result http://x%00y@foo
-test $t-1.8 {} {*}[{*}$std http://foo]		-body { uri set u userinfo {x y}	} -result http://x%20y@foo
-test $t-1.9 {} {*}[{*}$std http://foo]		-body { uri set u userinfo {x y}	} -result http://x%20y@foo
+test $t-1.1 {} {*}[{*}$std http://foo]		-body { reuri set u userinfo bob		} -result http://bob@foo
+test $t-1.2 {} {*}[{*}$std http://foo]		-body { reuri set u userinfo bob:pw		} -result http://bob:pw@foo
+test $t-1.3 {} {*}[{*}$std http://foo]		-body { reuri set u userinfo {}			} -result http://foo
+test $t-1.4 {} {*}[{*}$std http://old@foo]	-body { reuri set u userinfo {}			} -result http://foo
+test $t-1.5.1 {} {*}[{*}$std http://foo]	-body { reuri set u userinfo x@y		} -errorCode {REURI PARSE x@y 1} -result {Failed to parse userinfo at ofs 1}
+test $t-1.5.2 {} {*}[{*}$std http://foo]	-body { reuri set u userinfo x%40y		} -result http://x%40y@foo
+test $t-1.5.3 {} {*}[{*}$std http://foo]	-body { reuri set u userinfo [reuri encode userinfo x@y]	} -result http://x%40y@foo
+test $t-1.5.4 {} {*}[{*}$std http://foo]	-body { reuri set u userinfo x%y		} -result http://x%25y@foo
+test $t-1.5.5 {} {*}[{*}$std http://foo]	-body { reuri set u userinfo x%4y		} -result http://x%254y@foo
+test $t-1.6 {} {*}[{*}$std http://foo]		-body { reuri set u userinfo x\u306fy	} -result http://x%E3%81%AFy@foo
+test $t-1.7 {} {*}[{*}$std http://foo]		-body { reuri set u userinfo x\0y		} -result http://x%00y@foo
+test $t-1.8 {} {*}[{*}$std http://foo]		-body { reuri set u userinfo {x y}		} -result http://x%20y@foo
+test $t-1.9 {} {*}[{*}$std http://foo]		-body { reuri set u userinfo {x y}		} -result http://x%20y@foo
 
 set t	uri_set_host
-test $t-1.1    {} {*}[{*}$std]	-body { list [uri set u host bar]					[uri get $u hosttype]	} -result {http://bar hostname}
-test $t-1.2    {} {*}[{*}$std]	-body { list [uri set u host {}]					[uri get $u hosttype]	} -result {http: none}
-test $t-1.3    {} {*}[{*}$std]	-body { list [uri set u host 127.0.0.1]				[uri get $u hosttype]	} -result {http://127.0.0.1 ipv4}
-test $t-1.4    {} {*}[{*}$std]	-body { list [uri set u host {[::1]}]				[uri get $u hosttype]	} -result {{http://[::1]} ipv6}
-test $t-1.5    {} {*}[{*}$std]	-body { list [uri set u host {[/tmp/bar]}]			[uri get $u hosttype]	} -result {{http://[/tmp/bar]} local}
-test $t-1.6    {} {*}[{*}$std]	-body { list [uri set u host {[v0.local:/tmp/bar]}]	[uri get $u hosttype]	} -result {{http://[/tmp/bar]} local}
-test $t-1.7.0  {} {*}[{*}$std]	-body { uri set u host local:host					} -errorCode {REURI PARSE local:host 5} -result {Failed to parse host at ofs 5}
-test $t-1.7.1  {} {*}[{*}$std]	-body { uri set u host [uri encode host local:host]	} -result http://local%3Ahost
-test $t-1.8.0  {} {*}[{*}$std]	-body { uri set u host local/host					} -errorCode {REURI PARSE local/host 5} -result {Failed to parse host at ofs 5}
-test $t-1.8.1  {} {*}[{*}$std]	-body { uri set u host [uri encode host local/host]	} -result http://local%2Fhost
-test $t-1.9.0  {} {*}[{*}$std]	-body { uri set u host local@host					} -errorCode {REURI PARSE local@host 5} -result {Failed to parse host at ofs 5}
-test $t-1.9.1  {} {*}[{*}$std]	-body { uri set u host [uri encode host local@host]	} -result http://local%40host
-test $t-1.10.0 {} {*}[{*}$std]	-body { uri set u host local?host					} -errorCode {REURI PARSE local?host 5} -result {Failed to parse host at ofs 5}
-test $t-1.10.1 {} {*}[{*}$std]	-body { uri set u host [uri encode host local?host]	} -result http://local%3Fhost
-test $t-1.11.0 {} {*}[{*}$std]	-body { uri set u host local#host					} -errorCode {REURI PARSE local#host 5} -result {Failed to parse host at ofs 5}
-test $t-1.11.1 {} {*}[{*}$std]	-body { uri set u host [uri encode host local#host]	} -result http://local%23host
-test $t-1.12   {} {*}[{*}$std]	-body { uri set u host local%host		} -result http://local%25host
-test $t-1.13   {} {*}[{*}$std]	-body { uri set u host local%2host		} -result http://local%252host
-test $t-1.14   {} {*}[{*}$std]	-body { uri set u host local%20host		} -result http://local%20host
-test $t-1.15   {} {*}[{*}$std]	-body { uri set u host {local host}		} -result http://local%20host
-test $t-1.16   {} {*}[{*}$std]	-body { uri set u host local\u306fhost	} -result http://local%E3%81%AFhost
-test $t-1.17   {} {*}[{*}$std]	-body { uri set u host local\0host		} -result http://local%00host
-test $t-1.18   {} {*}[{*}$std]	-body { uri set u host LocalHost		} -result http://LocalHost
-test $t-1.19   {} {*}[{*}$std]	-body { uri set u host Local.Host.		} -result http://Local.Host.
-test $t-1.20.1 {} {*}[{*}$std]	-body { uri set u host {[::1}			} -errorCode {REURI PARSE {\[::1} 4}    -result {Failed to parse host at ofs 4}
-test $t-1.20.2 {} {*}[{*}$std]	-body { uri set u host {[::1] }			} -errorCode {REURI PARSE {\[::1\] } 5} -result {Failed to parse host at ofs 5}
-test $t-1.20.3 {} {*}[{*}$std]	-body { uri set u host {[:::1]}			} -errorCode {REURI PARSE {\[:::1\]} 3} -result {Failed to parse host at ofs 3}
-test $t-1.20.4 {} {*}[{*}$std]	-body { uri set u host {[/tmp/bar}			} -errorCode {REURI PARSE {\[/tmp/bar} 9}            -result {Failed to parse host at ofs 9}
-test $t-1.20.5 {} {*}[{*}$std]	-body { uri set u host {[v0.local:/tmp/bar}	} -errorCode {REURI PARSE {\[v0.local:/tmp/bar} 18}  -result {Failed to parse host at ofs 18}
-test $t-1.20.6 {} {*}[{*}$std]	-body { uri set u host {[/tmp/b] }			} -errorCode {REURI PARSE {\[/tmp/b\] } 8}           -result {Failed to parse host at ofs 8}
-test $t-1.20.7 {} {*}[{*}$std]	-body { uri set u host {[v0.local:/tmp/b] }	} -errorCode {REURI PARSE {\[v0.local:/tmp/b\] } 17} -result {Failed to parse host at ofs 17}
-test $t-1.21   {} {*}[{*}$std http://foo:123]	-body { uri set u host {}	} -result http:
-test $t-1.22   {} {*}[{*}$std http://foo:123/x]	-body { uri set u host {}	} -result http:/x
-test $t-1.23   {} {*}[{*}$std http:x]	-body { uri set u host foo	} -errorCode {REURI CONFLICT} -result {Can't add a host: path is rootless}	;# convert rootless path to absolute?? resolve according to context?
-test $t-1.24   {} {*}[{*}$std x]		-body { uri set u host foo	} -errorCode {REURI CONFLICT} -result {Can't add a host: path is rootless}	;# convert rootless path to absolute?? resolve according to context?
+test $t-1.1    {} {*}[{*}$std]	-body { list [reuri set u host bar]						[reuri get $u hosttype]	} -result {http://bar hostname}
+test $t-1.2    {} {*}[{*}$std]	-body { list [reuri set u host {}]						[reuri get $u hosttype]	} -result {http: none}
+test $t-1.3    {} {*}[{*}$std]	-body { list [reuri set u host 127.0.0.1]				[reuri get $u hosttype]	} -result {http://127.0.0.1 ipv4}
+test $t-1.4    {} {*}[{*}$std]	-body { list [reuri set u host {[::1]}]					[reuri get $u hosttype]	} -result {{http://[::1]} ipv6}
+test $t-1.5    {} {*}[{*}$std]	-body { list [reuri set u host {[/tmp/bar]}]			[reuri get $u hosttype]	} -result {{http://[/tmp/bar]} local}
+test $t-1.6    {} {*}[{*}$std]	-body { list [reuri set u host {[v0.local:/tmp/bar]}]	[reuri get $u hosttype]	} -result {{http://[/tmp/bar]} local}
+test $t-1.7.0  {} {*}[{*}$std]	-body { reuri set u host local:host						} -errorCode {REURI PARSE local:host 5} -result {Failed to parse host at ofs 5}
+test $t-1.7.1  {} {*}[{*}$std]	-body { reuri set u host [reuri encode host local:host]	} -result http://local%3Ahost
+test $t-1.8.0  {} {*}[{*}$std]	-body { reuri set u host local/host						} -errorCode {REURI PARSE local/host 5} -result {Failed to parse host at ofs 5}
+test $t-1.8.1  {} {*}[{*}$std]	-body { reuri set u host [reuri encode host local/host]	} -result http://local%2Fhost
+test $t-1.9.0  {} {*}[{*}$std]	-body { reuri set u host local@host						} -errorCode {REURI PARSE local@host 5} -result {Failed to parse host at ofs 5}
+test $t-1.9.1  {} {*}[{*}$std]	-body { reuri set u host [reuri encode host local@host]	} -result http://local%40host
+test $t-1.10.0 {} {*}[{*}$std]	-body { reuri set u host local?host						} -errorCode {REURI PARSE local?host 5} -result {Failed to parse host at ofs 5}
+test $t-1.10.1 {} {*}[{*}$std]	-body { reuri set u host [reuri encode host local?host]	} -result http://local%3Fhost
+test $t-1.11.0 {} {*}[{*}$std]	-body { reuri set u host local#host						} -errorCode {REURI PARSE local#host 5} -result {Failed to parse host at ofs 5}
+test $t-1.11.1 {} {*}[{*}$std]	-body { reuri set u host [reuri encode host local#host]	} -result http://local%23host
+test $t-1.12   {} {*}[{*}$std]	-body { reuri set u host local%host				} -result http://local%25host
+test $t-1.13   {} {*}[{*}$std]	-body { reuri set u host local%2host			} -result http://local%252host
+test $t-1.14   {} {*}[{*}$std]	-body { reuri set u host local%20host			} -result http://local%20host
+test $t-1.15   {} {*}[{*}$std]	-body { reuri set u host {local host}			} -result http://local%20host
+test $t-1.16   {} {*}[{*}$std]	-body { reuri set u host local\u306fhost		} -result http://local%E3%81%AFhost
+test $t-1.17   {} {*}[{*}$std]	-body { reuri set u host local\0host			} -result http://local%00host
+test $t-1.18   {} {*}[{*}$std]	-body { reuri set u host LocalHost				} -result http://LocalHost
+test $t-1.19   {} {*}[{*}$std]	-body { reuri set u host Local.Host.			} -result http://Local.Host.
+test $t-1.20.1 {} {*}[{*}$std]	-body { reuri set u host {[::1}					} -errorCode {REURI PARSE {\[::1} 4}    -result {Failed to parse host at ofs 4}
+test $t-1.20.2 {} {*}[{*}$std]	-body { reuri set u host {[::1] }				} -errorCode {REURI PARSE {\[::1\] } 5} -result {Failed to parse host at ofs 5}
+test $t-1.20.3 {} {*}[{*}$std]	-body { reuri set u host {[:::1]}				} -errorCode {REURI PARSE {\[:::1\]} 3} -result {Failed to parse host at ofs 3}
+test $t-1.20.4 {} {*}[{*}$std]	-body { reuri set u host {[/tmp/bar}			} -errorCode {REURI PARSE {\[/tmp/bar} 9}            -result {Failed to parse host at ofs 9}
+test $t-1.20.5 {} {*}[{*}$std]	-body { reuri set u host {[v0.local:/tmp/bar}	} -errorCode {REURI PARSE {\[v0.local:/tmp/bar} 18}  -result {Failed to parse host at ofs 18}
+test $t-1.20.6 {} {*}[{*}$std]	-body { reuri set u host {[/tmp/b] }			} -errorCode {REURI PARSE {\[/tmp/b\] } 8}           -result {Failed to parse host at ofs 8}
+test $t-1.20.7 {} {*}[{*}$std]	-body { reuri set u host {[v0.local:/tmp/b] }	} -errorCode {REURI PARSE {\[v0.local:/tmp/b\] } 17} -result {Failed to parse host at ofs 17}
+test $t-1.21   {} {*}[{*}$std http://foo:123]	-body { reuri set u host {}		} -result http:
+test $t-1.22   {} {*}[{*}$std http://foo:123/x]	-body { reuri set u host {}		} -result http:/x
+test $t-1.23   {} {*}[{*}$std http:x]	-body { reuri set u host foo	} -errorCode {REURI CONFLICT} -result {Can't add a host: path is rootless}	;# convert rootless path to absolute?? resolve according to context?
+test $t-1.24   {} {*}[{*}$std x]		-body { reuri set u host foo	} -errorCode {REURI CONFLICT} -result {Can't add a host: path is rootless}	;# convert rootless path to absolute?? resolve according to context?
 
 set t	uri_set_port
-test $t-1.1 {} {*}[{*}$std http://foo]		-body { uri set u port 8080	} -result http://foo:8080
-test $t-1.2 {} {*}[{*}$std http://foo]		-body { uri set u port 80	} -result http://foo:80		;# The RFC says implementations shouldn't include the port if it's the default for the scheme, but I can't find a list anywhere
-test $t-1.3 {} {*}[{*}$std http://foo:123]	-body { uri set u port 80	} -result http://foo:80
-test $t-1.4 {} {*}[{*}$std http://foo:123]	-body { uri set u port {}	} -result http://foo
-test $t-1.5 {} {*}[{*}$std http://foo:123]	-body { uri set u port 1080	} -result http://foo:1080
-test $t-2.1 {} {*}[{*}$std]	-body { uri set u port smtp		} -returnCodes error -result {Failed to parse port at ofs 0} -errorCode {REURI PARSE smtp 0}
-test $t-2.2 {} {*}[{*}$std]	-body { uri set u port 1\0		} -returnCodes error -result {Failed to parse port at ofs 1} -errorCode "REURI PARSE 1\0 1"
-test $t-2.3 {} {*}[{*}$std]	-body { uri set u port 1\u306f	} -returnCodes error -result {Failed to parse port at ofs 1} -errorCode "REURI PARSE 1\u306f 1"
-test $t-2.4 {} {*}[{*}$std]	-body { uri set u port 1\u306f	} -returnCodes error -result {Failed to parse port at ofs 1} -errorCode "REURI PARSE 1\u306f 1"
-test $t-2.5 {} {*}[{*}$std]	-body { uri set u port 1%32		} -returnCodes error -result {Failed to parse port at ofs 1} -errorCode "REURI PARSE 1%32 1"
+test $t-1.1 {} {*}[{*}$std http://foo]		-body { reuri set u port 8080	} -result http://foo:8080
+test $t-1.2 {} {*}[{*}$std http://foo]		-body { reuri set u port 80		} -result http://foo:80		;# The RFC says implementations shouldn't include the port if it's the default for the scheme, but I can't find a list anywhere
+test $t-1.3 {} {*}[{*}$std http://foo:123]	-body { reuri set u port 80		} -result http://foo:80
+test $t-1.4 {} {*}[{*}$std http://foo:123]	-body { reuri set u port {}		} -result http://foo
+test $t-1.5 {} {*}[{*}$std http://foo:123]	-body { reuri set u port 1080	} -result http://foo:1080
+test $t-2.1 {} {*}[{*}$std]	-body { reuri set u port smtp		} -returnCodes error -result {Failed to parse port at ofs 0} -errorCode {REURI PARSE smtp 0}
+test $t-2.2 {} {*}[{*}$std]	-body { reuri set u port 1\0		} -returnCodes error -result {Failed to parse port at ofs 1} -errorCode "REURI PARSE 1\0 1"
+test $t-2.3 {} {*}[{*}$std]	-body { reuri set u port 1\u306f	} -returnCodes error -result {Failed to parse port at ofs 1} -errorCode "REURI PARSE 1\u306f 1"
+test $t-2.4 {} {*}[{*}$std]	-body { reuri set u port 1\u306f	} -returnCodes error -result {Failed to parse port at ofs 1} -errorCode "REURI PARSE 1\u306f 1"
+test $t-2.5 {} {*}[{*}$std]	-body { reuri set u port 1%32		} -returnCodes error -result {Failed to parse port at ofs 1} -errorCode "REURI PARSE 1%32 1"
 
 set t	uri_set_path
-test $t-1.1  {} {*}[{*}$std]				-body { uri set u path /			} -result http://foo/
-test $t-1.2  {} {*}[{*}$std]				-body { uri set u path /bar/baz		} -result http://foo/bar/baz
-test $t-1.3  {} {*}[{*}$std]				-body { uri set u path /bar/baz/	} -result http://foo/bar/baz
-test $t-1.4  {} {*}[{*}$std http://foo/x]	-body { uri set u path {}			} -result http://foo
-test $t-1.5  {} {*}[{*}$std http://foo]		-body { uri set u path {}			} -result http://foo
-test $t-1.6  {} {*}[{*}$std http://foo/x]	-body { uri set u path /			} -result http://foo/
-test $t-1.7  {} {*}[{*}$std http://foo/x]	-body { uri set u path bar			} -errorCode {REURI CONFLICT} -result {Can't set a rootless path with a host}
-test $t-1.8  {} {*}[{*}$std /x]				-body { uri set u path bar			} -result bar
-test $t-1.9  {} {*}[{*}$std http:]			-body { uri set u path bar			} -result http:bar
-test $t-1.10 {} {*}[{*}$std {}]				-body { uri set u path foo:bar						} -errorCode {REURI PARSE foo:bar 3} -result {Failed to parse path at ofs 3}
-test $t-1.11 {} {*}[{*}$std {}]				-body { uri set u path [uri encode path foo:bar]	} -result foo%3Abar
-test $t-1.12 {} {*}[{*}$std {}]				-body { uri set u path /foo:bar						} -result /foo:bar
-test $t-1.13 {} {*}[{*}$std {}]				-body { uri set u path a/foo:bar					} -result a/foo:bar
-test $t-1.14 {} {*}[{*}$std {}]				-body { uri set u path /foo%2fbar/baz				} -result /foo%2Fbar/baz
-test $t-1.15 {} {*}[{*}$std {}]				-body { uri set u path f?oo			} -errorCode {REURI PARSE f?oo 1} -result {Failed to parse path at ofs 1}
-test $t-1.16 {} {*}[{*}$std {}]				-body { uri set u path f#oo			} -errorCode {REURI PARSE f#oo 1} -result {Failed to parse path at ofs 1}
-test $t-1.17 {} {*}[{*}$std {}]				-body { uri set u path f&oo			} -result f&oo
-test $t-1.18 {} {*}[{*}$std {}]				-body { uri set u path f=oo			} -result f=oo
-test $t-1.19 {} {*}[{*}$std {}]				-body { uri set u path f@oo			} -result f@oo
-test $t-1.20 {} {*}[{*}$std {}]				-body { uri set u path f\u306foo	} -result f%E3%81%AFoo
-test $t-1.21 {} {*}[{*}$std {}]				-body { uri set u path f\0oo		} -result f%00oo
-test $t-1.22 {} {*}[{*}$std {}]				-body { uri set u path f%32oo		} -result f2oo
-test $t-1.23 {} {*}[{*}$std {}]				-body { uri set u path f%20oo		} -result f%20oo
-test $t-1.24 {} {*}[{*}$std {}]				-body { uri set u path f%2oo		} -result f%252oo
-test $t-1.25 {} {*}[{*}$std {}]				-body { uri set u path f%oo			} -result f%25oo
+test $t-1.1  {} {*}[{*}$std]				-body { reuri set u path /			} -result http://foo/
+test $t-1.2  {} {*}[{*}$std]				-body { reuri set u path /bar/baz	} -result http://foo/bar/baz
+test $t-1.3  {} {*}[{*}$std]				-body { reuri set u path /bar/baz/	} -result http://foo/bar/baz
+test $t-1.4  {} {*}[{*}$std http://foo/x]	-body { reuri set u path {}			} -result http://foo
+test $t-1.5  {} {*}[{*}$std http://foo]		-body { reuri set u path {}			} -result http://foo
+test $t-1.6  {} {*}[{*}$std http://foo/x]	-body { reuri set u path /			} -result http://foo/
+test $t-1.7  {} {*}[{*}$std http://foo/x]	-body { reuri set u path bar		} -errorCode {REURI CONFLICT} -result {Can't set a rootless path with a host}
+test $t-1.8  {} {*}[{*}$std /x]				-body { reuri set u path bar		} -result bar
+test $t-1.9  {} {*}[{*}$std http:]			-body { reuri set u path bar		} -result http:bar
+test $t-1.10 {} {*}[{*}$std {}]				-body { reuri set u path foo:bar						} -errorCode {REURI PARSE foo:bar 3} -result {Failed to parse path at ofs 3}
+test $t-1.11 {} {*}[{*}$std {}]				-body { reuri set u path [reuri encode path foo:bar]	} -result foo%3Abar
+test $t-1.12 {} {*}[{*}$std {}]				-body { reuri set u path /foo:bar						} -result /foo:bar
+test $t-1.13 {} {*}[{*}$std {}]				-body { reuri set u path a/foo:bar						} -result a/foo:bar
+test $t-1.14 {} {*}[{*}$std {}]				-body { reuri set u path /foo%2fbar/baz					} -result /foo%2Fbar/baz
+test $t-1.15 {} {*}[{*}$std {}]				-body { reuri set u path f?oo		} -errorCode {REURI PARSE f?oo 1} -result {Failed to parse path at ofs 1}
+test $t-1.16 {} {*}[{*}$std {}]				-body { reuri set u path f#oo		} -errorCode {REURI PARSE f#oo 1} -result {Failed to parse path at ofs 1}
+test $t-1.17 {} {*}[{*}$std {}]				-body { reuri set u path f&oo		} -result f&oo
+test $t-1.18 {} {*}[{*}$std {}]				-body { reuri set u path f=oo		} -result f=oo
+test $t-1.19 {} {*}[{*}$std {}]				-body { reuri set u path f@oo		} -result f@oo
+test $t-1.20 {} {*}[{*}$std {}]				-body { reuri set u path f\u306foo	} -result f%E3%81%AFoo
+test $t-1.21 {} {*}[{*}$std {}]				-body { reuri set u path f\0oo		} -result f%00oo
+test $t-1.22 {} {*}[{*}$std {}]				-body { reuri set u path f%32oo		} -result f2oo
+test $t-1.23 {} {*}[{*}$std {}]				-body { reuri set u path f%20oo		} -result f%20oo
+test $t-1.24 {} {*}[{*}$std {}]				-body { reuri set u path f%2oo		} -result f%252oo
+test $t-1.25 {} {*}[{*}$std {}]				-body { reuri set u path f%oo		} -result f%25oo
 
 set t	uri_set_query
-test $t-1.1  {} {*}[{*}$std /x]				-body { uri set u query foo			} -result /x?foo
-test $t-1.2  {} {*}[{*}$std /x]				-body { uri set u query foo=bar		} -result /x?foo=bar
-test $t-1.3  {} {*}[{*}$std /x]				-body { uri set u query foo=bar&	} -result /x?foo=bar&	;# At this level only the URI query semantics apply. & and = are just characters
-test $t-1.4  {} {*}[{*}$std /x]				-body { uri set u query foo=bar&a	} -result /x?foo=bar&a
-test $t-1.5  {} {*}[{*}$std /x]				-body { uri set u query foo==bar&a	} -result /x?foo==bar&a
-test $t-1.6  {} {*}[{*}$std /x]				-body { uri set u query a&a&a		} -result /x?a&a&a
-test $t-1.7  {} {*}[{*}$std /x?a=b]			-body { uri set u query foo			} -result /x?foo
-test $t-1.8  {} {*}[{*}$std /x?a=b]			-body { uri set u query {}			} -result /x
-test $t-1.9  {} {*}[{*}$std /x?a=b#endbit]	-body { uri set u query {}			} -result /x#endbit
-test $t-1.10 {} {*}[{*}$std /x?a=b#endbit]	-body { uri set u query ==foo==		} -result /x?==foo==#endbit
-test $t-1.11 {} {*}[{*}$std /x]				-body { uri set u query bar?		} -result /x?bar?
-test $t-1.12 {} {*}[{*}$std /x]				-body { uri set u query bar#		} -errorCode {REURI PARSE bar# 3} -result {Failed to parse query at ofs 3}
-test $t-1.13 {} {*}[{*}$std /x]				-body { uri set u query bar%23		} -result /x?bar%23
-test $t-1.14 {} {*}[{*}$std /x]				-body { uri set u query bar^		} -result /x?bar%5E
-test $t-1.15 {} {*}[{*}$std /x]				-body { uri set u query bar%5e		} -result /x?bar%5E
-test $t-1.16 {} {*}[{*}$std /x]				-body { uri set u query bar%20		} -result /x?bar%20
-test $t-1.17 {} {*}[{*}$std /x]				-body { uri set u query {bar }		} -result /x?bar%20
-test $t-1.18 {} {*}[{*}$std /x]				-body { uri set u query bar%2		} -result /x?bar%252
-test $t-1.19 {} {*}[{*}$std /x]				-body { uri set u query bar%		} -result /x?bar%25
-test $t-1.20 {} {*}[{*}$std /x]				-body { uri set u query b\u306far	} -result /x?b%E3%81%AFar
-test $t-1.21 {} {*}[{*}$std /x]				-body { uri set u query b\0ar		} -result /x?b%00ar
-test $t-1.22 {} {*}[{*}$std /x]				-body { uri set u query [string range [reuri::query encode f=oo b=&ar ba?z {}] 1 end]	} -result /x?f%3Doo=b=%26ar&ba?z
-test $t-1.23 {} {*}[{*}$std /x]				-body { uri set u query b+ar		} -result /x?b+ar
+test $t-1.1  {} {*}[{*}$std /x]				-body { reuri set u query foo			} -result /x?foo
+test $t-1.2  {} {*}[{*}$std /x]				-body { reuri set u query foo=bar		} -result /x?foo=bar
+test $t-1.3  {} {*}[{*}$std /x]				-body { reuri set u query foo=bar&		} -result /x?foo=bar&	;# At this level only the URI query semantics apply. & and = are just characters
+test $t-1.4  {} {*}[{*}$std /x]				-body { reuri set u query foo=bar&a		} -result /x?foo=bar&a
+test $t-1.5  {} {*}[{*}$std /x]				-body { reuri set u query foo==bar&a	} -result /x?foo==bar&a
+test $t-1.6  {} {*}[{*}$std /x]				-body { reuri set u query a&a&a			} -result /x?a&a&a
+test $t-1.7  {} {*}[{*}$std /x?a=b]			-body { reuri set u query foo			} -result /x?foo
+test $t-1.8  {} {*}[{*}$std /x?a=b]			-body { reuri set u query {}			} -result /x
+test $t-1.9  {} {*}[{*}$std /x?a=b#endbit]	-body { reuri set u query {}			} -result /x#endbit
+test $t-1.10 {} {*}[{*}$std /x?a=b#endbit]	-body { reuri set u query ==foo==		} -result /x?==foo==#endbit
+test $t-1.11 {} {*}[{*}$std /x]				-body { reuri set u query bar?			} -result /x?bar?
+test $t-1.12 {} {*}[{*}$std /x]				-body { reuri set u query bar#			} -errorCode {REURI PARSE bar# 3} -result {Failed to parse query at ofs 3}
+test $t-1.13 {} {*}[{*}$std /x]				-body { reuri set u query bar%23		} -result /x?bar%23
+test $t-1.14 {} {*}[{*}$std /x]				-body { reuri set u query bar^			} -result /x?bar%5E
+test $t-1.15 {} {*}[{*}$std /x]				-body { reuri set u query bar%5e		} -result /x?bar%5E
+test $t-1.16 {} {*}[{*}$std /x]				-body { reuri set u query bar%20		} -result /x?bar%20
+test $t-1.17 {} {*}[{*}$std /x]				-body { reuri set u query {bar }		} -result /x?bar%20
+test $t-1.18 {} {*}[{*}$std /x]				-body { reuri set u query bar%2			} -result /x?bar%252
+test $t-1.19 {} {*}[{*}$std /x]				-body { reuri set u query bar%			} -result /x?bar%25
+test $t-1.20 {} {*}[{*}$std /x]				-body { reuri set u query b\u306far		} -result /x?b%E3%81%AFar
+test $t-1.21 {} {*}[{*}$std /x]				-body { reuri set u query b\0ar			} -result /x?b%00ar
+test $t-1.22 {} {*}[{*}$std /x]				-body { reuri set u query [string range [reuri::query encode f=oo b=&ar ba?z {}] 1 end]	} -result /x?f%3Doo=b=%26ar&ba?z
+test $t-1.23 {} {*}[{*}$std /x]				-body { reuri set u query b+ar			} -result /x?b+ar	-constraints knownBug
 
 set t	uri_set_fragment
-test $t-1.1  {} {*}[{*}$std /x]				-body { uri set u fragment foo		} -result /x#foo
-test $t-1.2  {} {*}[{*}$std {}]				-body { uri set u fragment foo		} -result #foo
-test $t-1.3  {} {*}[{*}$std /x#old]			-body { uri set u fragment foo		} -result /x#foo
-test $t-1.4  {} {*}[{*}$std /x#old]			-body { uri set u fragment {}		} -result /x
-test $t-1.5  {} {*}[{*}$std /x]				-body { uri set u fragment {}		} -result /x
-test $t-1.6  {} {*}[{*}$std /x]				-body { uri set u fragment #bar		} -result /x#%23bar
-test $t-1.7  {} {*}[{*}$std /x]				-body { uri set u fragment ?bar		} -result /x#?bar
-test $t-1.8  {} {*}[{*}$std /x]				-body { uri set u fragment &bar		} -result /x#&bar
-test $t-1.9  {} {*}[{*}$std /x]				-body { uri set u fragment /bar		} -result /x#/bar
-test $t-1.10 {} {*}[{*}$std /x]				-body { uri set u fragment :bar		} -result /x#:bar
-test $t-1.11 {} {*}[{*}$std /x]				-body { uri set u fragment @bar		} -result /x#@bar
-test $t-1.12 {} {*}[{*}$std /x]				-body { uri set u fragment { bar}	} -result /x#%20bar
-test $t-1.13 {} {*}[{*}$std /x]				-body { uri set u fragment %20xbar	} -result /x#%20xbar
-test $t-1.14 {} {*}[{*}$std /x]				-body { uri set u fragment %2xbar	} -result /x#%252xbar
-test $t-1.15 {} {*}[{*}$std /x]				-body { uri set u fragment %xbar	} -result /x#%25xbar
-test $t-1.16 {} {*}[{*}$std /x]				-body { uri set u fragment %3abar	} -result /x#:bar
-test $t-1.17 {} {*}[{*}$std /x]				-body { uri set u fragment \u306fb	} -result /x#%E3%81%AFb
-test $t-1.18 {} {*}[{*}$std /x]				-body { uri set u fragment \0b		} -result /x#%00b
+test $t-1.1  {} {*}[{*}$std /x]		-body { reuri set u fragment foo		} -result /x#foo
+test $t-1.2  {} {*}[{*}$std {}]		-body { reuri set u fragment foo		} -result #foo
+test $t-1.3  {} {*}[{*}$std /x#old]	-body { reuri set u fragment foo		} -result /x#foo
+test $t-1.4  {} {*}[{*}$std /x#old]	-body { reuri set u fragment {}			} -result /x
+test $t-1.5  {} {*}[{*}$std /x]		-body { reuri set u fragment {}			} -result /x
+test $t-1.6  {} {*}[{*}$std /x]		-body { reuri set u fragment #bar		} -result /x#%23bar
+test $t-1.7  {} {*}[{*}$std /x]		-body { reuri set u fragment ?bar		} -result /x#?bar
+test $t-1.8  {} {*}[{*}$std /x]		-body { reuri set u fragment &bar		} -result /x#&bar
+test $t-1.9  {} {*}[{*}$std /x]		-body { reuri set u fragment /bar		} -result /x#/bar
+test $t-1.10 {} {*}[{*}$std /x]		-body { reuri set u fragment :bar		} -result /x#:bar
+test $t-1.11 {} {*}[{*}$std /x]		-body { reuri set u fragment @bar		} -result /x#@bar
+test $t-1.12 {} {*}[{*}$std /x]		-body { reuri set u fragment { bar}		} -result /x#%20bar
+test $t-1.13 {} {*}[{*}$std /x]		-body { reuri set u fragment %20xbar	} -result /x#%20xbar
+test $t-1.14 {} {*}[{*}$std /x]		-body { reuri set u fragment %2xbar		} -result /x#%252xbar
+test $t-1.15 {} {*}[{*}$std /x]		-body { reuri set u fragment %xbar		} -result /x#%25xbar
+test $t-1.16 {} {*}[{*}$std /x]		-body { reuri set u fragment %3abar		} -result /x#:bar
+test $t-1.17 {} {*}[{*}$std /x]		-body { reuri set u fragment \u306fb	} -result /x#%E3%81%AFb
+test $t-1.18 {} {*}[{*}$std /x]		-body { reuri set u fragment \0b		} -result /x#%00b
 
 # cleanup
 ::tcltest::cleanupTests

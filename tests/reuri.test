@@ -36,37 +36,37 @@ append allchars_fragment	%E3%81%AF
 
 # TODO: test that a leading ":" in the first path segment is percent encoded in the no-scheme case
 
-test reuri-0.1 {bad method}		-body {reuri::uri nonesuch}			-returnCodes error -result {bad method "nonesuch": must be *} -errorCode {TCL LOOKUP INDEX method nonesuch} -match glob
-test reuri-0.2 {no method}		-body {reuri::uri}					-returnCodes error -result {wrong # args: should be "reuri::uri method ?arg ...?"} -errorCode {TCL WRONGARGS}
-test reuri-0.3.1 {uri exists}	-body {reuri::uri exists}			-returnCodes error -result {wrong # args: should be "reuri::uri exists uri part"} -errorCode {TCL WRONGARGS}
-test reuri-0.3.2 {uri exists}	-body {reuri::uri exists /x}		-returnCodes error -result {wrong # args: should be "reuri::uri exists uri part"} -errorCode {TCL WRONGARGS}
-test reuri-0.3.3 {uri exists}	-body {reuri::uri exists /x host x}	-returnCodes error -result {wrong # args: should be "reuri::uri exists uri part"} -errorCode {TCL WRONGARGS}
-test reuri-0.3.4 {uri exists}	-body {reuri::uri exists /x bad}	-returnCodes error -result {bad part "bad": must be *} -errorCode {TCL LOOKUP INDEX part bad} -match glob
-test reuri-0.3.5 {uri exists}	-body {reuri::uri exists l\0: host}	-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE l\0: 2"
-test reuri-0.4.1 {uri valid}	-body {reuri::uri valid}			-returnCodes error -result {wrong # args: should be "reuri::uri valid uri"} -errorCode {TCL WRONGARGS}
-test reuri-0.4.2 {uri valid}	-body {reuri::uri valid l x}		-returnCodes error -result {wrong # args: should be "reuri::uri valid uri"} -errorCode {TCL WRONGARGS}
-test reuri-0.5.1 {uri encode}	-body {reuri::uri encode}			-returnCodes error -result {wrong # args: should be "reuri::uri encode mode value"} -errorCode {TCL WRONGARGS}
-test reuri-0.5.2 {uri encode}	-body {reuri::uri encode path}		-returnCodes error -result {wrong # args: should be "reuri::uri encode mode value"} -errorCode {TCL WRONGARGS}
-test reuri-0.5.3 {uri encode}	-body {reuri::uri encode path a x}	-returnCodes error -result {wrong # args: should be "reuri::uri encode mode value"} -errorCode {TCL WRONGARGS}
-test reuri-0.5.4 {uri encode}	-body {reuri::uri encode bad a}		-returnCodes error -result {bad mode "bad": must be *} -errorCode {TCL LOOKUP INDEX mode bad} -match glob
-test reuri-0.6.1 {uri deencode}	-body {reuri::uri decode}			-returnCodes error -result {wrong # args: should be "reuri::uri decode value"} -errorCode {TCL WRONGARGS}
-test reuri-0.6.2 {uri deencode}	-body {reuri::uri decode x y}		-returnCodes error -result {wrong # args: should be "reuri::uri decode value"} -errorCode {TCL WRONGARGS}
-test reuri-0.7.1 {uri query}	-body {reuri::uri query}			-returnCodes error -result {wrong # args: should be "reuri::uri query op uri ?arg ...?"} -errorCode {TCL WRONGARGS}
-test reuri-0.7.2 {uri query}	-body {reuri::uri query bad}		-returnCodes error -result {wrong # args: should be "reuri::uri query op uri ?arg ...?"} -errorCode {TCL WRONGARGS}
-test reuri-0.7.3 {uri query}	-body {reuri::uri query bad x}		-returnCodes error -result {bad op "bad": must be *} -errorCode {TCL LOOKUP INDEX op bad} -match glob
-test reuri-0.7.4.1 {uri query}	-body {reuri::uri query exists x`:}	-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE x`: 2"
-test reuri-0.7.4.2 {uri query}	-body {reuri::uri query exists x\0:}	-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE x\0: 2"
-test reuri-0.7.4.3 {uri query}	-body {reuri::uri query exists x\0y:}	-returnCodes error -result {URI parse error at offset 3} -errorCode "REURI PARSE x\0y: 3"
-test reuri-0.7.4.4 {uri query}	-body {reuri::uri query exists x\0\0y:}	-returnCodes error -result {URI parse error at offset 4} -errorCode "REURI PARSE x\0\0y: 4"
-test reuri-0.7.4.5 {uri query}	-body {reuri::uri query exists x\0y\0:}	-returnCodes error -result {URI parse error at offset 4} -errorCode "REURI PARSE x\0y\0: 4"
-test reuri-0.7.4.6 {uri query}	-body {reuri::uri query exists x\0y\0:\0}	-returnCodes error -result {URI parse error at offset 4} -errorCode "REURI PARSE x\0y\0:\0 4"
-test reuri-0.7.4.7 {uri query}	-body {reuri::uri query exists x\0\u306f\0:\0}	-returnCodes error -result {URI parse error at offset 4} -errorCode "REURI PARSE x\0\u306f\0:\0 4"
-test reuri-0.7.4.8 {uri query}	-body {reuri::uri query exists x`:\0\u306f\0\0}	-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE x`:\0\u306f\0\0 2"
-test reuri-0.7.5 {uri query}	-body {set u x\0:; reuri::uri query set u a b}	-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE x\0: 2" -cleanup {unset -nocomplain u}
-test reuri-0.7.6 {uri query}	-body {reuri::uri query get x u a b}			-returnCodes error -result {bad option "a": must be *} -errorCode {TCL LOOKUP INDEX option a} -match glob
-test reuri-0.7.7 {uri query}	-body {reuri::uri query get x y -default}		-returnCodes error -result {missing argument to "-default"} -errorCode {TCL ARGUMENT MISSING}
-test reuri-0.8.1 {uri query}	-body {reuri::uri query values x}				-returnCodes error -result {wrong # args: should be "reuri::uri query values uri param"} -errorCode {TCL WRONGARGS}
-test reuri-0.8.2 {uri query}	-body {reuri::uri query values x y z}			-returnCodes error -result {wrong # args: should be "reuri::uri query values uri param"} -errorCode {TCL WRONGARGS}
+test reuri-0.1 {bad method}		-body {reuri nonesuch}			-returnCodes error -result {bad method "nonesuch": must be *} -errorCode {TCL LOOKUP INDEX method nonesuch} -match glob
+test reuri-0.2 {no method}		-body {reuri}					-returnCodes error -result {wrong # args: should be "reuri method ?arg ...?"} -errorCode {TCL WRONGARGS}
+test reuri-0.3.1 {uri exists}	-body {reuri exists}			-returnCodes error -result {wrong # args: should be "reuri exists uri part"} -errorCode {TCL WRONGARGS}
+test reuri-0.3.2 {uri exists}	-body {reuri exists /x}			-returnCodes error -result {wrong # args: should be "reuri exists uri part"} -errorCode {TCL WRONGARGS}
+test reuri-0.3.3 {uri exists}	-body {reuri exists /x host x}	-returnCodes error -result {wrong # args: should be "reuri exists uri part"} -errorCode {TCL WRONGARGS}
+test reuri-0.3.4 {uri exists}	-body {reuri exists /x bad}		-returnCodes error -result {bad part "bad": must be *} -errorCode {TCL LOOKUP INDEX part bad} -match glob
+test reuri-0.3.5 {uri exists}	-body {reuri exists l\0: host}	-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE l\0: 2"
+test reuri-0.4.1 {uri valid}	-body {reuri valid}				-returnCodes error -result {wrong # args: should be "reuri valid uri"} -errorCode {TCL WRONGARGS}
+test reuri-0.4.2 {uri valid}	-body {reuri valid l x}			-returnCodes error -result {wrong # args: should be "reuri valid uri"} -errorCode {TCL WRONGARGS}
+test reuri-0.5.1 {uri encode}	-body {reuri encode}			-returnCodes error -result {wrong # args: should be "reuri encode mode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.5.2 {uri encode}	-body {reuri encode path}		-returnCodes error -result {wrong # args: should be "reuri encode mode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.5.3 {uri encode}	-body {reuri encode path a x}	-returnCodes error -result {wrong # args: should be "reuri encode mode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.5.4 {uri encode}	-body {reuri encode bad a}		-returnCodes error -result {bad mode "bad": must be *} -errorCode {TCL LOOKUP INDEX mode bad} -match glob
+test reuri-0.6.1 {uri deencode}	-body {reuri decode}			-returnCodes error -result {wrong # args: should be "reuri decode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.6.2 {uri deencode}	-body {reuri decode x y}		-returnCodes error -result {wrong # args: should be "reuri decode value"} -errorCode {TCL WRONGARGS}
+test reuri-0.7.1 {uri query}	-body {reuri query}				-returnCodes error -result {wrong # args: should be "reuri query op uri ?arg ...?"} -errorCode {TCL WRONGARGS}
+test reuri-0.7.2 {uri query}	-body {reuri query bad}			-returnCodes error -result {wrong # args: should be "reuri query op uri ?arg ...?"} -errorCode {TCL WRONGARGS}
+test reuri-0.7.3 {uri query}	-body {reuri query bad x}		-returnCodes error -result {bad op "bad": must be *} -errorCode {TCL LOOKUP INDEX op bad} -match glob
+test reuri-0.7.4.1 {uri query}	-body {reuri query exists x`:}				-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE x`: 2"
+test reuri-0.7.4.2 {uri query}	-body {reuri query exists x\0:}				-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE x\0: 2"
+test reuri-0.7.4.3 {uri query}	-body {reuri query exists x\0y:}			-returnCodes error -result {URI parse error at offset 3} -errorCode "REURI PARSE x\0y: 3"
+test reuri-0.7.4.4 {uri query}	-body {reuri query exists x\0\0y:}			-returnCodes error -result {URI parse error at offset 4} -errorCode "REURI PARSE x\0\0y: 4"
+test reuri-0.7.4.5 {uri query}	-body {reuri query exists x\0y\0:}			-returnCodes error -result {URI parse error at offset 4} -errorCode "REURI PARSE x\0y\0: 4"
+test reuri-0.7.4.6 {uri query}	-body {reuri query exists x\0y\0:\0}		-returnCodes error -result {URI parse error at offset 4} -errorCode "REURI PARSE x\0y\0:\0 4"
+test reuri-0.7.4.7 {uri query}	-body {reuri query exists x\0\u306f\0:\0}	-returnCodes error -result {URI parse error at offset 4} -errorCode "REURI PARSE x\0\u306f\0:\0 4"
+test reuri-0.7.4.8 {uri query}	-body {reuri query exists x`:\0\u306f\0\0}	-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE x`:\0\u306f\0\0 2"
+test reuri-0.7.5 {uri query}	-body {set u x\0:; reuri query set u a b}	-returnCodes error -result {URI parse error at offset 2} -errorCode "REURI PARSE x\0: 2" -cleanup {unset -nocomplain u}
+test reuri-0.7.6 {uri query}	-body {reuri query get x u a b}				-returnCodes error -result {bad option "a": must be *} -errorCode {TCL LOOKUP INDEX option a} -match glob
+test reuri-0.7.7 {uri query}	-body {reuri query get x y -default}		-returnCodes error -result {missing argument to "-default"} -errorCode {TCL ARGUMENT MISSING}
+test reuri-0.8.1 {uri query}	-body {reuri query values x}				-returnCodes error -result {wrong # args: should be "reuri query values uri param"} -errorCode {TCL WRONGARGS}
+test reuri-0.8.2 {uri query}	-body {reuri query values x y z}			-returnCodes error -result {wrong # args: should be "reuri query values uri param"} -errorCode {TCL WRONGARGS}
 
 test reuri-1.1 {} -setup { #<<<
 	set uri http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
@@ -74,14 +74,14 @@ test reuri-1.1 {} -setup { #<<<
 	set start	[clock microseconds]
 	try {
 		list \
-			scheme		[reuri::uri get $uri scheme] \
-			userinfo	[reuri::uri get $uri userinfo] \
-			host		[reuri::uri get $uri host] \
-			hosttype	[reuri::uri get $uri hosttype] \
-			port		[reuri::uri get $uri port] \
-			path		[reuri::uri get $uri path] \
-			query		[reuri::uri get $uri query] \
-			fragment	[reuri::uri get $uri fragment]
+			scheme		[reuri get $uri scheme] \
+			userinfo	[reuri get $uri userinfo] \
+			host		[reuri get $uri host] \
+			hosttype	[reuri get $uri hosttype] \
+			port		[reuri get $uri port] \
+			path		[reuri get $uri path] \
+			query		[reuri get $uri query] \
+			fragment	[reuri get $uri fragment]
 	} finally {
 		#puts stderr "Extracting parts from uri took [expr {[clock microseconds]-$start}] usec"
 	}
@@ -103,7 +103,7 @@ test reuri-2.1 {Get all parts as a dict} -setup { #<<<
 } -body {
 	set start	[clock microseconds]
 	try {
-		reuri::uri get $uri
+		reuri get $uri
 	} finally {
 		#puts stderr "Extracting parts as dict from uri took [expr {[clock microseconds]-$start}] usec"
 	}
@@ -124,7 +124,7 @@ test reuri-2.2 {Get all parts as a dict, local socket} -setup { #<<<
 	set uri {http://foo:bar@[/var/run/docker.sock]/one/two?three=3&four=4#endbit}
 } -body {
 	set start	[clock microseconds]
-	reuri::uri get $uri
+	reuri get $uri
 } -cleanup {
 	unset -nocomplain uri start
 } -result [list \
@@ -141,14 +141,14 @@ test reuri-2.3 {Get all parts} -setup { #<<<
 	set uri http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
 } -body {
 	list \
-		[reuri::uri get $uri scheme] \
-		[reuri::uri get $uri userinfo] \
-		[reuri::uri get $uri host] \
-		[reuri::uri get $uri hosttype] \
-		[reuri::uri get $uri port] \
-		[reuri::uri get $uri path] \
-		[reuri::uri get $uri query] \
-		[reuri::uri get $uri fragment]
+		[reuri get $uri scheme] \
+		[reuri get $uri userinfo] \
+		[reuri get $uri host] \
+		[reuri get $uri hosttype] \
+		[reuri get $uri port] \
+		[reuri get $uri path] \
+		[reuri get $uri query] \
+		[reuri get $uri fragment]
 } -cleanup {
 	unset -nocomplain uri
 } -result [list \
@@ -170,152 +170,152 @@ test reuri-3.1 {Interp cleanup} -body { #<<<
 	return -level 0 ok
 } -result ok
 #>>>
-test reuri-4.1 {http://local\u306fhost}	{ reuri::uri get http://local\u306fhost host	} local\u306fhost
-test reuri-5.1 {normalize} { reuri::uri normalize http://foo:bar@localhost:81/one/two?three=3&four=4#endbit } http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
-test reuri-5.2 {normalize} { reuri::uri normalize http://localhost:81/one/two?three=3&four=4#endbit } http://localhost:81/one/two?three=3&four=4#endbit
-test reuri-5.3 {normalize} { reuri::uri normalize {http://[::1]:81/one/two?three=3&four=4#endbit} } {http://[::1]:81/one/two?three=3&four=4#endbit}
-test reuri-5.4 {normalize} { reuri::uri normalize {http://127.0.0.1:81/one/two?three=3&four=4#endbit} } {http://127.0.0.1:81/one/two?three=3&four=4#endbit}
-test reuri-5.5 {normalize} { reuri::uri normalize {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit} } {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit}
-test reuri-5.6 {normalize} { reuri::uri normalize {http://[v0.local:/tmp/foo.80]/one/two?three=3&four=4#endbit} } {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit}
-test reuri-5.7 {normalize} { reuri::uri normalize {file:///one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
-test reuri-5.8 {normalize} { reuri::uri normalize {file://foo@/one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
-test reuri-5.9 {normalize} { reuri::uri normalize {file://:81/one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
-test reuri-5.10 {normalize} { reuri::uri normalize {http://localhost:81/one/two#endbit} } {http://localhost:81/one/two#endbit}
-test reuri-5.11 {normalize} { reuri::uri normalize {http://localhost:81#endbit} } {http://localhost:81#endbit}
-test reuri-5.12 {normalize} { reuri::uri normalize {http://localhost:81?} } {http://localhost:81}
-test reuri-5.14 {normalize} -body { reuri::uri normalize } -returnCodes error -result {wrong # args: should be "reuri::uri normalize uri"} -errorCode {TCL WRONGARGS}
-test reuri-5.15 {normalize} -body { reuri::uri normalize /foo bar } -returnCodes error -result {wrong # args: should be "reuri::uri normalize uri"} -errorCode {TCL WRONGARGS}
-test reuri-5.16 {normalize} -body { reuri::uri normalize local\u306fhost/foo } -result local%E3%81%AFhost/foo
-test reuri-5.17 {normalize} -body { reuri::uri normalize HtTp://f\u306foo:bar@local\u306fhost:123/foo\u306f/bar?f\u306fo=b\u306far&x=#some\u306ffrag } -result http://f%E3%81%AFoo:bar@local%E3%81%AFhost:123/foo%E3%81%AF/bar?f%E3%81%AFo=b%E3%81%AFar&x#some%E3%81%AFfrag
+test reuri-4.1 {http://local\u306fhost}	{ reuri get http://local\u306fhost host	} local\u306fhost
+test reuri-5.1 {normalize}  { reuri normalize http://foo:bar@localhost:81/one/two?three=3&four=4#endbit } http://foo:bar@localhost:81/one/two?three=3&four=4#endbit
+test reuri-5.2 {normalize}  { reuri normalize http://localhost:81/one/two?three=3&four=4#endbit } http://localhost:81/one/two?three=3&four=4#endbit
+test reuri-5.3 {normalize}  { reuri normalize {http://[::1]:81/one/two?three=3&four=4#endbit} } {http://[::1]:81/one/two?three=3&four=4#endbit}
+test reuri-5.4 {normalize}  { reuri normalize {http://127.0.0.1:81/one/two?three=3&four=4#endbit} } {http://127.0.0.1:81/one/two?three=3&four=4#endbit}
+test reuri-5.5 {normalize}  { reuri normalize {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit} } {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit}
+test reuri-5.6 {normalize}  { reuri normalize {http://[v0.local:/tmp/foo.80]/one/two?three=3&four=4#endbit} } {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit}
+test reuri-5.7 {normalize}  { reuri normalize {file:///one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
+test reuri-5.8 {normalize}  { reuri normalize {file://foo@/one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
+test reuri-5.9 {normalize}  { reuri normalize {file://:81/one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
+test reuri-5.10 {normalize} { reuri normalize {http://localhost:81/one/two#endbit} } {http://localhost:81/one/two#endbit}
+test reuri-5.11 {normalize} { reuri normalize {http://localhost:81#endbit} } {http://localhost:81#endbit}
+test reuri-5.12 {normalize} { reuri normalize {http://localhost:81?} } {http://localhost:81}
+test reuri-5.14 {normalize} -body { reuri normalize } -returnCodes error -result {wrong # args: should be "reuri normalize uri"} -errorCode {TCL WRONGARGS}
+test reuri-5.15 {normalize} -body { reuri normalize /foo bar } -returnCodes error -result {wrong # args: should be "reuri normalize uri"} -errorCode {TCL WRONGARGS}
+test reuri-5.16 {normalize} -body { reuri normalize local\u306fhost/foo } -result local%E3%81%AFhost/foo
+test reuri-5.17 {normalize} -body { reuri normalize HtTp://f\u306foo:bar@local\u306fhost:123/foo\u306f/bar?f\u306fo=b\u306far&x=#some\u306ffrag } -result http://f%E3%81%AFoo:bar@local%E3%81%AFhost:123/foo%E3%81%AF/bar?f%E3%81%AFo=b%E3%81%AFar&x#some%E3%81%AFfrag
 
-test reuri_valid-0.1 {http://localhost}					{ reuri::uri valid http://localhost					}		1
-test reuri_valid-0.2 {http://local%00host}				{ reuri::uri valid http://local%00host				}		1
-test reuri_valid-0.3 {http://local%E3%81%AF}			{ reuri::uri valid http://local%E3%81%AFhost		}		1
-test reuri_valid-0.4 {http://local%e3%81%af}			{ reuri::uri valid http://local%e3%81%afhost		}		1
-test reuri_valid-1.1 {ht\u306ftp://localhost}			{ reuri::uri valid ht\u306ftp://localhost			}		0
-test reuri_valid-1.2 {http://local\u306fhost}			{ reuri::uri valid http://local\u306fhost			}		0
-test reuri_valid-1.3 {http://f\u306foo@localhost}		{ reuri::uri valid http://f\u306foo@localhost		}		0
-test reuri_valid-1.4 {http://localhost:1\u306f}			{ reuri::uri valid http://localhost:1\u306f			}		0
-test reuri_valid-1.5 {http://localhost/f\u306foo}		{ reuri::uri valid http://localhost/f\u306foo		}		0
-test reuri_valid-1.6 {http://localhost?f\u306foo}		{ reuri::uri valid http://localhost?f\u306foo		}		0
-test reuri_valid-1.7 {http://localhost?foo=b\u306far}	{ reuri::uri valid http://localhost?foo=b\u306far	}		0
-test reuri_valid-1.8 {http://localhost#b\u306far}		{ reuri::uri valid http://localhost#b\u306far		}		0
-test reuri_valid-2.1 {ht\0tp://localhost}				{ reuri::uri valid ht\0tp://localhost				}		0
-test reuri_valid-2.2 {http://local\0host}				{ reuri::uri valid http://local\0host				}		0
-test reuri_valid-2.3 {http://f\0oo@localhost}			{ reuri::uri valid http://f\0oo@localhost			}		0
-test reuri_valid-2.4 {http://localhost:1\0}				{ reuri::uri valid http://localhost:1\0				}		0
-test reuri_valid-2.5 {http://localhost/f\0oo}			{ reuri::uri valid http://localhost/f\0oo			}		0
-test reuri_valid-2.6 {http://localhost?f\0oo}			{ reuri::uri valid http://localhost?f\0oo			}		0
-test reuri_valid-2.7 {http://localhost?foo=b\0ar}		{ reuri::uri valid http://localhost?foo=b\0ar		}		0
-test reuri_valid-2.8 {http://localhost#b\0ar}			{ reuri::uri valid http://localhost#b\0ar			}		0
-test reuri_valid-3.1 {ht%2Xtp://localhost}				{ reuri::uri valid ht%2Xtp://localhost				}		0
-test reuri_valid-3.2 {http://local%2Xhost}				{ reuri::uri valid http://local%2Xhost				}		0
-test reuri_valid-3.3 {http://f%2Xoo@localhost}			{ reuri::uri valid http://f%2Xoo@localhost			}		0
-test reuri_valid-3.4 {http://localhost:1%2X}			{ reuri::uri valid http://localhost:1%2X			}		0
-test reuri_valid-3.5 {http://localhost/f%2Xoo}			{ reuri::uri valid http://localhost/f%2Xoo			}		0
-test reuri_valid-3.6 {http://localhost?f%2Xoo}			{ reuri::uri valid http://localhost?f%2Xoo			}		0
-test reuri_valid-3.7 {http://localhost?foo=b%2Xar}		{ reuri::uri valid http://localhost?foo=b%2Xar		}		0
-test reuri_valid-3.8 {http://localhost#b%2Xar}			{ reuri::uri valid http://localhost#b%2Xar			}		0
+test reuri_valid-0.1 {http://localhost}					{ reuri valid http://localhost					}		1
+test reuri_valid-0.2 {http://local%00host}				{ reuri valid http://local%00host				}		1
+test reuri_valid-0.3 {http://local%E3%81%AF}			{ reuri valid http://local%E3%81%AFhost			}		1
+test reuri_valid-0.4 {http://local%e3%81%af}			{ reuri valid http://local%e3%81%afhost			}		1
+test reuri_valid-1.1 {ht\u306ftp://localhost}			{ reuri valid ht\u306ftp://localhost			}		0
+test reuri_valid-1.2 {http://local\u306fhost}			{ reuri valid http://local\u306fhost			}		0
+test reuri_valid-1.3 {http://f\u306foo@localhost}		{ reuri valid http://f\u306foo@localhost		}		0
+test reuri_valid-1.4 {http://localhost:1\u306f}			{ reuri valid http://localhost:1\u306f			}		0
+test reuri_valid-1.5 {http://localhost/f\u306foo}		{ reuri valid http://localhost/f\u306foo		}		0
+test reuri_valid-1.6 {http://localhost?f\u306foo}		{ reuri valid http://localhost?f\u306foo		}		0
+test reuri_valid-1.7 {http://localhost?foo=b\u306far}	{ reuri valid http://localhost?foo=b\u306far	}		0
+test reuri_valid-1.8 {http://localhost#b\u306far}		{ reuri valid http://localhost#b\u306far		}		0
+test reuri_valid-2.1 {ht\0tp://localhost}				{ reuri valid ht\0tp://localhost				}		0
+test reuri_valid-2.2 {http://local\0host}				{ reuri valid http://local\0host				}		0
+test reuri_valid-2.3 {http://f\0oo@localhost}			{ reuri valid http://f\0oo@localhost			}		0
+test reuri_valid-2.4 {http://localhost:1\0}				{ reuri valid http://localhost:1\0				}		0
+test reuri_valid-2.5 {http://localhost/f\0oo}			{ reuri valid http://localhost/f\0oo			}		0
+test reuri_valid-2.6 {http://localhost?f\0oo}			{ reuri valid http://localhost?f\0oo			}		0
+test reuri_valid-2.7 {http://localhost?foo=b\0ar}		{ reuri valid http://localhost?foo=b\0ar		}		0
+test reuri_valid-2.8 {http://localhost#b\0ar}			{ reuri valid http://localhost#b\0ar			}		0
+test reuri_valid-3.1 {ht%2Xtp://localhost}				{ reuri valid ht%2Xtp://localhost				}		0
+test reuri_valid-3.2 {http://local%2Xhost}				{ reuri valid http://local%2Xhost				}		0
+test reuri_valid-3.3 {http://f%2Xoo@localhost}			{ reuri valid http://f%2Xoo@localhost			}		0
+test reuri_valid-3.4 {http://localhost:1%2X}			{ reuri valid http://localhost:1%2X				}		0
+test reuri_valid-3.5 {http://localhost/f%2Xoo}			{ reuri valid http://localhost/f%2Xoo			}		0
+test reuri_valid-3.6 {http://localhost?f%2Xoo}			{ reuri valid http://localhost?f%2Xoo			}		0
+test reuri_valid-3.7 {http://localhost?foo=b%2Xar}		{ reuri valid http://localhost?foo=b%2Xar		}		0
+test reuri_valid-3.8 {http://localhost#b%2Xar}			{ reuri valid http://localhost#b%2Xar			}		0
 
 test reuri_encode-1.1 {encode query, all codepoints < 0x80} -body { #<<<
-	reuri::uri encode query $allchars_raw
+	reuri encode query $allchars_raw
 } -result $allchars_query
 #>>>
 test reuri_encode-2.1 {encode path, all codepoints < 0x80} -body { #<<<
-	reuri::uri encode path $allchars_raw
+	reuri encode path $allchars_raw
 } -result $allchars_path
 #>>>
 test reuri_encode-3.1 {encode query, no substs} -body { #<<<
-	reuri::uri encode query foo
+	reuri encode query foo
 } -result foo
 #>>>
 test reuri_encode-3.2 {encode query, subst: #} -body { #<<<
-	reuri::uri encode query fo#o
+	reuri encode query fo#o
 } -result fo%23o
 #>>>
 test reuri_encode-3.3 {encode query, subst: ?} -body { #<<<
-	reuri::uri encode query fo?o
+	reuri encode query fo?o
 } -result fo?o
 #>>>
 test reuri_encode-3.4 {encode query, subst: &} -body { #<<<
-	reuri::uri encode query fo&o
+	reuri encode query fo&o
 } -result fo%26o
 #>>>
 test reuri_encode-3.5 {encode query, subst: =} -body { #<<<
-	reuri::uri encode query fo=o
+	reuri encode query fo=o
 } -result fo%3Do
 #>>>
 test reuri_encode-3.6 {encode query, subst: /} -body { #<<<
-	reuri::uri encode query fo/o
+	reuri encode query fo/o
 } -result fo/o
 #>>>
 test reuri_encode-3.7 {encode query, subst: \0} -body { #<<<
-	reuri::uri encode query fo\0o
+	reuri encode query fo\0o
 } -result fo%00o
 #>>>
 
-test reuri_encode-4.1 {encode path, no substs}	{ reuri::uri encode path foo	} foo
-test reuri_encode-4.2 {encode path, subst: #}	{ reuri::uri encode path fo#o	} fo%23o
-test reuri_encode-4.3 {encode path, subst: ?}	{ reuri::uri encode path fo?o	} fo%3Fo
-test reuri_encode-4.4 {encode path, subst: &}	{ reuri::uri encode path fo&o	} fo&o
-test reuri_encode-4.5 {encode path, subst: =}	{ reuri::uri encode path fo=o	} fo=o
-test reuri_encode-4.6 {encode path, subst: /}	{ reuri::uri encode path fo/o	} fo%2Fo
-test reuri_encode-4.7 {encode path, subst: \0}	{ reuri::uri encode path fo\0o	} fo%00o
-test reuri_encode-4.8 {encode path, subst: :}	{ reuri::uri encode path fo:o	} fo%3Ao
-test reuri_encode-4.9 {encode path, subst: @}	{ reuri::uri encode path fo@o	} fo@o
+test reuri_encode-4.1 {encode path, no substs}	{ reuri encode path foo		} foo
+test reuri_encode-4.2 {encode path, subst: #}	{ reuri encode path fo#o	} fo%23o
+test reuri_encode-4.3 {encode path, subst: ?}	{ reuri encode path fo?o	} fo%3Fo
+test reuri_encode-4.4 {encode path, subst: &}	{ reuri encode path fo&o	} fo&o
+test reuri_encode-4.5 {encode path, subst: =}	{ reuri encode path fo=o	} fo=o
+test reuri_encode-4.6 {encode path, subst: /}	{ reuri encode path fo/o	} fo%2Fo
+test reuri_encode-4.7 {encode path, subst: \0}	{ reuri encode path fo\0o	} fo%00o
+test reuri_encode-4.8 {encode path, subst: :}	{ reuri encode path fo:o	} fo%3Ao
+test reuri_encode-4.9 {encode path, subst: @}	{ reuri encode path fo@o	} fo@o
 
-test reuri_encode-5.1 {encode path2, no substs}	{ reuri::uri encode path2 foo	} foo
-test reuri_encode-5.2 {encode path2, subst: #}	{ reuri::uri encode path2 fo#o	} fo%23o
-test reuri_encode-5.3 {encode path2, subst: ?}	{ reuri::uri encode path2 fo?o	} fo%3Fo
-test reuri_encode-5.4 {encode path2, subst: &}	{ reuri::uri encode path2 fo&o	} fo&o
-test reuri_encode-5.5 {encode path2, subst: =}	{ reuri::uri encode path2 fo=o	} fo=o
-test reuri_encode-5.6 {encode path2, subst: /}	{ reuri::uri encode path2 fo/o	} fo%2Fo
-test reuri_encode-5.7 {encode path2, subst: \0}	{ reuri::uri encode path2 fo\0o	} fo%00o
-test reuri_encode-5.8 {encode path2, subst: :}	{ reuri::uri encode path2 fo:o	} fo:o
-test reuri_encode-5.9 {encode path2, subst: @}	{ reuri::uri encode path2 fo@o	} fo@o
+test reuri_encode-5.1 {encode path2, no substs}	{ reuri encode path2 foo	} foo
+test reuri_encode-5.2 {encode path2, subst: #}	{ reuri encode path2 fo#o	} fo%23o
+test reuri_encode-5.3 {encode path2, subst: ?}	{ reuri encode path2 fo?o	} fo%3Fo
+test reuri_encode-5.4 {encode path2, subst: &}	{ reuri encode path2 fo&o	} fo&o
+test reuri_encode-5.5 {encode path2, subst: =}	{ reuri encode path2 fo=o	} fo=o
+test reuri_encode-5.6 {encode path2, subst: /}	{ reuri encode path2 fo/o	} fo%2Fo
+test reuri_encode-5.7 {encode path2, subst: \0}	{ reuri encode path2 fo\0o	} fo%00o
+test reuri_encode-5.8 {encode path2, subst: :}	{ reuri encode path2 fo:o	} fo:o
+test reuri_encode-5.9 {encode path2, subst: @}	{ reuri encode path2 fo@o	} fo@o
 
-test reuri_encode-6.1 {encode host, no substs}	{ reuri::uri encode host foo	} foo
-test reuri_encode-6.2 {encode host, subst: #}	{ reuri::uri encode host fo#o	} fo%23o
-test reuri_encode-6.3 {encode host, subst: ?}	{ reuri::uri encode host fo?o	} fo%3Fo
-test reuri_encode-6.4 {encode host, subst: &}	{ reuri::uri encode host fo&o	} fo&o
-test reuri_encode-6.5 {encode host, subst: =}	{ reuri::uri encode host fo=o	} fo=o
-test reuri_encode-6.6 {encode host, subst: /}	{ reuri::uri encode host fo/o	} fo%2Fo
-test reuri_encode-6.7 {encode host, subst: \0}	{ reuri::uri encode host fo\0o	} fo%00o
-test reuri_encode-6.8 {encode host, subst: :}	{ reuri::uri encode host fo:o	} fo%3Ao
-test reuri_encode-6.9 {encode host, subst: @}	{ reuri::uri encode host fo@o	} fo%40o
+test reuri_encode-6.1 {encode host, no substs}	{ reuri encode host foo		} foo
+test reuri_encode-6.2 {encode host, subst: #}	{ reuri encode host fo#o	} fo%23o
+test reuri_encode-6.3 {encode host, subst: ?}	{ reuri encode host fo?o	} fo%3Fo
+test reuri_encode-6.4 {encode host, subst: &}	{ reuri encode host fo&o	} fo&o
+test reuri_encode-6.5 {encode host, subst: =}	{ reuri encode host fo=o	} fo=o
+test reuri_encode-6.6 {encode host, subst: /}	{ reuri encode host fo/o	} fo%2Fo
+test reuri_encode-6.7 {encode host, subst: \0}	{ reuri encode host fo\0o	} fo%00o
+test reuri_encode-6.8 {encode host, subst: :}	{ reuri encode host fo:o	} fo%3Ao
+test reuri_encode-6.9 {encode host, subst: @}	{ reuri encode host fo@o	} fo%40o
 
-test reuri_encode-7.1 {encode userinfo, no substs}	{ reuri::uri encode userinfo foo	} foo
-test reuri_encode-7.2 {encode userinfo, subst: #}	{ reuri::uri encode userinfo fo#o	} fo%23o
-test reuri_encode-7.3 {encode userinfo, subst: ?}	{ reuri::uri encode userinfo fo?o	} fo%3Fo
-test reuri_encode-7.4 {encode userinfo, subst: &}	{ reuri::uri encode userinfo fo&o	} fo&o
-test reuri_encode-7.5 {encode userinfo, subst: =}	{ reuri::uri encode userinfo fo=o	} fo=o
-test reuri_encode-7.6 {encode userinfo, subst: /}	{ reuri::uri encode userinfo fo/o	} fo%2Fo
-test reuri_encode-7.7 {encode userinfo, subst: \0}	{ reuri::uri encode userinfo fo\0o	} fo%00o
-test reuri_encode-7.8 {encode userinfo, subst: :}	{ reuri::uri encode userinfo fo:o	} fo:o
-test reuri_encode-7.9 {encode userinfo, subst: @}	{ reuri::uri encode userinfo fo@o	} fo%40o
+test reuri_encode-7.1 {encode userinfo, no substs}	{ reuri encode userinfo foo		} foo
+test reuri_encode-7.2 {encode userinfo, subst: #}	{ reuri encode userinfo fo#o	} fo%23o
+test reuri_encode-7.3 {encode userinfo, subst: ?}	{ reuri encode userinfo fo?o	} fo%3Fo
+test reuri_encode-7.4 {encode userinfo, subst: &}	{ reuri encode userinfo fo&o	} fo&o
+test reuri_encode-7.5 {encode userinfo, subst: =}	{ reuri encode userinfo fo=o	} fo=o
+test reuri_encode-7.6 {encode userinfo, subst: /}	{ reuri encode userinfo fo/o	} fo%2Fo
+test reuri_encode-7.7 {encode userinfo, subst: \0}	{ reuri encode userinfo fo\0o	} fo%00o
+test reuri_encode-7.8 {encode userinfo, subst: :}	{ reuri encode userinfo fo:o	} fo:o
+test reuri_encode-7.9 {encode userinfo, subst: @}	{ reuri encode userinfo fo@o	} fo%40o
 
-test reuri_encode-8.1 {encode fragment, no substs}	{ reuri::uri encode fragment foo	} foo
-test reuri_encode-8.2 {encode fragment, subst: #}	{ reuri::uri encode fragment fo#o	} fo%23o
-test reuri_encode-8.3 {encode fragment, subst: ?}	{ reuri::uri encode fragment fo?o	} fo?o
-test reuri_encode-8.4 {encode fragment, subst: &}	{ reuri::uri encode fragment fo&o	} fo&o
-test reuri_encode-8.5 {encode fragment, subst: =}	{ reuri::uri encode fragment fo=o	} fo=o
-test reuri_encode-8.6 {encode fragment, subst: /}	{ reuri::uri encode fragment fo/o	} fo/o
-test reuri_encode-8.7 {encode fragment, subst: \0}	{ reuri::uri encode fragment fo\0o	} fo%00o
-test reuri_encode-8.8 {encode fragment, subst: :}	{ reuri::uri encode fragment fo:o	} fo:o
-test reuri_encode-8.9 {encode fragment, subst: @}	{ reuri::uri encode fragment fo@o	} fo@o
+test reuri_encode-8.1 {encode fragment, no substs}	{ reuri encode fragment foo		} foo
+test reuri_encode-8.2 {encode fragment, subst: #}	{ reuri encode fragment fo#o	} fo%23o
+test reuri_encode-8.3 {encode fragment, subst: ?}	{ reuri encode fragment fo?o	} fo?o
+test reuri_encode-8.4 {encode fragment, subst: &}	{ reuri encode fragment fo&o	} fo&o
+test reuri_encode-8.5 {encode fragment, subst: =}	{ reuri encode fragment fo=o	} fo=o
+test reuri_encode-8.6 {encode fragment, subst: /}	{ reuri encode fragment fo/o	} fo/o
+test reuri_encode-8.7 {encode fragment, subst: \0}	{ reuri encode fragment fo\0o	} fo%00o
+test reuri_encode-8.8 {encode fragment, subst: :}	{ reuri encode fragment fo:o	} fo:o
+test reuri_encode-8.9 {encode fragment, subst: @}	{ reuri encode fragment fo@o	} fo@o
 
-test reuri_encode-9.1 {encode awssig, no substs}		{ reuri::uri encode awssig foo			} foo
-test reuri_encode-9.2 {encode awssig, subst: #}			{ reuri::uri encode awssig fo#o			} fo%23o
-test reuri_encode-9.3 {encode awssig, subst: ?}			{ reuri::uri encode awssig fo?o			} fo%3Fo
-test reuri_encode-9.4 {encode awssig, subst: &}			{ reuri::uri encode awssig fo&o			} fo%26o
-test reuri_encode-9.5 {encode awssig, subst: =}			{ reuri::uri encode awssig fo=o			} fo%3Do
-test reuri_encode-9.6 {encode awssig, subst: /}			{ reuri::uri encode awssig fo/o			} fo%2Fo
-test reuri_encode-9.7 {encode awssig, subst: \0}		{ reuri::uri encode awssig fo\0o		} fo%00o
-test reuri_encode-9.8 {encode awssig, subst: :}			{ reuri::uri encode awssig fo:o			} fo%3Ao
-test reuri_encode-9.9 {encode awssig, subst: @}			{ reuri::uri encode awssig fo@o			} fo%40o
-test reuri_encode-9.10 {encode awssig, subst: \u306f}	{ reuri::uri encode awssig fo\u306fo	} fo%E3%81%AFo
-test reuri_encode-9.11 {encode awssig, leading res}		{ reuri::uri encode awssig \u306fo		} %E3%81%AFo
-test reuri_encode-9.12 {encode awssig, leading res}		{ reuri::uri encode awssig \0o			} %00o
+test reuri_encode-9.1 {encode awssig, no substs}		{ reuri encode awssig foo		} foo
+test reuri_encode-9.2 {encode awssig, subst: #}			{ reuri encode awssig fo#o		} fo%23o
+test reuri_encode-9.3 {encode awssig, subst: ?}			{ reuri encode awssig fo?o		} fo%3Fo
+test reuri_encode-9.4 {encode awssig, subst: &}			{ reuri encode awssig fo&o		} fo%26o
+test reuri_encode-9.5 {encode awssig, subst: =}			{ reuri encode awssig fo=o		} fo%3Do
+test reuri_encode-9.6 {encode awssig, subst: /}			{ reuri encode awssig fo/o		} fo%2Fo
+test reuri_encode-9.7 {encode awssig, subst: \0}		{ reuri encode awssig fo\0o		} fo%00o
+test reuri_encode-9.8 {encode awssig, subst: :}			{ reuri encode awssig fo:o		} fo%3Ao
+test reuri_encode-9.9 {encode awssig, subst: @}			{ reuri encode awssig fo@o		} fo%40o
+test reuri_encode-9.10 {encode awssig, subst: \u306f}	{ reuri encode awssig fo\u306fo	} fo%E3%81%AFo
+test reuri_encode-9.11 {encode awssig, leading res}		{ reuri encode awssig \u306fo	} %E3%81%AFo
+test reuri_encode-9.12 {encode awssig, leading res}		{ reuri encode awssig \0o		} %00o
 
 for {set c 0} {$c < 0xff} {incr c} {
 	set char	[format %c $c]
@@ -336,94 +336,34 @@ set ref {str {
 }}
 set n	0
 for {set c 0} {$c <= 0xff} {incr c} {
-	test reuri_encode-10.[incr n] [format {encode awssig, codepoint %%%02x} $c] "reuri::uri encode awssig fo\\x[format %02x $c]o" [apply $ref [subst -nocommands -novariables "fo\\x[format %02x $c]o"]]
+	test reuri_encode-10.[incr n] [format {encode awssig, codepoint %%%02x} $c] "reuri encode awssig fo\\x[format %02x $c]o" [apply $ref [subst -nocommands -novariables "fo\\x[format %02x $c]o"]]
 }
 unset -nocomplain c char map ref n
 
 
-test reuri_decode-1.1 {nop} -body { #<<<
-	reuri::uri decode foo
-} -result foo
-#>>>
-test reuri_decode-1.2 {empty} -body { #<<<
-	reuri::uri decode {}
-} -result {}
-#>>>
-test reuri_decode-2.1 {one pct_encoded, first} -body { #<<<
-	reuri::uri decode %61
-} -result a
-#>>>
-test reuri_decode-2.2 {one pct_encoded, second} -body { #<<<
-	reuri::uri decode x%61
-} -result xa
-#>>>
-test reuri_decode-2.3 {one pct_encoded, first with trailing} -body { #<<<
-	reuri::uri decode %61x
-} -result ax
-#>>>
-test reuri_decode-2.4 {one pct_encoded, second with trailing} -body { #<<<
-	reuri::uri decode x%61x
-} -result xax
-#>>>
-test reuri_decode-3.1 {+, first} -body { #<<<
-	reuri::uri decode +
-} -result { }
-#>>>
-test reuri_decode-3.2 {+, first} -body { #<<<
-	reuri::uri decode +x
-} -result { x}
-#>>>
-test reuri_decode-3.3 {+, second} -body { #<<<
-	reuri::uri decode x+
-} -result {x }
-#>>>
-test reuri_decode-4.1 {invalid pct_encode} -body { #<<<
-	reuri::uri decode %
-} -result {%}
-#>>>
-test reuri_decode-4.2 {invalid pct_encode} -body { #<<<
-	reuri::uri decode %6
-} -result {%6}
-#>>>
-test reuri_decode-4.3 {invalid pct_encode} -body { #<<<
-	reuri::uri decode %6x
-} -result {%6x}
-#>>>
-test reuri_decode-4.4 {invalid pct_encode} -body { #<<<
-	reuri::uri decode %x6
-} -result {%x6}
-#>>>
-test reuri_decode-5.1 {invalid pct_encode} -body { #<<<
-	reuri::uri decode a%
-} -result {a%}
-#>>>
-test reuri_decode-5.2 {invalid pct_encode} -body { #<<<
-	reuri::uri decode a%6
-} -result {a%6}
-#>>>
-test reuri_decode-5.3 {invalid pct_encode} -body { #<<<
-	reuri::uri decode a%6x
-} -result {a%6x}
-#>>>
-test reuri_decode-5.4 {invalid pct_encode} -body { #<<<
-	reuri::uri decode a%x6
-} -result {a%x6}
-#>>>
-test reuri_decode-6.1 {newline} -body { #<<<
-	reuri::uri decode "a\nb"
-} -result "a\nb"
-#>>>
-test reuri_decode-7.1 {two pct_encode} -body { #<<<
-	reuri::uri decode "A%61B%62"
-} -result "AaBb"
-#>>>
-test reuri_decode-8.1 {null} -body { #<<<
-	reuri::uri decode "A%00B"
-} -result "A\0B"
-#>>>
+test reuri_decode-1.1 {nop}						{ reuri decode foo		} foo
+test reuri_decode-1.2 {empty}					{ reuri decode {}		} {}
+test reuri_decode-2.1 {one pct_encoded, first}	{ reuri decode %61		} a
+test reuri_decode-2.2 {one pct_encoded, second}	{ reuri decode x%61		} xa
+test reuri_decode-2.3 {one pct_encoded, first with trailing}	{ reuri decode %61x		} ax
+test reuri_decode-2.4 {one pct_encoded, second with trailing}	{ reuri decode x%61x	} xax
+test reuri_decode-3.1 {+, first}				{ reuri decode +		} { }
+test reuri_decode-3.2 {+, first}				{ reuri decode +x		} { x}
+test reuri_decode-3.3 {+, second}				{ reuri decode x+		} {x }
+test reuri_decode-4.1 {invalid pct_encode}		{ reuri decode %		} %
+test reuri_decode-4.2 {invalid pct_encode}		{ reuri decode %6		} %6
+test reuri_decode-4.3 {invalid pct_encode}		{ reuri decode %6x		} %6x
+test reuri_decode-4.4 {invalid pct_encode}		{ reuri decode %x6		} %x6
+test reuri_decode-5.1 {invalid pct_encode}		{ reuri decode a%		} a%
+test reuri_decode-5.2 {invalid pct_encode}		{ reuri decode a%6		} a%6
+test reuri_decode-5.3 {invalid pct_encode}		{ reuri decode a%6x		} a%6x
+test reuri_decode-5.4 {invalid pct_encode}		{ reuri decode a%x6		} a%x6
+test reuri_decode-6.1 {newline}					{ reuri decode a\nb		} a\nb
+test reuri_decode-7.1 {two pct_encode}			{ reuri decode A%61B%62	} AaBb
+test reuri_decode-8.1 {null}					{ reuri decode A%00B	} A\0B
 
-test reuri_updatestringrep-1.1 {updatestringrep} -body {set u http://foo:bar@localhost:1234/x/y?q=a&q=b&foo=bar#somefrag; reuri::uri query set u q c} -cleanup {unset -nocomplain u} -result http://foo:bar@localhost:1234/x/y?q=c&foo=bar#somefrag
-test reuri_updatestringrep-1.2 {updatestringrep} -body {set u http://foo:bar@localhost:1234/x/y?q=a&q=b&foo=bar#somefrag; reuri::uri get $u hosttype; reuri::uri query set u q c} -cleanup {unset -nocomplain u} -result http://foo:bar@localhost:1234/x/y?q=c&foo=bar#somefrag
+test reuri_updatestringrep-1.1 {updatestringrep} -body {set u http://foo:bar@localhost:1234/x/y?q=a&q=b&foo=bar#somefrag; reuri query set u q c} -cleanup {unset -nocomplain u} -result http://foo:bar@localhost:1234/x/y?q=c&foo=bar#somefrag
+test reuri_updatestringrep-1.2 {updatestringrep} -body {set u http://foo:bar@localhost:1234/x/y?q=a&q=b&foo=bar#somefrag; reuri get $u hosttype; reuri query set u q c} -cleanup {unset -nocomplain u} -result http://foo:bar@localhost:1234/x/y?q=c&foo=bar#somefrag
 
 # cleanup
 ::tcltest::cleanupTests

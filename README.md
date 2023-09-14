@@ -4,21 +4,21 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.12?
+**package require reuri** ?0.13?
 
-**reuri::uri** **get** *uri* ?*part* ?*defaultVal*??  
-**reuri::uri** **extract** *uri* ?*part* ?*defaultVal*??  
-**reuri::uri** **exists** *uri* *part*  
-**reuri::uri** **set** *variable* *part* *value*  
-**reuri::uri** **valid** *uri*  
-?? **reuri::uri** **context** *uri* *script*  
-?? **reuri::uri** **resolve** *uri*  
-?? **reuri::uri** **absolute** *uri*  
-**reuri::uri** **encode** **query**|**queryval**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*  
-**reuri::uri** **decode** *value*  
-**reuri::uri** **query** *op* *uri* ?*arg* …?  
-**reuri::uri** **path** *op* *uri* ?*arg* …?  
-**reuri::uri** **normalize** *uri*
+**reuri** **get** *uri* ?*part* ?*defaultVal*??  
+**reuri** **extract** *uri* ?*part* ?*defaultVal*??  
+**reuri** **exists** *uri* *part*  
+**reuri** **set** *variable* *part* *value*  
+**reuri** **valid** *uri*  
+?? **reuri** **context** *uri* *script*  
+?? **reuri** **resolve** *uri*  
+?? **reuri** **absolute** *uri*  
+**reuri** **encode** **query**|**queryval**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*  
+**reuri** **decode** *value*  
+**reuri** **query** *op* *uri* ?*arg* …?  
+**reuri** **path** *op* *uri* ?*arg* …?  
+**reuri** **normalize** *uri*
 
 **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??  
 **reuri::query** **values** *query* *param*  
@@ -48,49 +48,49 @@ This package allows efficient manipulation of URI strings from Tcl. A fast parse
 
 This package serves a similar purpose to the **uri** module of tcllib, but is much faster. Where splitting a typical http url using the tcllib module might take half a millisecond typically, parsing and extracting a part with this package is on the order of 100 times faster, which matters if hundreds of URLs have to be manipulated in the time budget of serving a hit on a website.
 
-The **reuri::uri query** and **reuri::query** commands operate on the query portion of the URI assuming it follows the HTTP scheme query format (parameters separated by &, names separated from values with =).
+The **reuri query** and **reuri::query** commands operate on the query portion of the URI assuming it follows the HTTP scheme query format (parameters separated by &, names separated from values with =).
 
 While this package is in the 0 major version series this API is not stable and will change in backwards-incompatible ways. Starting with a 1 series release the API will preserve backwards compatibility within a major version number sequence. <span color="red">**USING THE 0 SERIES VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
 
 ## COMMANDS
 
-  - **reuri::uri** **get** *uri* ?*part* ?*defaultVal*??  
+  - **reuri** **get** *uri* ?*part* ?*defaultVal*??  
     Return the fully decoded URL *part* from *uri* or throw an exception if G*uri* can’t be parsed or doesn’t have the specified *part* and no *defaultVal* was specified. If *part* isn’t defined in *uri* (but is a valid part name) and a *defaultVal* is given, that will be returned instead. If *part* isn’t specified, return a dictionary containing all parts. See **PARTS** below for valid parts, and **EXCEPTIONS** for the exceptions that might be thrown.
 
-  - **reuri::uri** **extract** *uri* ?*part* ?*defaultVal*??  
+  - **reuri** **extract** *uri* ?*part* ?*defaultVal*??  
     Return the encoded URL *part* from *uri* or throw an exception if *uri* can’t be parsed or doesn’t have the specified *part* and no *defaultVal* was specified. If *part* isn’t defined in *uri* (but is a valid part name) and a *defaultVal* is given, that will be returned instead. If *part* isn’t specified, return a dictionary containing all parts. See **PARTS** below for valid parts, and **EXCEPTIONS** for the exceptions that might be thrown.
 
-  - **reuri::uri** **exists** *uri* *part*  
+  - **reuri** **exists** *uri* *part*  
     Return true if *uri* contains *part*, false otherwise.
 
-  - **reuri::uri** **set** *variable* *part* *value*  
+  - **reuri** **set** *variable* *part* *value*  
     Replace the *part* of the URI value contained in *variable* with the *value* (which must parse correctly as that part), returning the updated uri value stored in *variable*. If *value* is an empty string, unset the *part*.
 
-  - **reuri::uri** **valid** *uri*  
+  - **reuri** **valid** *uri*  
     Return true if *uri* is a syntactically valid URI and can be parsed by this package. Note that this will return false for some values of *uri* that are accepted by the other commands in this package - it applies a strict interpretation of the RFC rules whereas the other commands accept unambiguous but non-compliant input. In particular Unicode characters in the range 0x80 to 10FFFF are accepted on input to the other commands but rejected here.
 
-  - **reuri::uri** **context** *uri* *script*  
+  - **reuri** **context** *uri* *script*  
     Evaluate *script* in the current call frame but treat *uri* as the context for resolving any relative references that occur while processing *script*. The return state of *script* is transparently propagated to the return state of this command, including exceptions and return codes like break and continue. This command can be nested, with each successive call creating an inner scope with a reference URI that is resolved relative to its context.
 
-  - **reuri::uri** **resolve** *uri*  
+  - **reuri** **resolve** *uri*  
     Return a URI by resolving the possibly-relative *uri* in the context of any **resolve::uri** **context** calls on the callstack.
 
-  - **reuri::uri** **absolute** *uri*  
+  - **reuri** **absolute** *uri*  
     Return true if *uri* is absolute (ie. not a relative URI).
 
-  - **reuri::uri** **encode** **query**|**queryval**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*  
+  - **reuri** **encode** **query**|**queryval**|**path**|**path2**|**host**|**userinfo**|**fragment**|**awssig** *value*  
     Percent-encode the UTF-8 representation of *value*, suitable for inclusion as component of the part given by **query**, **path** or **host**, etc. **queryval** applies the slightly different rules for parameter values, **query** applies the rules for parameter names. **path2** differs from **path** in that it permits “:” un-encoded, that is, **segment-nz-nc** vs **segment** in RFC 3986 Section 3.2.2. **awssig** uses the rules required for calculating AWS v4 signatures.
 
-  - **reuri::uri** **decode** *value*  
-    Percent decode *value*, the inverse of **reuri::uri** **encode**. For compatibility with other implementations, “`+`” is replaced with a space and invalid percent-encoded sequences are transcribed as-is.
+  - **reuri** **decode** *value*  
+    Percent decode *value*, the inverse of **reuri** **encode**. For compatibility with other implementations, “`+`” is replaced with a space and invalid percent-encoded sequences are transcribed as-is.
 
-  - **reuri::uri** **query** *op* *uri* ?*arg* …?  
+  - **reuri** **query** *op* *uri* ?*arg* …?  
     Equivalent to calling **reuri::query** *op* ?*arg* …? on the query portion of *uri*.
 
-  - **reuri::uri** **path** *op* *uri* ?*arg* …?  
+  - **reuri** **path** *op* *uri* ?*arg* …?  
     Equivalent to calling **reuri::path** *op* ?*arg* …? on the path portion of *uri*.
 
-  - **reuri::uri** **normalize** *uri*  
+  - **reuri** **normalize** *uri*  
     Return a canonical representation of *uri*, as described in RFC3986.
 
   - **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??  
@@ -141,7 +141,7 @@ While this package is in the 0 major version series this API is not stable and w
     Produce a properly encoded URI path part given the list of *segment*s.
 
   - **reuri::path** **resolve** *path*  
-    Return *path* resolved in the context of all the URIs on the callstack from **reuri::uri** **context** calls.
+    Return *path* resolved in the context of all the URIs on the callstack from **reuri** **context** calls.
 
 ## INDEX SYNTAX
 
@@ -228,13 +228,13 @@ Extract the host and port from a URI, with a scheme-defined default port:
 
 ``` tcl
 proc connect uri {
-    switch [reuri::uri get $uri scheme] {
+    switch [reuri get $uri scheme] {
         http    {set default_port 80}
         https   {set default_port 443}
-        default {error "Unsupported scheme \"[reuri::uri get $uri scheme]\""}
+        default {error "Unsupported scheme \"[reuri get $uri scheme]\""}
     }
 
-    socket [reuri::uri get $uri host] [reuri::uri get $uri port $default_port]
+    socket [reuri get $uri host] [reuri get $uri port $default_port]
 }
 ```
 
@@ -243,7 +243,7 @@ Update query parameters from a dictionary:
 ``` tcl
 proc mergeparams {uri patch} {
     foreach {k v} $patch {
-        reuri::uri query set uri $k $v
+        reuri query set uri $k $v
     }
 
     return $uri
@@ -362,12 +362,12 @@ The uri module of tcllib.
 ## TODO
 
   - [x] Implement http://\[/tmp/mysock.80\]/foo style unix domain sockets support
-  - [x] Implement **reuri::uri set**
-  - [x] Implement **reuri::uri valid**
-  - [ ] Implement **reuri::uri context**
-  - [ ] Implement **reuri::uri resolve**
-  - [ ] Implement **reuri::uri absolute**
-  - [x] Implement **reuri::uri decode**
+  - [x] Implement **reuri set**
+  - [x] Implement **reuri valid**
+  - [ ] Implement **reuri context**
+  - [ ] Implement **reuri resolve**
+  - [ ] Implement **reuri absolute**
+  - [x] Implement **reuri decode**
   - [x] Implement **reuri::query get**
   - [x] Implement **reuri::query values**
   - [x] Implement **reuri::query add**

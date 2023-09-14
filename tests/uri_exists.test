@@ -6,62 +6,60 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 tcltest::loadTestedCommands
 package require reuri
 
-interp alias {} uri {} ::reuri::uri
-
 set t	uri_exists
-test $t-1.1 {scheme, true}		{ uri exists http://localhost					scheme		}	1
-test $t-2.1 {scheme, false}		{ uri exists //localhost						scheme		}	0
-test $t-2.2 {scheme, false}		{ uri exists http								scheme		}	0
+test $t-1.1 {scheme, true}		{ reuri exists http://localhost					scheme		}	1
+test $t-2.1 {scheme, false}		{ reuri exists //localhost						scheme		}	0
+test $t-2.2 {scheme, false}		{ reuri exists http								scheme		}	0
 
-test $t-2.1 {userinfo, true}	{ uri exists http://foo:bar@localhost			userinfo	}	1
-test $t-2.2 {userinfo, false}	{ uri exists http://localhost					userinfo	}	0
+test $t-2.1 {userinfo, true}	{ reuri exists http://foo:bar@localhost			userinfo	}	1
+test $t-2.2 {userinfo, false}	{ reuri exists http://localhost					userinfo	}	0
 
-test $t-3.1 {host, hostname}	{ uri exists http://localhost:81				host		}	1
-test $t-3.2 {host, false}		{ uri exists http://:81							host		}	0
-test $t-3.3 {host, false: ?}	{ uri exists http://?							host		}	0
-test $t-3.4 {host, IPv4}		{ uri exists http://127.0.0.1					host		}	1
-test $t-3.5 {host, IPv4+port}	{ uri exists http://127.0.0.1:81				host		}	1
-test $t-3.6 {host, IPv6}		{ uri exists {http://[::1]}						host		}	1
-test $t-3.7 {host, IPv6+port}	{ uri exists {http://[::1]:81}					host		}	1
-test $t-3.8 {host, unix}		{ uri exists {http://[/tmp/mysock.80]}			host		}	1
-test $t-3.9 {host, unix+port}	{ uri exists {http://[/tmp/mysock.80]:81}		host		}	1
+test $t-3.1 {host, hostname}	{ reuri exists http://localhost:81				host		}	1
+test $t-3.2 {host, false}		{ reuri exists http://:81						host		}	0
+test $t-3.3 {host, false: ?}	{ reuri exists http://?							host		}	0
+test $t-3.4 {host, IPv4}		{ reuri exists http://127.0.0.1					host		}	1
+test $t-3.5 {host, IPv4+port}	{ reuri exists http://127.0.0.1:81				host		}	1
+test $t-3.6 {host, IPv6}		{ reuri exists {http://[::1]}					host		}	1
+test $t-3.7 {host, IPv6+port}	{ reuri exists {http://[::1]:81}				host		}	1
+test $t-3.8 {host, unix}		{ reuri exists {http://[/tmp/mysock.80]}		host		}	1
+test $t-3.9 {host, unix+port}	{ reuri exists {http://[/tmp/mysock.80]:81}		host		}	1
 
-test $t-4.1 {port, true}		{ uri exists http://localhost:81				port		}	1
-test $t-4.2 {port, false}		{ uri exists http://localhost					port		}	0
+test $t-4.1 {port, true}		{ reuri exists http://localhost:81				port		}	1
+test $t-4.2 {port, false}		{ reuri exists http://localhost					port		}	0
 
-test $t-5.1 {path, true}		{ uri exists http://localhost/one/two			path		}	1
-test $t-5.2 {path, no path}		{ uri exists http://localhost?three=3			path		}	0
-test $t-5.3 {path, true}		{ uri exists /one/two							path		}	1
-test $t-5.4 {path, no path}		{ uri exists ?three=3							path		}	0
-test $t-6.1 {path, true}		{ uri exists http								path		}	1
-test $t-7.1 {path, true}		{ uri exists http:foo							path		}	1
-test $t-7.1.1 {path, true}		{ uri get http:foo								path		}	foo
-test $t-7.1.2 {path, false}		{ uri exists http:								path		}	0
-test $t-7.2 {path, true}		{ uri exists ./http:foo							path		}	1
-test $t-7.2.1 {path, true}		{ uri get ./http:foo							path		}	{. http:foo}
-test $t-7.3 {path, true}		{ uri exists http%3Afoo							path		}	1
-test $t-7.3.1 {path, true}		{ uri get http%3Afoo							path		}	http:foo
+test $t-5.1 {path, true}		{ reuri exists http://localhost/one/two			path		}	1
+test $t-5.2 {path, no path}		{ reuri exists http://localhost?three=3			path		}	0
+test $t-5.3 {path, true}		{ reuri exists /one/two							path		}	1
+test $t-5.4 {path, no path}		{ reuri exists ?three=3							path		}	0
+test $t-6.1 {path, true}		{ reuri exists http								path		}	1
+test $t-7.1 {path, true}		{ reuri exists http:foo							path		}	1
+test $t-7.1.1 {path, true}		{ reuri get http:foo							path		}	foo
+test $t-7.1.2 {path, false}		{ reuri exists http:							path		}	0
+test $t-7.2 {path, true}		{ reuri exists ./http:foo						path		}	1
+test $t-7.2.1 {path, true}		{ reuri get ./http:foo							path		}	{. http:foo}
+test $t-7.3 {path, true}		{ reuri exists http%3Afoo						path		}	1
+test $t-7.3.1 {path, true}		{ reuri get http%3Afoo							path		}	http:foo
 
-test $t-6.1 {query, path}		{ uri exists http://localhost/one?two=3&four=4	query		}	1
-test $t-6.2 {query, no path}	{ uri exists http://localhost?three=3&four=4	query		}	1
-test $t-6.3 {query, just port}	{ uri exists http://localhost:81?three=3&four=4	query		}	1
-test $t-6.4 {query, false}		{ uri exists http://localhost/one/two#endbit	query		}	0
-test $t-6.5 {query, just ?}		{ uri exists http://localhost/one/two?			query		}	1
-test $t-6.6 {query, just ?}		{ uri exists http://localhost/one/two?#endbit	query		}	1
+test $t-6.1 {query, path}		{ reuri exists http://localhost/one?two=3&four=4	query	}	1
+test $t-6.2 {query, no path}	{ reuri exists http://localhost?three=3&four=4		query	}	1
+test $t-6.3 {query, just port}	{ reuri exists http://localhost:81?three=3&four=4	query	}	1
+test $t-6.4 {query, false}		{ reuri exists http://localhost/one/two#endbit		query	}	0
+test $t-6.5 {query, just ?}		{ reuri exists http://localhost/one/two?			query	}	1
+test $t-6.6 {query, just ?}		{ reuri exists http://localhost/one/two?#endbit		query	}	1
 
-test $t-7.1 {fragment, true}	{ uri exists http://localhost#endbit			fragment	}	1
-test $t-7.2 {fragment, false}	{ uri exists http://localhost					fragment	}	0
-test $t-7.3 {fragment, empty}	{ uri exists http://localhost#					fragment	}	1
+test $t-7.1 {fragment, true}	{ reuri exists http://localhost#endbit			fragment	}	1
+test $t-7.2 {fragment, false}	{ reuri exists http://localhost					fragment	}	0
+test $t-7.3 {fragment, empty}	{ reuri exists http://localhost#				fragment	}	1
 
-test $t-8.1 {hosttype, hostname}	{ uri exists http://localhost:81				hosttype }	1
-test $t-8.2 {hosttype, false}		{ uri exists http://:81							hosttype }	1
-test $t-8.3 {hosttype, false: ?}	{ uri exists http://?							hosttype }	1
-test $t-8.4 {hosttype, IPv4}		{ uri exists http://127.0.0.1					hosttype }	1
-test $t-8.5 {hosttype, IPv4+port}	{ uri exists http://127.0.0.1:81				hosttype }	1
-test $t-8.6 {hosttype, IPv6}		{ uri exists {http://[::1]}						hosttype }	1
-test $t-8.7 {hosttype, IPv6+port}	{ uri exists {http://[::1]:81}					hosttype }	1
-test $t-8.8 {hosttype, unix}		{ uri exists {http://[/tmp/mysock.80]}			hosttype }	1
-test $t-8.9 {hosttype, unix+port}	{ uri exists {http://[/tmp/mysock.80]:81}		hosttype }	1
+test $t-8.1 {hosttype, hostname}	{ reuri exists http://localhost:81				hosttype }	1
+test $t-8.2 {hosttype, false}		{ reuri exists http://:81						hosttype }	1
+test $t-8.3 {hosttype, false: ?}	{ reuri exists http://?							hosttype }	1
+test $t-8.4 {hosttype, IPv4}		{ reuri exists http://127.0.0.1					hosttype }	1
+test $t-8.5 {hosttype, IPv4+port}	{ reuri exists http://127.0.0.1:81				hosttype }	1
+test $t-8.6 {hosttype, IPv6}		{ reuri exists {http://[::1]}					hosttype }	1
+test $t-8.7 {hosttype, IPv6+port}	{ reuri exists {http://[::1]:81}				hosttype }	1
+test $t-8.8 {hosttype, unix}		{ reuri exists {http://[/tmp/mysock.80]}		hosttype }	1
+test $t-8.9 {hosttype, unix+port}	{ reuri exists {http://[/tmp/mysock.80]:81}		hosttype }	1
 
 # cleanup
 ::tcltest::cleanupTests

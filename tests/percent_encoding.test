@@ -31,55 +31,55 @@ set refchars_path		[string map {%24 $ %2B + %2C , %26 & %3B ; %3D = %40 @} [urle
 set refchars_fragment	[string map {%24 $ %2B + %2C , %26 & %3A : %3B ; %3F ? %40 @ %3D =} [urlencode::rfc_urlencode -part query -charset utf-8 -- $testchars]]
 
 test percent_encoding-1.1 {Encode a query-string portion: completely unreserved} -body { #<<<
-    reuri::uri encode query foo
+    reuri encode query foo
 } -result foo
 #>>>
 test percent_encoding-2.1 {Encode a query-string portion: one reserved, start} -body { #<<<
-    reuri::uri encode query =foo
+    reuri encode query =foo
 } -result %3Dfoo
 #>>>
 test percent_encoding-2.2 {Encode a query-string portion: one reserved, middle} -body { #<<<
-    reuri::uri encode query f=oo
+    reuri encode query f=oo
 } -result f%3Doo
 #>>>
 test percent_encoding-2.3 {Encode a query-string portion: one reserved, end} -body { #<<<
-    reuri::uri encode query foo=
+    reuri encode query foo=
 } -result foo%3D
 #>>>
 test percent_encoding-3.1 {Encode a query-string portion: two reserved, start} -body { #<<<
-    reuri::uri encode query =f=oo
+    reuri encode query =f=oo
 } -result %3Df%3Doo
 #>>>
 test percent_encoding-3.2 {Encode a query-string portion: two reserved, middle} -body { #<<<
-    reuri::uri encode query f==oo
+    reuri encode query f==oo
 } -result f%3D%3Doo
 #>>>
 test percent_encoding-3.3 {Encode a query-string portion: two reserved, end} -body { #<<<
-    reuri::uri encode query fo=o=
+    reuri encode query fo=o=
 } -result fo%3Do%3D
 #>>>
 test percent_encoding-4.1 {Encode a query-string portion: \0, start} -body { #<<<
-    reuri::uri encode query \x00foo
+    reuri encode query \x00foo
 } -result %00foo
 #>>>
 test percent_encoding-4.2 {Encode a query-string portion: \0, middle} -body { #<<<
-    reuri::uri encode query f\x00oo
+    reuri encode query f\x00oo
 } -result f%00oo
 #>>>
 test percent_encoding-4.3 {Encode a query-string portion: \0, end} -body { #<<<
-    reuri::uri encode query foo\0
+    reuri encode query foo\0
 } -result foo%00
 #>>>
 test percent_encoding-20.1 {Encode testchars, mode query} -body { #<<<
-    reuri::uri encode query $testchars
+    reuri encode query $testchars
 } -result $refchars_query
 #>>>
 test percent_encoding-20.2 {Encode testchars, mode path} -body { #<<<
-    reuri::uri encode path $testchars
+    reuri encode path $testchars
 } -result $refchars_path
 #>>>
 test percent_encoding-20.3 {Encode testchars, mode fragment} -body { #<<<
-    reuri::uri encode fragment $testchars
+    reuri encode fragment $testchars
 } -result $refchars_fragment
 #>>>
 test percent_encoding-30.1 {query encode, no args} -body { #<<<

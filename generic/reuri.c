@@ -1749,7 +1749,8 @@ static struct cmd {
 	char*			name;
 	Tcl_ObjCmdProc*	proc;
 } cmds[] = {
-	{NS "::uri",	UriObjCmd},
+	{"::reuri",		UriObjCmd},
+	{NS "::uri",	UriObjCmd},			// Undocumented compatibility with old command name
 	{NS "::query",	QueryObjCmd},
 	{NS "::path",	PathObjCmd},
 #if TESTMODE

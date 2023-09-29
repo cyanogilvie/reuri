@@ -11,6 +11,7 @@
 #include <stddef.h>
 #include <setjmp.h>
 
+extern Tcl_HashTable	g_intreps;
 extern const char* reuri_part_str[];
 
 enum reuri_hosttype {
@@ -68,6 +69,10 @@ struct interp_cx {
 	Tcl_Obj*			f;
 	Tcl_Obj*			apply;
 	Tcl_Obj*			sort_unique;
+	Tcl_Obj*			dir;
+	size_t				numcmds;
+	Tcl_Command*		commands;
+	Tcl_Namespace*		ns;
 };
 
 typedef int (update_rep)(Tcl_Interp* interp, Tcl_Obj* obj);		// interp may be NULL
@@ -81,7 +86,8 @@ struct Reuri_ObjType {
 typedef struct Reuri_ObjType Reuri_ObjType;
 
 // reuri.c internal API <<<
-int ReuriGetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* part);
+void register_intrep(Tcl_Obj* obj);
+void forget_intrep(Tcl_Obj* obj);
 // reuri.c internal API >>>
 // type_uri.c internal API <<<
 void ReuriCompile(Tcl_DString* ds, struct uri* uri);
@@ -102,7 +108,7 @@ void ascii_lowercase_ds(Tcl_DString* ds, const char* str);
 int parse_host_local(Tcl_Interp* interp, const char* str, Tcl_Obj** pathlist);
 int parse_host_ipv6(Tcl_Interp* interp, const char* str, Tcl_Obj** addr);
 int decode_port(Tcl_Interp* interp, const char* str, int* portnum);
-int parse_scheme  (Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);
+int parse_scheme(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);
 int parse_userinfo(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);
 int parse_host(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out, enum reuri_hosttype* hosttype);
 int parse_port(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out);

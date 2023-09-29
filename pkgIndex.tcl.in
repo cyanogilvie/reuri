@@ -9,6 +9,5 @@ package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ [list apply {
 			set libfile	[file join $dir @PKG_LIB_FILE8@]
 		}
 		load $libfile [string totitle @PACKAGE_NAME@]
-		namespace eval ::reuri [list variable libfile $libfile]
 	}
 } $dir]

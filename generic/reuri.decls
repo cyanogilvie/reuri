@@ -28,5 +28,17 @@ declare 8 generic {
 declare 10 generic {
 	Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in)
 }
+declare 11 generic {
+	int Reuri_GetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* part)
+}
+declare 12 generic {
+	int Reuri_URIObjExtractPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* defaultPtr, Tcl_Obj** valuePtrPtr)
+}
+declare 13 generic {
+	int Reuri_URIObjExtractAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res)
+}
+declare 14 generic {
+	int Reuri_URIObjSet(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* valuePtr, Tcl_Obj** resPtrPtr)
+}
 
 # vim: ft=tcl foldmethod=marker foldmarker=<<<,>>>

@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([reuri], [0.13])
+AC_INIT([reuri], [0.13.1])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -80,7 +80,7 @@ TEA_SETUP_COMPILER
 #-----------------------------------------------------------------------
 
 TEABASE_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c type_uri.c type_uri_part.c type_index.c testmode.c reuriStubInit.c])
-TEA_ADD_HEADERS([generic/reuri.h generic/reuriDecls.h])
+TEA_ADD_HEADERS([generic/reuri.h generic/idx.h generic/reuriDecls.h])
 TEA_ADD_INCLUDES([-Igeneric ${dedup_INCLUDE_SPEC}])
 TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([])
@@ -219,6 +219,33 @@ TEAX_CONFIG_LINK_LINE(REURI_BUILD_LIB_SPEC,
 					 [${BUILD_DIR}], [${PACKAGE_NAME}])
 TEAX_CONFIG_LINK_LINE(REURI_BUILD_STUB_LIB_SPEC,
 					 [${BUILD_DIR}], [${PACKAGE_NAME}stub])
+
+#eval "REURI_INCLUDE_PATH_INSTALL=\"${includedir}\""
+eval "REURI_INCLUDE_PATH_INSTALL=\"${libdir}/${PACKAGE_NAME}${PACKAGE_VERSION}\""
+eval "REURI_LIBRARY_PATH_INSTALL=\"${libdir}/${PACKAGE_NAME}${PACKAGE_VERSION}\""
+eval "REURI_PACKAGE_PATH_INSTALL=\"${libdir}/${PACKAGE_NAME}${PACKAGE_VERSION}\""
+AS_IF([test ${TCL_LIB_VERSIONS_OK} = nodots], [
+	eval "REURI_LIBRARY=\"lib${PACKAGE_NAME}${TCL_TRIM_DOTS}\""
+	eval "REURI_STUBLIB=\"lib${PACKAGE_NAME}$stub{TCL_TRIM_DOTS}\""
+], [
+	eval "REURI_LIBRARY=\"lib${PACKAGE_NAME}${PACKAGE_VERSION}\""
+	eval "REURI_STUBLIB=\"lib${PACKAGE_NAME}stub${PACKAGE_VERSION}\""
+])
+REURI_HEADER="reuri.h"
+
+AC_DEFINE_UNQUOTED(REURI_INCLUDE_PATH_INSTALL, ["$REURI_INCLUDE_PATH_INSTALL"])
+AC_DEFINE_UNQUOTED(REURI_LIBRARY_PATH_INSTALL, ["$REURI_LIBRARY_PATH_INSTALL"])
+AC_DEFINE_UNQUOTED(REURI_PACKAGE_PATH_INSTALL, ["$REURI_PACKAGE_PATH_INSTALL"])
+AC_DEFINE_UNQUOTED(REURI_LIBRARY, ["$REURI_LIBRARY"])
+AC_DEFINE_UNQUOTED(REURI_STUBLIB, ["$REURI_STUBLIB"])
+AC_DEFINE_UNQUOTED(REURI_HEADER, ["$REURI_HEADER"])
+
+AC_SUBST(REURI_INCLUDE_PATH_INSTALL)
+AC_SUBST(REURI_LIBRARY_PATH_INSTALL)
+AC_SUBST(REURI_PACKAGE_PATH_INSTALL)
+AC_SUBST(REURI_LIBRARY)
+AC_SUBST(REURI_STUBLIB)
+AC_SUBST(REURI_HEADER)
 
 AC_CONFIG_FILES([Makefile pkgIndex.tcl reuriConfig.sh generic/reuri.h])
 #AC_CONFIG_FILES([sampleConfig.sh])

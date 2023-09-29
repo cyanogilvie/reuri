@@ -1,0 +1,42 @@
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+tcltest::loadTestedCommands
+#package require reuri
+package require jitc
+
+test jitc_integration-1.1 {Use c API from jitc} -setup { #<<<
+	set cdef	{
+		package	{reuri 0.13.1}
+		code {
+			OBJCMD(get_query) {
+				int				code = TCL_OK;
+				Tcl_Obj*		val = NULL;
+
+				enum {A_cmd, A_URL, A_objc};
+				CHECK_ARGS_LABEL(finally, code, "url");
+
+				TEST_OK_LABEL(finally, code, Reuri_URIObjGetPart(interp, objv[A_URL], REURI_QUERY, NULL, &val)); 
+
+				Tcl_SetObjResult(interp, val);
+
+			finally:
+				replace_tclobj(&val, NULL);
+				return code;
+			}
+		}
+	}
+} -body {
+	jitc::capply $cdef get_query http://localhost/foo/bar?baz=quux&a=b
+} -cleanup {
+	unset -nocomplain cdef
+} -result {baz quux a b}
+#>>>
+
+# cleanup
+::tcltest::cleanupTests
+return
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

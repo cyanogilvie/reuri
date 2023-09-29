@@ -1,5 +1,25 @@
 #include "reuriInt.h"
 
+TCL_DECLARE_MUTEX(g_intreps_mutex);
+int				g_intreps_refcount = 0;
+Tcl_HashTable	g_intreps;
+
+TCL_DECLARE_MUTEX(g_config_mutex);
+Tcl_Obj*		g_packagedir = NULL;
+Tcl_Obj*		g_includedir = NULL;
+static Tcl_Config cfg[] = {
+	{"libdir,runtime",			REURI_LIBRARY_PATH_INSTALL},	// Overwritten by _setdir, must be first
+	{"includedir,runtime",		REURI_INCLUDE_PATH_INSTALL},	// Overwritten by _setdir, must be second
+	{"packagedir,runtime",		REURI_PACKAGE_PATH_INSTALL},	// Overwritten by _setdir, must be third
+	{"libdir,install",			REURI_LIBRARY_PATH_INSTALL},
+	{"includedir,install",		REURI_INCLUDE_PATH_INSTALL},
+	{"packagedir,install",		REURI_PACKAGE_PATH_INSTALL},
+	{"library",					REURI_LIBRARY},
+	{"stublib",					REURI_STUBLIB},
+	{"header",					REURI_HEADER},
+	{NULL, NULL}
+};
+
 // Internal API <<<
 
 // Must be kept in sync with reuri_part
@@ -76,12 +96,44 @@ Tcl_Obj* thread_string(const char* bytes, int length) //<<<
 //>>>
 #endif
 
+void register_intrep(Tcl_Obj* obj) //<<<
+{
+	int isnew;
+
+	Tcl_MutexLock(&g_intreps_mutex);
+	Tcl_HashEntry*	he = Tcl_CreateHashEntry(&g_intreps, obj, &isnew);
+	if (!isnew) Tcl_Panic("g_intreps already contains an entry for %p", obj);
+	Tcl_SetHashValue(he, obj);
+	Tcl_MutexUnlock(&g_intreps_mutex);
+}
+
+//>>>
+void forget_intrep(Tcl_Obj* obj) //<<<
+{
+	Tcl_MutexLock(&g_intreps_mutex);
+	Tcl_HashEntry*	he = Tcl_FindHashEntry(&g_intreps, obj);
+	if (!he) Tcl_Panic("no entry in g_intreps found for %p", obj);
+	Tcl_DeleteHashEntry(he);
+	Tcl_MutexUnlock(&g_intreps_mutex);
+}
+
+//>>>
 static void free_interp_cx(ClientData cdata, Tcl_Interp* interp) //<<<
 {
 	struct interp_cx*	l = (struct interp_cx*)cdata;
 	int					i;
 
 	if (l) {
+		if (!Tcl_InterpDeleted(interp)) {
+			for (size_t i=0; i < l->numcmds; i++) {
+				if (l->commands[i]) {
+					Tcl_DeleteCommandFromToken(interp, l->commands[i]);
+					l->commands[i] = NULL;
+				}
+			}
+		}
+		if (l->commands)			{ ckfree(l->commands);						l->commands = NULL; }
+
 		if (l->dedup_pool)			{ Dedup_FreePool(l->dedup_pool);			l->dedup_pool = NULL; }
 
 		if (l->dedup_scheme)		{ Dedup_FreePool(l->dedup_scheme);			l->dedup_scheme = NULL; }
@@ -105,19 +157,13 @@ static void free_interp_cx(ClientData cdata, Tcl_Interp* interp) //<<<
 		replace_tclobj(&l->f,			NULL);
 		replace_tclobj(&l->apply,		NULL);
 		replace_tclobj(&l->sort_unique,	NULL);
+		replace_tclobj(&l->dir,			NULL);
+
+		if (l->ns && !Tcl_InterpDeleted(interp)) Tcl_DeleteNamespace(l->ns);
 
 		ckfree(l);
 		l = NULL;
 	}
-}
-
-//>>>
-int ReuriGetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* part) //<<<
-{
-	int			ipart, code;
-	code = Tcl_GetIndexFromObj(interp, partObj, reuri_part_str, "part", TCL_EXACT, &ipart);
-	*part = ipart;
-	return code;
 }
 
 //>>>
@@ -543,6 +589,57 @@ finally:
 }
 
 //>>>
+void tcl_stacktrace(Tcl_Interp* interp) //<<<
+{
+	int		code = TCL_OK;
+#define QUOTE(...) #__VA_ARGS__
+	Tcl_Obj*	cmd = NULL;
+	replace_tclobj(&cmd, Tcl_NewStringObj(QUOTE(
+apply {{} {
+	set level	[expr {[info level]}];
+	set frame	[expr {[info frame]}];
+	set frames	{};
+	set last_level	{};
+	while {[incr frame -1] > 0} {
+		set info	[info frame $frame];
+		if {[dict exists $info level] && [dict get $info level] ne $last_level} {
+			set level_num	[dict get $info level];
+			set last_level	$level_num;
+			set level_rel	[expr {1 - $level_num}];
+		};
+		lappend frames $info;
+	};
+	set last	{};
+	set trim	0;
+	lmap frame [lrange [lrange $frames 1 end] $trim end] {
+		puts $frame;
+		if {![dict exists $frame proc]} continue;
+		set proc	[dict get $frame proc];
+		if {$proc eq $last} continue;
+		set res	[string range $proc 2 end];
+		if {[dict get $frame type] eq {source}} {
+			append res ([file tail [dict get $frame file]]);
+		};
+		if {$last ne ""} {
+			append res	:[dict get $frame line];
+		};
+		set last $proc;
+		set res;
+	}
+}}), -1));
+#undef QUOTE
+	code = Tcl_EvalObjEx(interp, cmd, 0);
+	if (code == TCL_OK) {
+		fprintf(stderr, "%s\n", Tcl_GetString(Tcl_GetObjResult(interp)));
+	} else {
+		fprintf(stderr, "tcl_stacktrace failed: %s\n", Tcl_GetString(Tcl_GetObjResult(interp)));
+	}
+	Tcl_ResetResult(interp);
+
+	replace_tclobj(&cmd, NULL);
+}
+
+//>>>
 // Internal API >>>
 // Stubs API <<<
 int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* defaultPtr, Tcl_Obj** valuePtrPtr) //<<<
@@ -831,6 +928,15 @@ Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in) //<<<
 }
 
 //>>>
+int Reuri_GetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* part) //<<<
+{
+	int			ipart, code;
+	code = Tcl_GetIndexFromObj(interp, partObj, reuri_part_str, "part", TCL_EXACT, &ipart);
+	*part = ipart;
+	return code;
+}
+
+//>>>
 // Stubs API >>>
 // Script API <<<
 static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
@@ -903,7 +1009,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						goto finally;
 				}
 
-				TEST_OK_LABEL(get_finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
+				TEST_OK_LABEL(get_finally, code, Reuri_GetPartFromObj(interp, objv[A_PART], &part));
 				TEST_OK_LABEL(get_finally, code, Reuri_URIObjGetPart(interp, objv[A_URI], part, def, &res));
 
 				Tcl_SetObjResult(interp, res);
@@ -940,7 +1046,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 						goto finally;
 				}
 
-				TEST_OK_LABEL(extract_finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
+				TEST_OK_LABEL(extract_finally, code, Reuri_GetPartFromObj(interp, objv[A_PART], &part));
 				TEST_OK_LABEL(extract_finally, code, Reuri_URIObjExtractPart(interp, objv[A_URI], part, def, &res));
 
 				Tcl_SetObjResult(interp, res);
@@ -958,7 +1064,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				enum {A_cmd=1, A_URI, A_PART, A_objc};
 				CHECK_ARGS_LABEL(finally, code, "uri part");
 
-				TEST_OK_LABEL(finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
+				TEST_OK_LABEL(finally, code, Reuri_GetPartFromObj(interp, objv[A_PART], &part));
 				TEST_OK_LABEL(finally, code, Reuri_URIObjPartExists(interp, objv[A_URI], part, &exists));
 				Tcl_SetObjResult(interp, exists ? l->t : l->f);
 			}
@@ -977,7 +1083,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				uri = Tcl_ObjGetVar2(interp, objv[A_URI], NULL, 0);
 				if (!uri) replace_tclobj(&uri, Tcl_NewObj());
 				TEST_OK_LABEL(query_finally, code, ReuriGetURIFromObj(interp, uri, &uri_ir));
-				TEST_OK_LABEL(finally, code, ReuriGetPartFromObj(interp, objv[A_PART], &part));
+				TEST_OK_LABEL(finally, code, Reuri_GetPartFromObj(interp, objv[A_PART], &part));
 				TEST_OK_LABEL(finally, code, Reuri_URIObjSet(interp, uri, part, objv[A_VALUE], &res));
 				replace_tclobj(&res, Tcl_ObjSetVar2(interp, objv[A_URI], NULL, res, TCL_LEAVE_ERR_MSG));
 				if (res == NULL) {
@@ -1735,6 +1841,50 @@ finally:
 }
 
 //>>>
+static int _setdir(Tcl_Interp* interp, Tcl_Obj* dir) //<<<
+{
+	int				code = TCL_OK;
+	Tcl_Obj*		buildheader = NULL;
+	Tcl_Obj*		generic = NULL;
+	Tcl_Obj*		h = NULL;
+	Tcl_StatBuf*	stat = NULL;
+
+	Tcl_MutexLock(&g_config_mutex); //<<<
+
+	replace_tclobj(&g_packagedir, Tcl_FSGetNormalizedPath(interp, dir));
+
+	replace_tclobj(&generic,	Tcl_NewStringObj("generic", -1));
+	replace_tclobj(&h,			Tcl_NewStringObj("reuri.h", -1));
+	replace_tclobj(&buildheader, Tcl_FSJoinToPath(g_packagedir, 2, (Tcl_Obj*[]){generic, h}));
+
+	stat = Tcl_AllocStatBuf();
+	if (0 == Tcl_FSStat(buildheader, stat)) {
+		// Running from build dir
+		replace_tclobj(&g_includedir, Tcl_FSJoinToPath(g_packagedir, 1, (Tcl_Obj*[]){generic}));
+	} else {
+		replace_tclobj(&g_includedir, g_packagedir);
+	}
+
+	cfg[0].value = Tcl_GetString(g_packagedir);		// Under global ref
+	cfg[1].value = Tcl_GetString(g_includedir);		// Under global ref
+	cfg[2].value = Tcl_GetString(g_packagedir);		// Under global ref
+
+	Tcl_RegisterConfig(interp, PACKAGE_NAME, cfg, "utf-8");
+
+	Tcl_MutexUnlock(&g_config_mutex); //>>>
+
+	replace_tclobj(&buildheader, NULL);
+	replace_tclobj(&generic, NULL);
+	replace_tclobj(&h, NULL);
+	if (stat) {
+		ckfree(stat);
+		stat = NULL;
+	}
+
+	return code;
+}
+
+//>>>
 #if TESTMODE
 static int NopObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
@@ -1749,14 +1899,13 @@ static struct cmd {
 	char*			name;
 	Tcl_ObjCmdProc*	proc;
 } cmds[] = {
-	{"::reuri",		UriObjCmd},
-	{NS "::uri",	UriObjCmd},			// Undocumented compatibility with old command name
-	{NS "::query",	QueryObjCmd},
-	{NS "::path",	PathObjCmd},
+	{"::reuri",			UriObjCmd},
+	{NS "::uri",		UriObjCmd},			// Undocumented compatibility with old command name
+	{NS "::query",		QueryObjCmd},
+	{NS "::path",		PathObjCmd},
 #if TESTMODE
-	{NS "::nop",	NopObjCmd},
+	{NS "::nop",		NopObjCmd}
 #endif
-	{NULL,			NULL}
 };
 // Script API >>>
 
@@ -1769,8 +1918,6 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 {
 	int					code = TCL_OK;
 	struct interp_cx*	l = NULL;
-	Tcl_Namespace*		ns = NULL;
-	struct cmd*			c = cmds;
 
 #if USE_TCL_STUBS
 	if (Tcl_InitStubs(interp, TCL_VERSION, 0) == NULL)
@@ -1781,12 +1928,16 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 		return TCL_ERROR;
 #endif
 
-	ns = Tcl_CreateNamespace(interp, NS, NULL, NULL);
-	TEST_OK_LABEL(finally, code, Tcl_Export(interp, ns, "*", 0));
+	Tcl_MutexLock(&g_intreps_mutex);
+	if (!g_intreps_refcount++) Tcl_InitHashTable(&g_intreps, TCL_ONE_WORD_KEYS);
+	Tcl_MutexUnlock(&g_intreps_mutex);
 
 	// Set up interp_cx <<<
 	l = (struct interp_cx*)ckalloc(sizeof *l);
 	*l = (struct interp_cx){0};
+
+	l->ns = Tcl_CreateNamespace(interp, NS, NULL, NULL);
+	TEST_OK_LABEL(finally, code, Tcl_Export(interp, l->ns, "*", 0));
 
 	// General string dedup pool
 	l->dedup_pool = Dedup_NewPool(interp);
@@ -1804,31 +1955,44 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 	l->dedup_fragment		= Dedup_NewPool(interp);
 
 	l->typeInt = Tcl_GetObjType("int");
-	{
-		int i;
-		for (i=0; reuri_hosttype_str[i]; i++)
-			replace_tclobj(&l->hosttype[i], Dedup_NewStringObj(l->dedup_pool, reuri_hosttype_str[i], -1));
-	}
+	for (int i=0; reuri_hosttype_str[i]; i++)
+		replace_tclobj(&l->hosttype[i], Dedup_NewStringObj(l->dedup_pool, reuri_hosttype_str[i], -1));
 	replace_tclobj(&l->empty,		Dedup_NewStringObj(l->dedup_pool, "", 0));
 	replace_tclobj(&l->empty_list,	Tcl_NewListObj(0, NULL));
 	replace_tclobj(&l->t,			Tcl_NewBooleanObj(1));
 	replace_tclobj(&l->f,			Tcl_NewBooleanObj(0));
 	replace_tclobj(&l->apply,		Tcl_NewStringObj("apply", -1));
 	replace_tclobj(&l->sort_unique,	Tcl_NewStringObj("l {lsort -integer -unique -decreasing $l}", -1));
+	replace_tclobj(&l->dir,			Tcl_NewStringObj("dir", -1));
 
 	TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, 0, NULL, &l->empty_query));
 
-	Tcl_SetAssocData(interp, "reuri", free_interp_cx, l);
-	// Set up interp_cx >>>
+	l->numcmds = sizeof cmds / sizeof cmds[0];
+	const size_t memsize = sizeof l->commands[0] * l->numcmds;
+	l->commands = ckalloc(memsize);
+	memset(l->commands, 0, memsize);
 
-	while (c->name) {
-		if (NULL == Tcl_CreateObjCommand(interp, c->name, c->proc, l, NULL)) {
-			Tcl_SetObjResult(interp, Tcl_ObjPrintf("Could not create command %s", c->name));
+	Tcl_SetAssocData(interp, "reuri", free_interp_cx, l);
+
+	for (size_t i=0; i<l->numcmds; i++) {
+		if (NULL == (l->commands[i] = Tcl_CreateObjCommand(interp, cmds[i].name, cmds[i].proc, l, NULL))) {
+			Tcl_SetObjResult(interp, Tcl_ObjPrintf("Could not create command %s", cmds[i].name));
 			code = TCL_ERROR;
 			goto finally;
 		}
-		c++;
 	}
+
+	{
+		Tcl_Obj*	dir = Tcl_ObjGetVar2(interp, l->dir, NULL, TCL_LEAVE_ERR_MSG);
+		if (!dir) {
+			code = TCL_ERROR;
+			goto finally;
+		}
+		_setdir(interp, dir);
+	}
+
+	l = NULL;	// Hand over to the assoc
+	// Set up interp_cx >>>
 
 #if TESTMODE
 	TEST_OK_LABEL(finally, code, testmode_init(interp, l));
@@ -1837,6 +2001,10 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 	TEST_OK_LABEL(finally, code, Tcl_PkgProvideEx(interp, PACKAGE_NAME, PACKAGE_VERSION, reuriConstStubsPtr));
 
 finally:
+	if (l) {
+		free_interp_cx(l, interp);
+		l = NULL;
+	}
 	return code;
 }
 
@@ -1849,12 +2017,56 @@ DLLEXPORT int Reuri_SafeInit(Tcl_Interp* interp) //<<<
 
 //>>>
 
-/*
- * No Reuri_Unload: Can't unload packages that use custom ObjTypes - the
- * objects could still be around in literal tables for instance and when
- * they're eventually freed it will segfault because the type handler points at
- * invalid memory.
- */
+DLLEXPORT int Reuri_Unload(Tcl_Interp* interp, int flags) //<<<
+{
+	int				code = TCL_OK;
+	Tcl_HashSearch	search;
+
+	if (flags == TCL_UNLOAD_DETACH_FROM_PROCESS) {
+		Tcl_MutexLock(&g_intreps_mutex); //<<<
+		if (--g_intreps_refcount <= 0) {
+			// Downgrade all reuri objtype instances to pure strings.  Have to
+			// restart the hash walk each time because updating the string rep
+			// and freeing the internal can change other entries.
+			Tcl_HashEntry*	he = NULL;
+			while ((he = Tcl_FirstHashEntry(&g_intreps, &search))) {
+				Tcl_Obj*	obj = Tcl_GetHashValue(he);
+				if (obj) {
+					Tcl_GetString(obj);
+					Tcl_FreeInternalRep(obj);
+				}
+			}
+			Tcl_DeleteHashTable(&g_intreps);
+		}
+		Tcl_MutexUnlock(&g_intreps_mutex); //>>>
+
+		Tcl_DeleteAssocData(interp, "reuri");
+
+		if (g_intreps_refcount <= 0) {
+			Tcl_MutexLock(&g_config_mutex); //<<<
+			replace_tclobj(&g_packagedir, NULL);
+			replace_tclobj(&g_includedir, NULL);
+			Tcl_MutexUnlock(&g_config_mutex); //>>>
+
+			Tcl_MutexFinalize(&g_intreps_mutex);
+			g_intreps_mutex = NULL;
+			Tcl_MutexFinalize(&g_config_mutex);
+			g_config_mutex = NULL;
+		}
+	} else {
+		Tcl_DeleteAssocData(interp, "reuri");
+	}
+
+	return code;
+}
+
+//>>>
+DLLEXPORT int Reuri_SafeUnload(Tcl_Interp* interp, int flags) //<<<
+{
+	return Reuri_SafeUnload(interp, flags);
+}
+
+//>>>
 
 #ifdef __cplusplus
 }

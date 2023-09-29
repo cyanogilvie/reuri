@@ -26,6 +26,8 @@ static void free_internal_rep(Tcl_Obj* obj) //<<<
 {
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, &index_objtype);
 
+	forget_intrep(obj);
+
 	if (ir)
 		free_parse_idx_cx(INDEX_PTR(ir));
 }
@@ -179,6 +181,7 @@ int IdxGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_c
 		}
 
 		Tcl_StoreInternalRep(indexObj, &index_objtype, &newir);
+		register_intrep(indexObj);
 		ir = Tcl_FetchInternalRep(indexObj, &index_objtype);
 	}
 

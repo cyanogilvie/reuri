@@ -210,6 +210,7 @@ Reuri_ObjType fragment_objtype = {
 static void free_internal_rep(Tcl_Obj* obj, Reuri_ObjType* objtype) //<<<
 {
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)objtype);
+	forget_intrep(obj);
 	if (ir) {
 		release_tclobj(DECODED_PTR(ir));
 		release_tclobj(NORMALIZED_PTR(ir));
@@ -226,6 +227,7 @@ static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup, Reuri_ObjType* objtype)
 	replace_tclobj(NORMALIZED_PTR(&newir),	NORMALIZED(ir));
 
 	Tcl_StoreInternalRep(dup, (Tcl_ObjType*)objtype, &newir);
+	register_intrep(dup);
 }
 
 //>>>
@@ -602,6 +604,7 @@ int Reuri_GetDecodedFromPart(Tcl_Interp* interp, Tcl_Obj* obj, Reuri_ObjType* ob
 		Tcl_ObjInternalRep	newir = {0};
 		Tcl_GetString(obj);	// Ensure the string rep is available
 		Tcl_StoreInternalRep(obj, (Tcl_ObjType*)objtype, &newir);
+		register_intrep(obj);
 		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)objtype);
 	}
 
@@ -632,6 +635,7 @@ int Reuri_GetNormalizedFromPart(Tcl_Interp* interp, Tcl_Obj* obj, Reuri_ObjType*
 		Tcl_ObjInternalRep	newir = {0};
 		Tcl_GetString(obj);	// Ensure the string rep is available
 		Tcl_StoreInternalRep(obj, (Tcl_ObjType*)objtype, &newir);
+		register_intrep(obj);
 		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)objtype);
 	}
 
@@ -666,6 +670,7 @@ Tcl_Obj* Reuri_NewPartFromString(Reuri_ObjType* objtype, const char* str, int le
 
 	Tcl_Obj*	res = Tcl_NewStringObj(str, len);
 	Tcl_StoreInternalRep(res, (Tcl_ObjType*)objtype, &newir);
+	register_intrep(res);
 	return res;
 }
 
@@ -686,6 +691,7 @@ int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlis
 		}
 
 		Tcl_StoreInternalRep(pathPtr, (Tcl_ObjType*)&path_objtype, &newir);
+		register_intrep(pathPtr);
 		ir = Tcl_FetchInternalRep(pathPtr, (Tcl_ObjType*)&path_objtype);
 	}
 
@@ -795,6 +801,7 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 		replace_tclobj(&irv[1], NULL);
 
 		Tcl_StoreInternalRep(query, (Tcl_ObjType*)&query_objtype, &newir);
+		register_intrep(query);
 		ir = Tcl_FetchInternalRep(query, (Tcl_ObjType*)&query_objtype);
 	}
 
@@ -835,6 +842,7 @@ void ReuriSetQuery(Tcl_Obj* query, Tcl_Obj* params, Tcl_Obj* index) //<<<
 	replace_tclobj(DECODED_PTR(&newir), Tcl_NewListObj(index?2:1, irv));
 
 	Tcl_StoreInternalRep(query, (Tcl_ObjType*)&query_objtype, &newir);
+	register_intrep(query);
 	Tcl_InvalidateStringRep(query);
 }
 
@@ -869,6 +877,7 @@ int Reuri_NewQueryObj(Tcl_Interp* interp, int objc, Tcl_Obj* const objv[], Tcl_O
 
 	replace_tclobj(&newobj, Tcl_NewObj());
 	Tcl_StoreInternalRep(newobj, (Tcl_ObjType*)&query_objtype, &newir);
+	register_intrep(newobj);
 	Tcl_InvalidateStringRep(newobj);
 
 	replace_tclobj(res, newobj);

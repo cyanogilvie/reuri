@@ -40,6 +40,7 @@ static void free_internal_rep(Tcl_Obj* obj) //<<<
 	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(obj, &uri_objtype);
 	struct uri*			uri = (struct uri*)ir->twoPtrValue.ptr1;
 
+	forget_intrep(obj);
 	free_uri(&uri);
 }
 
@@ -64,6 +65,7 @@ static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 
 	newir.twoPtrValue.ptr1 = dup_uri;
 	Tcl_StoreInternalRep(dup, &uri_objtype, &newir);
+	register_intrep(dup);
 }
 
 //>>>
@@ -195,6 +197,7 @@ int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri) //
 		pc.uri = NULL;
 
 		Tcl_StoreInternalRep(uriPtr, &uri_objtype, &newir);
+		register_intrep(uriPtr);
 		ir = Tcl_FetchInternalRep(uriPtr, &uri_objtype);
 	}
 
@@ -230,6 +233,7 @@ void ReuriSetURI(Tcl_Obj* uriPtr, struct uri* uri) //<<<
 
 	Tcl_ObjInternalRep	newir = {.twoPtrValue.ptr1 = newuri};
 	Tcl_StoreInternalRep(uriPtr, &uri_objtype, &newir);
+	register_intrep(uriPtr);
 	Tcl_InvalidateStringRep(uriPtr);
 }
 

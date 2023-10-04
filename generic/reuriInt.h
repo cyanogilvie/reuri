@@ -69,7 +69,6 @@ struct interp_cx {
 	Tcl_Obj*			f;
 	Tcl_Obj*			apply;
 	Tcl_Obj*			sort_unique;
-	Tcl_Obj*			dir;
 	size_t				numcmds;
 	Tcl_Command*		commands;
 	Tcl_Namespace*		ns;

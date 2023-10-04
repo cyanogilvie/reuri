@@ -7,6 +7,7 @@ Tcl_HashTable	g_intreps;
 TCL_DECLARE_MUTEX(g_config_mutex);
 Tcl_Obj*		g_packagedir = NULL;
 Tcl_Obj*		g_includedir = NULL;
+int				g_config_refcount = 0;
 static Tcl_Config cfg[] = {
 	{"libdir,runtime",			REURI_LIBRARY_PATH_INSTALL},	// Overwritten by _setdir, must be first
 	{"includedir,runtime",		REURI_INCLUDE_PATH_INSTALL},	// Overwritten by _setdir, must be second
@@ -157,7 +158,6 @@ static void free_interp_cx(ClientData cdata, Tcl_Interp* interp) //<<<
 		replace_tclobj(&l->f,			NULL);
 		replace_tclobj(&l->apply,		NULL);
 		replace_tclobj(&l->sort_unique,	NULL);
-		replace_tclobj(&l->dir,			NULL);
 
 		if (l->ns && !Tcl_InterpDeleted(interp)) Tcl_DeleteNamespace(l->ns);
 
@@ -1841,41 +1841,56 @@ finally:
 }
 
 //>>>
-static int _setdir(Tcl_Interp* interp, Tcl_Obj* dir) //<<<
+static int _setdir(Tcl_Interp* interp) //<<<
 {
 	int				code = TCL_OK;
 	Tcl_Obj*		buildheader = NULL;
 	Tcl_Obj*		generic = NULL;
 	Tcl_Obj*		h = NULL;
+	Tcl_Obj*		dirvar = NULL;
+	Tcl_Obj*		dir = NULL;
 	Tcl_StatBuf*	stat = NULL;
 
 	Tcl_MutexLock(&g_config_mutex); //<<<
 
-	replace_tclobj(&g_packagedir, Tcl_FSGetNormalizedPath(interp, dir));
+	// Only do this the first time, later loads might be doing "load {} ..."
+	if (g_config_refcount++ == 0) {
+		replace_tclobj(&dirvar, Tcl_NewStringObj("dir", 3));
+		dir = Tcl_ObjGetVar2(interp, dirvar, NULL, TCL_LEAVE_ERR_MSG);
+		if (!dir) {
+			code = TCL_ERROR;
+			goto finally;
+		}
 
-	replace_tclobj(&generic,	Tcl_NewStringObj("generic", -1));
-	replace_tclobj(&h,			Tcl_NewStringObj("reuri.h", -1));
-	replace_tclobj(&buildheader, Tcl_FSJoinToPath(g_packagedir, 2, (Tcl_Obj*[]){generic, h}));
+		replace_tclobj(&g_packagedir, Tcl_FSGetNormalizedPath(interp, dir));
 
-	stat = Tcl_AllocStatBuf();
-	if (0 == Tcl_FSStat(buildheader, stat)) {
-		// Running from build dir
-		replace_tclobj(&g_includedir, Tcl_FSJoinToPath(g_packagedir, 1, (Tcl_Obj*[]){generic}));
-	} else {
-		replace_tclobj(&g_includedir, g_packagedir);
+		replace_tclobj(&generic,	Tcl_NewStringObj("generic", -1));
+		replace_tclobj(&h,			Tcl_NewStringObj("reuri.h", -1));
+		replace_tclobj(&buildheader, Tcl_FSJoinToPath(g_packagedir, 2, (Tcl_Obj*[]){generic, h}));
+
+		stat = Tcl_AllocStatBuf();
+		if (0 == Tcl_FSStat(buildheader, stat)) {
+			// Running from build dir
+			replace_tclobj(&g_includedir, Tcl_FSJoinToPath(g_packagedir, 1, (Tcl_Obj*[]){generic}));
+		} else {
+			replace_tclobj(&g_includedir, g_packagedir);
+		}
+
+		cfg[0].value = Tcl_GetString(g_packagedir);		// Under global ref
+		cfg[1].value = Tcl_GetString(g_includedir);		// Under global ref
+		cfg[2].value = Tcl_GetString(g_packagedir);		// Under global ref
+
+		Tcl_RegisterConfig(interp, PACKAGE_NAME, cfg, "utf-8");
 	}
 
-	cfg[0].value = Tcl_GetString(g_packagedir);		// Under global ref
-	cfg[1].value = Tcl_GetString(g_includedir);		// Under global ref
-	cfg[2].value = Tcl_GetString(g_packagedir);		// Under global ref
-
-	Tcl_RegisterConfig(interp, PACKAGE_NAME, cfg, "utf-8");
-
+finally:
 	Tcl_MutexUnlock(&g_config_mutex); //>>>
 
 	replace_tclobj(&buildheader, NULL);
 	replace_tclobj(&generic, NULL);
 	replace_tclobj(&h, NULL);
+	replace_tclobj(&dirvar, NULL);
+
 	if (stat) {
 		ckfree(stat);
 		stat = NULL;
@@ -1963,7 +1978,6 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 	replace_tclobj(&l->f,			Tcl_NewBooleanObj(0));
 	replace_tclobj(&l->apply,		Tcl_NewStringObj("apply", -1));
 	replace_tclobj(&l->sort_unique,	Tcl_NewStringObj("l {lsort -integer -unique -decreasing $l}", -1));
-	replace_tclobj(&l->dir,			Tcl_NewStringObj("dir", -1));
 
 	TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, 0, NULL, &l->empty_query));
 
@@ -1981,18 +1995,10 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 			goto finally;
 		}
 	}
-
-	{
-		Tcl_Obj*	dir = Tcl_ObjGetVar2(interp, l->dir, NULL, TCL_LEAVE_ERR_MSG);
-		if (!dir) {
-			code = TCL_ERROR;
-			goto finally;
-		}
-		_setdir(interp, dir);
-	}
-
 	l = NULL;	// Hand over to the assoc
 	// Set up interp_cx >>>
+
+	TEST_OK_LABEL(finally, code, _setdir(interp));
 
 #if TESTMODE
 	TEST_OK_LABEL(finally, code, testmode_init(interp, l));
@@ -2022,39 +2028,40 @@ DLLEXPORT int Reuri_Unload(Tcl_Interp* interp, int flags) //<<<
 	int				code = TCL_OK;
 	Tcl_HashSearch	search;
 
-	if (flags == TCL_UNLOAD_DETACH_FROM_PROCESS) {
-		Tcl_MutexLock(&g_intreps_mutex); //<<<
-		if (--g_intreps_refcount <= 0) {
-			// Downgrade all reuri objtype instances to pure strings.  Have to
-			// restart the hash walk each time because updating the string rep
-			// and freeing the internal can change other entries.
-			Tcl_HashEntry*	he = NULL;
-			while ((he = Tcl_FirstHashEntry(&g_intreps, &search))) {
-				Tcl_Obj*	obj = Tcl_GetHashValue(he);
-				if (obj) {
-					Tcl_GetString(obj);
-					Tcl_FreeInternalRep(obj);
-				}
+	Tcl_MutexLock(&g_intreps_mutex); //<<<
+	if (--g_intreps_refcount <= 0) {
+		// Downgrade all reuri objtype instances to pure strings.  Have to
+		// restart the hash walk each time because updating the string rep
+		// and freeing the internal can change other entries.
+		Tcl_HashEntry*	he = NULL;
+		while ((he = Tcl_FirstHashEntry(&g_intreps, &search))) {
+			Tcl_Obj*	obj = Tcl_GetHashValue(he);
+			if (obj) {
+				Tcl_GetString(obj);
+				Tcl_FreeInternalRep(obj);
 			}
-			Tcl_DeleteHashTable(&g_intreps);
 		}
-		Tcl_MutexUnlock(&g_intreps_mutex); //>>>
+		Tcl_DeleteHashTable(&g_intreps);
+	}
+	Tcl_MutexUnlock(&g_intreps_mutex); //>>>
 
-		Tcl_DeleteAssocData(interp, "reuri");
+	Tcl_DeleteAssocData(interp, "reuri");
 
-		if (g_intreps_refcount <= 0) {
-			Tcl_MutexLock(&g_config_mutex); //<<<
-			replace_tclobj(&g_packagedir, NULL);
-			replace_tclobj(&g_includedir, NULL);
-			Tcl_MutexUnlock(&g_config_mutex); //>>>
+	if (g_intreps_refcount <= 0) {
+		Tcl_MutexFinalize(&g_intreps_mutex);
+		g_intreps_mutex = NULL;
+	}
 
-			Tcl_MutexFinalize(&g_intreps_mutex);
-			g_intreps_mutex = NULL;
-			Tcl_MutexFinalize(&g_config_mutex);
-			g_config_mutex = NULL;
-		}
-	} else {
-		Tcl_DeleteAssocData(interp, "reuri");
+	Tcl_MutexLock(&g_config_mutex); //<<<
+	g_config_refcount--;
+	if (g_config_refcount <= 0) {
+		replace_tclobj(&g_packagedir, NULL);
+		replace_tclobj(&g_includedir, NULL);
+	}
+	Tcl_MutexUnlock(&g_config_mutex); //>>>
+	if (g_config_refcount <= 0) {
+		Tcl_MutexFinalize(&g_config_mutex);
+		g_config_mutex = NULL;
 	}
 
 	return code;

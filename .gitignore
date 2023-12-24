@@ -28,3 +28,4 @@ prof/
 tools/bin/
 generic/reuri.h
 reuriConfig.sh
+Makefile.teabase

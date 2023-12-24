@@ -40,6 +40,10 @@ enum reuri_encode_mode {
 	REURI_ENCODE_AWSSIG
 };
 
+enum reuri_flags {
+	REURI_FLAG_NONE		= 0,
+	REURI_FLAG_REQUIRED	= 2<<0,		// Without this, Get returns NULL instead of throwing an exception
+};
 
 /* Stubs exported API */
 

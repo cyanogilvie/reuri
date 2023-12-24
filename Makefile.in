@@ -171,20 +171,7 @@ COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) \
 
 GDB		= gdb
 VALGRIND	= valgrind
-VALGRINDEXTRA =
-VALGRINDARGS	= --tool=memcheck --num-callers=8 --leak-resolution=high \
-		  --leak-check=yes -v --suppressions=suppressions --keep-debuginfo=yes \
-		  --trace-children=yes $(VALGRINDEXTRA)
 RE2CARGS = --case-ranges -W -Wno-nondeterministic-tags -Wno-match-empty-string --conditions
-PGOGEN_BUILD = -fprofile-generate=prof
-PGO_BUILD = @PGO_BUILD@
-PGO=
-PACKAGE_LOAD = "package ifneeded $(PACKAGE_NAME) $(PACKAGE_VERSION) [list apply {dir {load `@CYGPATH@ $(PKG_LIB_FILE)` $(PACKAGE_NAME)}} `@CYGPATH@ $(srcdir)`]"
-PACKAGE_LOAD_EMBED = package\ ifneeded\ $(PACKAGE_NAME)\ $(PACKAGE_VERSION)\ [list\ apply\ {dir\ {load\ `@CYGPATH@ $(PKG_LIB_FILE)`\ $(PACKAGE_NAME)}}\ `@CYGPATH@ $(srcdir)`]
-
-CFLAGS		= @CFLAGS@ $(PGO)
-
-CONTAINER = cyanogilvie/alpine-tcl:v0.9.66-gdb
 
 .SUFFIXES: .c .$(OBJEXT)
 
@@ -261,20 +248,11 @@ install-doc: doc
 test: binaries libraries
 	$(TCLSH) `@CYGPATH@ $(srcdir)/tests/all.tcl` $(TESTFLAGS) -load $(PACKAGE_LOAD)
 
-benchmark: binaries libraries
-	$(TCLSH) `@CYGPATH@ $(srcdir)/bench/run.tcl` $(TESTFLAGS) -load $(PACKAGE_LOAD)
-
 shell: binaries libraries
 	@$(TCLSH) $(SCRIPT)
 
-vim-gdb: binaries libraries
-	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug -ex set\ print\ pretty\ on --args $(TCLSH_PROG) tests/all.tcl $(TESTFLAGS) -singleproc 1 -load $(PACKAGE_LOAD_EMBED)" -c "2windo set nonumber" -c "1windo set nonumber" generic/reuri.c
-
-vim-core:
-	$(TCLSH_ENV) $(PKG_ENV) vim -c 'packadd termdebug' -c "set mouse=a" -c "set number" -c "set foldlevel=100" -c "Termdebug -ex layout\ asm -ex layout\ regs -ex focus\ cmd $(TCLSH_PROG) core" -c Winbar generic/reuri.c
-
 vim-gdb-benchmark: binaries libraries
-	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args $(TCLSH_PROG) bench/run.tcl $(TESTFLAGS) -load $(PACKAGE_LOAD_EMBED)" generic/reuri.c
+	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args $(TCLSH_PROG) bench/run.tcl $(BENCHFLAGS) -load $(PACKAGE_LOAD_EMBED)" generic/reuri.c
 
 gdb:
 	$(TCLSH_ENV) $(PKG_ENV) $(GDB) $(TCLSH_PROG) $(SCRIPT)
@@ -501,23 +479,11 @@ uninstall-binaries:
 genstubs: generic/reuri.decls
 	$(TCLSH_PROG) $(TCL_SRC_DIR)/tools/genStubs.tcl generic generic/reuri.decls
 
-tags: generic/*
-	ctags-exuberant --langmap=c:+.re generic/*
-
-pgo:
-	rm -rf prof
-	make -C . PGO="$(PGOGEN_BUILD)" clean binaries libraries benchmark
-	make -C . PGO="$(PGO_BUILD)" clean binaries libraries
-
-coverage:
-	make -C . PGO="--coverage" clean binaries libraries test
-
-test-container:
-	docker run --rm -it -v "$(realpath $(srcdir)):/src/local:ro" $(CONTAINER) /src/local/teabase/dtest.tcl "$(TESTFLAGS)"
-
 .PHONY: all binaries clean depend distclean doc install libraries test
 .PHONY: gdb gdb-test valgrind valgrindshell genstubs lexers tools
 .PHONY: vim-gdb vim-core vim-gdb-benchmark pgo coverage benchmark test-container
+
+include $(top_builddir)/Makefile.teabase
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

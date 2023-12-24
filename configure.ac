@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([reuri], [0.13.2])
+AC_INIT([reuri], [0.13.3])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -247,7 +247,7 @@ AC_SUBST(REURI_LIBRARY)
 AC_SUBST(REURI_STUBLIB)
 AC_SUBST(REURI_HEADER)
 
-AC_CONFIG_FILES([Makefile pkgIndex.tcl reuriConfig.sh generic/reuri.h])
+AC_CONFIG_FILES([Makefile Makefile.teabase pkgIndex.tcl reuriConfig.sh generic/reuri.h])
 #AC_CONFIG_FILES([sampleConfig.sh])
 
 #--------------------------------------------------------------------

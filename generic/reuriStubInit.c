@@ -20,6 +20,14 @@ const ReuriStubs reuriStubs = {
     Reuri_URIObjExtractPart, /* 12 */
     Reuri_URIObjExtractAll, /* 13 */
     Reuri_URIObjSet, /* 14 */
+    Reuri_URIObjQueryGet, /* 15 */
+    Reuri_URIObjQueryValues, /* 16 */
+    Reuri_URIObjQueryAdd, /* 17 */
+    0, /* 18 */
+    Reuri_URIObjQuerySet, /* 19 */
+    Reuri_URIObjQueryUnset, /* 20 */
+    Reuri_URIObjQueryNames, /* 21 */
+    Reuri_URIObjQueryNew, /* 22 */
 };
 
 /* !END!: Do not edit above this line. */

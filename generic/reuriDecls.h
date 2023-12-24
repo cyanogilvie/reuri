@@ -53,6 +53,34 @@ EXTERN int		Reuri_URIObjExtractAll(Tcl_Interp*interp,
 EXTERN int		Reuri_URIObjSet(Tcl_Interp*interp, Tcl_Obj*uriPtr,
 				enum reuri_part part, Tcl_Obj*valuePtr,
 				Tcl_Obj**resPtrPtr);
+/* 15 */
+EXTERN int		Reuri_URIObjQueryGet(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, Tcl_Obj*param,
+				Tcl_Obj* def /* may be NULL */,
+				Tcl_Obj* index /* may be NULL */, int flags,
+				Tcl_Obj**out);
+/* 16 */
+EXTERN int		Reuri_URIObjQueryValues(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj**out);
+/* 17 */
+EXTERN int		Reuri_URIObjQueryAdd(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj*value,
+				Tcl_Obj**out);
+/* Slot 18 is reserved */
+/* 19 */
+EXTERN int		Reuri_URIObjQuerySet(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj*value,
+				Tcl_Obj**out);
+/* 20 */
+EXTERN int		Reuri_URIObjQueryUnset(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj**out);
+/* 21 */
+EXTERN int		Reuri_URIObjQueryNames(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, Tcl_Obj**out);
+/* 22 */
+EXTERN int		Reuri_URIObjQueryNew(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, Tcl_Obj* params /* list */,
+				Tcl_Obj**out);
 
 typedef struct ReuriStubs {
     int magic;
@@ -73,6 +101,14 @@ typedef struct ReuriStubs {
     int (*reuri_URIObjExtractPart) (Tcl_Interp*interp, Tcl_Obj*uriPtr, enum reuri_part part, Tcl_Obj*defaultPtr, Tcl_Obj**valuePtrPtr); /* 12 */
     int (*reuri_URIObjExtractAll) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj**res); /* 13 */
     int (*reuri_URIObjSet) (Tcl_Interp*interp, Tcl_Obj*uriPtr, enum reuri_part part, Tcl_Obj*valuePtr, Tcl_Obj**resPtrPtr); /* 14 */
+    int (*reuri_URIObjQueryGet) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj* def /* may be NULL */, Tcl_Obj* index /* may be NULL */, int flags, Tcl_Obj**out); /* 15 */
+    int (*reuri_URIObjQueryValues) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj**out); /* 16 */
+    int (*reuri_URIObjQueryAdd) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj*value, Tcl_Obj**out); /* 17 */
+    void (*reserved18)(void);
+    int (*reuri_URIObjQuerySet) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj*value, Tcl_Obj**out); /* 19 */
+    int (*reuri_URIObjQueryUnset) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj**out); /* 20 */
+    int (*reuri_URIObjQueryNames) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj**out); /* 21 */
+    int (*reuri_URIObjQueryNew) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj* params /* list */, Tcl_Obj**out); /* 22 */
 } ReuriStubs;
 
 extern const ReuriStubs *reuriStubsPtr;
@@ -115,6 +151,21 @@ extern const ReuriStubs *reuriStubsPtr;
 	(reuriStubsPtr->reuri_URIObjExtractAll) /* 13 */
 #define Reuri_URIObjSet \
 	(reuriStubsPtr->reuri_URIObjSet) /* 14 */
+#define Reuri_URIObjQueryGet \
+	(reuriStubsPtr->reuri_URIObjQueryGet) /* 15 */
+#define Reuri_URIObjQueryValues \
+	(reuriStubsPtr->reuri_URIObjQueryValues) /* 16 */
+#define Reuri_URIObjQueryAdd \
+	(reuriStubsPtr->reuri_URIObjQueryAdd) /* 17 */
+/* Slot 18 is reserved */
+#define Reuri_URIObjQuerySet \
+	(reuriStubsPtr->reuri_URIObjQuerySet) /* 19 */
+#define Reuri_URIObjQueryUnset \
+	(reuriStubsPtr->reuri_URIObjQueryUnset) /* 20 */
+#define Reuri_URIObjQueryNames \
+	(reuriStubsPtr->reuri_URIObjQueryNames) /* 21 */
+#define Reuri_URIObjQueryNew \
+	(reuriStubsPtr->reuri_URIObjQueryNew) /* 22 */
 
 #endif /* defined(USE_REURI_STUBS) */
 

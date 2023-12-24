@@ -1,0 +1,542 @@
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+tcltest::loadTestedCommands
+package require reuri
+
+tcltest::testConstraint haveJitc [expr {![catch {
+	package require jitc
+}]}]
+
+set cdef [list package [list reuri [package require reuri]] {*}{
+	options {-Wall -Werror}
+	code {
+		enum { S_PARAM, S_VAL, S_DEF, S_IDX, S_TRUE, S_FALSE, S_PARAMS, S_size };
+		static const char* strs[S_size] = {"param", "val", "def", "idx", "1", "0", "params"};
+		static Tcl_Obj* g_obj[S_size];
+
+		INIT {
+			for (int i=0; i<S_size; ++i) replace_tclobj(&g_obj[i], Tcl_NewStringObj(strs[i], -1));
+			return TCL_OK;
+		}
+
+		RELEASE {
+			for (int i=0; i<S_size; ++i) replace_tclobj(&g_obj[i], NULL);
+		}
+
+		OBJCMD(get) {
+			int			code = TCL_OK;
+			Tcl_Obj*	param = NULL;	// loaned ref
+			Tcl_Obj*	def = NULL;	// loaned ref
+			Tcl_Obj*	idx = NULL;	// loaned ref
+			Tcl_Obj*	res = NULL;
+
+			enum {A_cmd, A_URI, A_OPTS, A_objc};
+			CHECK_ARGS_LABEL(finally, code, "uri options");
+
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_PARAM], &param));
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_DEF],   &def));
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_IDX],   &idx));
+			TEST_OK_LABEL(finally, code, Reuri_URIObjQueryGet(interp, objv[A_URI], param, def, idx, REURI_FLAG_REQUIRED, &res));
+
+			Tcl_SetObjResult(interp, res);
+
+		finally:
+			replace_tclobj(&res, NULL);
+			return code;
+		}
+
+		OBJCMD(exists) {
+			int			code = TCL_OK;
+			Tcl_Obj*	param = NULL;	// loaned ref
+			Tcl_Obj*	def = NULL;		// loaned ref
+			Tcl_Obj*	idx = NULL;		// loaned ref
+			Tcl_Obj*	res = NULL;
+
+			enum {A_cmd, A_URI, A_OPTS, A_objc};
+			CHECK_ARGS_LABEL(finally, code, "uri options");
+
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_PARAM], &param));
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_DEF],   &def));
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_IDX],   &idx));
+			TEST_OK_LABEL(finally, code, Reuri_URIObjQueryGet(interp, objv[A_URI], param, def, idx, REURI_FLAG_NONE, &res));
+
+			Tcl_SetObjResult(interp, g_obj[res ? S_TRUE : S_FALSE]);
+
+		finally:
+			replace_tclobj(&res, NULL);
+			return code;
+		}
+
+		OBJCMD(set) {
+			int			code = TCL_OK;
+			Tcl_Obj*	param = NULL;	// loaned ref
+			Tcl_Obj*	val = NULL;		// loaned ref
+			Tcl_Obj*	res = NULL;
+
+			enum {A_cmd, A_URI, A_OPTS, A_objc};
+			CHECK_ARGS_LABEL(finally, code, "uri options");
+
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_PARAM], &param));
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_VAL],   &val));
+			TEST_OK_LABEL(finally, code, Reuri_URIObjQuerySet(interp, objv[A_URI], param, val, &res));
+
+			Tcl_SetObjResult(interp, res);
+
+		finally:
+			replace_tclobj(&res, NULL);
+			return code;
+		}
+
+		OBJCMD(add) {
+			int			code = TCL_OK;
+			Tcl_Obj*	param = NULL;	// loaned ref
+			Tcl_Obj*	val = NULL;		// loaned ref
+			Tcl_Obj*	res = NULL;
+
+			enum {A_cmd, A_URI, A_OPTS, A_objc};
+			CHECK_ARGS_LABEL(finally, code, "uri options");
+
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_PARAM], &param));
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_VAL],   &val));
+			TEST_OK_LABEL(finally, code, Reuri_URIObjQueryAdd(interp, objv[A_URI], param, val, &res));
+
+			Tcl_SetObjResult(interp, res);
+
+		finally:
+			replace_tclobj(&res, NULL);
+			return code;
+		}
+
+		OBJCMD(values) {
+			int			code = TCL_OK;
+			Tcl_Obj*	param = NULL;	// loaned ref
+			Tcl_Obj*	res = NULL;
+
+			enum {A_cmd, A_URI, A_OPTS, A_objc};
+			CHECK_ARGS_LABEL(finally, code, "uri options");
+
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_PARAM], &param));
+			TEST_OK_LABEL(finally, code, Reuri_URIObjQueryValues(interp, objv[A_URI], param, &res));
+
+			Tcl_SetObjResult(interp, res);
+
+		finally:
+			replace_tclobj(&res, NULL);
+			return code;
+		}
+
+		OBJCMD(unset) {
+			int			code = TCL_OK;
+			Tcl_Obj*	param = NULL;	// loaned ref
+			Tcl_Obj*	res = NULL;
+
+			enum {A_cmd, A_URI, A_OPTS, A_objc};
+			CHECK_ARGS_LABEL(finally, code, "uri options");
+
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_PARAM], &param));
+			TEST_OK_LABEL(finally, code, Reuri_URIObjQueryUnset(interp, objv[A_URI], param, &res));
+
+			Tcl_SetObjResult(interp, res);
+
+		finally:
+			replace_tclobj(&res, NULL);
+			return code;
+		}
+
+		OBJCMD(names) {
+			int			code = TCL_OK;
+			Tcl_Obj*	res = NULL;
+
+			enum {A_cmd, A_URI, A_OPTS, A_objc};
+			CHECK_ARGS_LABEL(finally, code, "uri options");
+
+			TEST_OK_LABEL(finally, code, Reuri_URIObjQueryNames(interp, objv[A_URI], &res));
+
+			Tcl_SetObjResult(interp, res);
+
+		finally:
+			replace_tclobj(&res, NULL);
+			return code;
+		}
+
+		OBJCMD(new) {
+			int			code = TCL_OK;
+			Tcl_Obj*	params = NULL;	// loaned ref
+			Tcl_Obj*	res = NULL;
+
+			enum {A_cmd, A_URI, A_OPTS, A_objc};
+			CHECK_ARGS_LABEL(finally, code, "uri options");
+
+			TEST_OK_LABEL(finally, code, Tcl_DictObjGet(NULL, objv[A_OPTS], g_obj[S_PARAMS], &params));
+			TEST_OK_LABEL(finally, code, Reuri_URIObjQueryNew(interp, objv[A_URI], params, &res));
+
+			Tcl_SetObjResult(interp, res);
+
+		finally:
+			replace_tclobj(&res, NULL);
+			return code;
+		}
+	}
+}]
+
+test stubs-1.1 {Reuri_URIObjQueryGet} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bar=baz
+} -body {
+	jitc::capply $cdef get $uri {param bar}
+} -cleanup {
+	unset -nocomplain uri
+} -result baz
+#>>>
+test stubs-1.2 {Reuri_URIObjQueryGet no param} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz
+} -body {
+	jitc::capply $cdef get $uri {}
+} -cleanup {
+	unset -nocomplain uri
+} -result {foo bar baz {}}
+#>>>
+test stubs-1.3.1 {Reuri_URIObjQueryGet index, exists} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz
+} -body {
+	jitc::capply $cdef get $uri {param foo idx 0}
+} -cleanup {
+	unset -nocomplain uri
+} -result bar
+#>>>
+test stubs-1.3.2 {Reuri_URIObjQueryGet index, after end} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz
+} -body {
+	jitc::capply $cdef get $uri {param foo idx 1}
+} -cleanup {
+	unset -nocomplain uri
+} -result {}
+#>>>
+test stubs-1.3.3 {Reuri_URIObjQueryGet index, before start} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz
+} -body {
+	jitc::capply $cdef get $uri {param foo idx -1}
+} -cleanup {
+	unset -nocomplain uri
+} -result {}
+#>>>
+test stubs-1.3.4 {Reuri_URIObjQueryGet index, end} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz&foo=quux
+} -body {
+	jitc::capply $cdef get $uri {param foo idx end}
+} -cleanup {
+	unset -nocomplain uri
+} -result quux
+#>>>
+test stubs-1.3.5 {Reuri_URIObjQueryGet bad index} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz&foo=quux
+} -body {
+	jitc::capply $cdef get $uri {param foo idx bad}
+} -cleanup {
+	unset -nocomplain uri
+} -returnCodes error -result {Index syntax error at 0: 0x62} -errorCode {REURI INDEX PARSE bad 0}
+#>>>
+test stubs-1.4 {Reuri_URIObjQueryGet no query} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a
+} -body {
+	jitc::capply $cdef get $uri {param foo}
+} -cleanup {
+	unset -nocomplain uri
+} -returnCodes error -result {param "foo" doesn't exist} -errorCode {REURI PARAM_NOT_SET foo}
+#>>>
+test stubs-1.5 {Reuri_URIObjQueryGet no query, with default} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a
+} -body {
+	jitc::capply $cdef get $uri {param foo def defval}
+} -cleanup {
+	unset -nocomplain uri
+} -result defval
+#>>>
+test stubs-1.6 {Reuri_URIObjQueryGet has query, with default} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?other=x
+} -body {
+	jitc::capply $cdef get $uri {param foo def defval}
+} -cleanup {
+	unset -nocomplain uri
+} -result defval
+#>>>
+test stubs-1.7 {Reuri_URIObjQueryGet has query with val, with default} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?other=x&foo=existing
+} -body {
+	jitc::capply $cdef get $uri {param foo def defval}
+} -cleanup {
+	unset -nocomplain uri
+} -result existing
+#>>>
+test stubs-1.8 {Reuri_URIObjQueryGet has query with multiple val, with default} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?other=x&foo=existing&foo=next
+} -body {
+	jitc::capply $cdef get $uri {param foo def defval}
+} -cleanup {
+	unset -nocomplain uri
+} -result next
+#>>>
+test stubs-1.9 {Reuri_URIObjQueryGet has query with multiple val, with default, index} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?other=x&foo=existing&foo=next
+} -body {
+	jitc::capply $cdef get $uri {param foo def defval idx 0}
+} -cleanup {
+	unset -nocomplain uri
+} -result existing
+#>>>
+
+test stubs-2.1 {exists Reuri_URIObjQueryGet} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bar=baz
+} -body {
+	jitc::capply $cdef exists $uri {param bar}
+} -cleanup {
+	unset -nocomplain uri
+} -result 1
+#>>>
+test stubs-2.2 {exists Reuri_URIObjQueryGet no param} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz
+} -body {
+	jitc::capply $cdef exists $uri {}
+} -cleanup {
+	unset -nocomplain uri
+} -result 1
+#>>>
+test stubs-2.3.1 {exists Reuri_URIObjQueryGet index, exists} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz
+} -body {
+	jitc::capply $cdef exists $uri {param foo idx 0}
+} -cleanup {
+	unset -nocomplain uri
+} -result 1
+#>>>
+test stubs-2.3.2 {exists Reuri_URIObjQueryGet index, after end} -constraints {haveJitc knownBug} -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz
+} -body {
+	jitc::capply $cdef exists $uri {param foo idx 1}
+} -cleanup {
+	unset -nocomplain uri
+} -result 0
+#>>>
+test stubs-2.3.3 {exists Reuri_URIObjQueryGet index, before start} -constraints {haveJitc knownBug} -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz
+} -body {
+	jitc::capply $cdef exists $uri {param foo idx -1}
+} -cleanup {
+	unset -nocomplain uri
+} -result 0
+#>>>
+test stubs-2.3.4 {exists Reuri_URIObjQueryGet index, end} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz&foo=quux
+} -body {
+	jitc::capply $cdef exists $uri {param foo idx end}
+} -cleanup {
+	unset -nocomplain uri
+} -result 1
+#>>>
+test stubs-2.3.5 {exists Reuri_URIObjQueryGet bad index} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?foo=bar&baz&foo=quux
+} -body {
+	jitc::capply $cdef exists $uri {param foo idx bad}
+} -cleanup {
+	unset -nocomplain uri
+} -returnCodes error -result {Index syntax error at 0: 0x62} -errorCode {REURI INDEX PARSE bad 0}
+#>>>
+test stubs-2.4 {exists Reuri_URIObjQueryGet no query} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a
+} -body {
+	jitc::capply $cdef exists $uri {param foo}
+} -cleanup {
+	unset -nocomplain uri
+} -result 0
+#>>>
+test stubs-2.5 {exists Reuri_URIObjQueryGet no query, with default} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a
+} -body {
+	jitc::capply $cdef exists $uri {param foo def defval}
+} -cleanup {
+	unset -nocomplain uri
+} -result 1
+#>>>
+test stubs-2.6 {exists Reuri_URIObjQueryGet has query, with default} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?other=x
+} -body {
+	jitc::capply $cdef exists $uri {param foo def defval}
+} -cleanup {
+	unset -nocomplain uri
+} -result 1
+#>>>
+test stubs-2.7 {exists Reuri_URIObjQueryGet has query with val, with default} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?other=x&foo=existing
+} -body {
+	jitc::capply $cdef exists $uri {param foo def defval}
+} -cleanup {
+	unset -nocomplain uri
+} -result 1
+#>>>
+test stubs-2.8 {exists Reuri_URIObjQueryGet has query with multiple val, with default} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?other=x&foo=existing&foo=next
+} -body {
+	jitc::capply $cdef exists $uri {param foo def defval}
+} -cleanup {
+	unset -nocomplain uri
+} -result 1
+#>>>
+test stubs-2.9 {exists Reuri_URIObjQueryGet has query with multiple val, with default, index} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/a?other=x&foo=existing&foo=next
+} -body {
+	jitc::capply $cdef exists $uri {param foo def defval idx 0}
+} -cleanup {
+	unset -nocomplain uri
+} -result 1
+#>>>
+
+test stubs-3.1 {Reuri_URIObjQuerySet} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bar=baz
+} -body {
+	jitc::capply $cdef set $uri {param bar val quux}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo?bar=quux
+#>>>
+test stubs-3.2 {Reuri_URIObjQuerySet, no query} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo
+} -body {
+	jitc::capply $cdef set $uri {param bar val quux}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo?bar=quux
+#>>>
+test stubs-3.3 {Reuri_URIObjQuerySet} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?other=existing
+} -body {
+	jitc::capply $cdef set $uri {param bar val quux}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo?other=existing&bar=quux
+#>>>
+
+test stubs-4.1 {Reuri_URIObjQueryAdd} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bar=baz
+} -body {
+	jitc::capply $cdef add $uri {param bar val quux}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo?bar=baz&bar=quux
+#>>>
+test stubs-4.2 {Reuri_URIObjQueryAdd, none pre-existing} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bat=baz
+} -body {
+	jitc::capply $cdef add $uri {param bar val quux}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo?bat=baz&bar=quux
+#>>>
+
+test stubs-5.1 {Reuri_URIObjQueryValues} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bar=baz&bar=quux
+} -body {
+	jitc::capply $cdef values $uri {param bar}
+} -cleanup {
+	unset -nocomplain uri
+} -result {baz quux}
+#>>>
+test stubs-5.2 {Reuri_URIObjQueryValues} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bat=baz&bat=quux
+} -body {
+	jitc::capply $cdef values $uri {param bar}
+} -cleanup {
+	unset -nocomplain uri
+} -result {}
+#>>>
+
+test stubs-6.1 {Reuri_URIObjQueryUnset} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bar=baz
+} -body {
+	jitc::capply $cdef unset $uri {param bar}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo
+#>>>
+test stubs-6.2 {Reuri_URIObjQueryUnset} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bat=baz
+} -body {
+	jitc::capply $cdef unset $uri {param bar}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo?bat=baz
+#>>>
+test stubs-6.3 {Reuri_URIObjQueryUnset} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bar=foo&bat=baz
+} -body {
+	jitc::capply $cdef unset $uri {param bar}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo?bat=baz
+#>>>
+test stubs-6.4 {Reuri_URIObjQueryUnset} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo
+} -body {
+	jitc::capply $cdef unset $uri {param bar}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo
+#>>>
+test stubs-6.5 {Reuri_URIObjQueryUnset, multiple existing} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bar=first&foo=x&bar=second
+} -body {
+	jitc::capply $cdef unset $uri {param bar}
+} -cleanup {
+	unset -nocomplain uri
+} -result http://localhost/foo?foo=x
+#>>>
+
+test stubs-7.1 {Reuri_URIObjQueryNames} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?bar=baz&bar=quux&baz=other
+} -body {
+	jitc::capply $cdef names $uri {}
+} -cleanup {
+	unset -nocomplain uri
+} -result {bar bar baz}
+#>>>
+test stubs-7.2 {Reuri_URIObjQueryNames, no query} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo
+} -body {
+	jitc::capply $cdef names $uri {}
+} -cleanup {
+	unset -nocomplain uri
+} -result {}
+#>>>
+test stubs-7.3 {Reuri_URIObjQueryNames, empty query} -constraints haveJitc -setup { #<<<
+	set uri	http://localhost/foo?
+} -body {
+	jitc::capply $cdef names $uri {}
+} -cleanup {
+	unset -nocomplain uri
+} -result {}
+#>>>
+
+test stubs-8.1 {Reuri_URIObjQueryNew} -constraints haveJitc -body { #<<<
+	jitc::capply $cdef new http://localhost/foo {params {bar baz}}
+} -result http://localhost/foo?bar=baz
+#>>>
+test stubs-8.2 {Reuri_URIObjQueryNew} -constraints haveJitc -body { #<<<
+	jitc::capply $cdef new http://localhost/foo {params {}}
+} -result http://localhost/foo
+#>>>
+test stubs-8.3 {Reuri_URIObjQueryNew replace existing} -constraints haveJitc -body { #<<<
+	jitc::capply $cdef new http://localhost/foo?old1=x&old2=y {params {}}
+} -result http://localhost/foo
+#>>>
+test stubs-8.4 {Reuri_URIObjQueryNew replace existing} -constraints haveJitc -body { #<<<
+	jitc::capply $cdef new http://localhost/foo?old1=x&old2=y {params {new1 a new2 b new1 c}}
+} -result http://localhost/foo?new1=a&new2=b&new1=c
+#>>>
+
+# cleanup
+::tcltest::cleanupTests
+return
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4
+

@@ -520,6 +520,7 @@ The uri module of tcllib.
 - [ ] Implement **reuri::path set**
 - [x] Implement **reuri::path join**
 - [ ] Implement **reuri::path resolve**
+- [ ] Implement URLPattern style matching: https://developer.mozilla.org/en-US/docs/Web/API/URL_Pattern_API (in jitclib?)
 
 ## LICENSE
 

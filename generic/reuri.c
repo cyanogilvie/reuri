@@ -871,6 +871,8 @@ int Reuri_URIObjSet(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, T
 
 	replace_tclobj(&res, uriPtr);
 
+	replace_tclobj(resPtrPtr, NULL);	// In the common case that this points at uriPtr, clear the caller's ref so that res is unshared
+
 	if (Tcl_IsShared(res))
 		replace_tclobj(&res, Tcl_DuplicateObj(res));
 

@@ -868,7 +868,9 @@ int Reuri_URIObjSet(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, T
 	Tcl_Obj*			newval = NULL;
 	Tcl_Obj*			res = NULL;
 	Tcl_Obj**			partPtr = NULL;
+	Tcl_Obj*			val = NULL;
 
+	replace_tclobj(&val, valuePtr);		// Use a local reference to properly handle the case we're passed a zero-ref value (like from an inline Tcl_NewStringObj())
 	replace_tclobj(&res, uriPtr);
 
 	replace_tclobj(resPtrPtr, NULL);	// In the common case that this points at uriPtr, clear the caller's ref so that res is unshared
@@ -881,13 +883,13 @@ int Reuri_URIObjSet(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, T
 	enum reuri_hosttype	old_hosttype = uri->hosttype;
 
 	switch (part) {
-		case REURI_SCHEME:   partPtr = &uri->scheme;	TEST_OK_LABEL(finally, code, parse_scheme  (interp, valuePtr, &newval)); break;
-		case REURI_USERINFO: partPtr = &uri->userinfo;	TEST_OK_LABEL(finally, code, parse_userinfo(interp, valuePtr, &newval)); break;
-		case REURI_HOST:     partPtr = &uri->host;		TEST_OK_LABEL(finally, code, parse_host    (interp, valuePtr, &newval, &uri->hosttype)); break;
-		case REURI_PORT:     partPtr = &uri->port;		TEST_OK_LABEL(finally, code, parse_port    (interp, valuePtr, &newval)); break;
-		case REURI_PATH:     partPtr = &uri->path;		TEST_OK_LABEL(finally, code, parse_path    (interp, valuePtr, &newval)); break;
-		case REURI_QUERY:    partPtr = &uri->query;		TEST_OK_LABEL(finally, code, parse_query   (interp, valuePtr, &newval)); break;
-		case REURI_FRAGMENT: partPtr = &uri->fragment;	TEST_OK_LABEL(finally, code, parse_fragment(interp, valuePtr, &newval)); break;
+		case REURI_SCHEME:   partPtr = &uri->scheme;	TEST_OK_LABEL(finally, code, parse_scheme  (interp, val, &newval)); break;
+		case REURI_USERINFO: partPtr = &uri->userinfo;	TEST_OK_LABEL(finally, code, parse_userinfo(interp, val, &newval)); break;
+		case REURI_HOST:     partPtr = &uri->host;		TEST_OK_LABEL(finally, code, parse_host    (interp, val, &newval, &uri->hosttype)); break;
+		case REURI_PORT:     partPtr = &uri->port;		TEST_OK_LABEL(finally, code, parse_port    (interp, val, &newval)); break;
+		case REURI_PATH:     partPtr = &uri->path;		TEST_OK_LABEL(finally, code, parse_path    (interp, val, &newval)); break;
+		case REURI_QUERY:    partPtr = &uri->query;		TEST_OK_LABEL(finally, code, parse_query   (interp, val, &newval)); break;
+		case REURI_FRAGMENT: partPtr = &uri->fragment;	TEST_OK_LABEL(finally, code, parse_fragment(interp, val, &newval)); break;
 			THROW_ERROR_LABEL(finally, code, "Not implemented yet");
 		default:
 			THROW_ERROR_LABEL(finally, code, "Unhandled part");
@@ -918,6 +920,7 @@ int Reuri_URIObjSet(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, T
 finally:
 	replace_tclobj(&newval, NULL);
 	replace_tclobj(&res, NULL);
+	replace_tclobj(&val, NULL);
 	return code;
 }
 

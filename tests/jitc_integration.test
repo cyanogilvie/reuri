@@ -34,6 +34,20 @@ test jitc_integration-1.1 {Use c API from jitc} -setup { #<<<
 	unset -nocomplain cdef
 } -result {baz quux a b}
 #>>>
+test jitc_integration-2.1 {pkgconfig integration} -setup { #<<<
+	set child	[interp create]
+} -body {
+	expr {
+		[reuri::pkgconfig get includedir,runtime] eq [$child eval {
+			load {} Reuri
+			reuri::pkgconfig get includedir,runtime
+		}]
+	}
+} -cleanup {
+	if {[interp exists $child]} {interp delete $child}
+	unset -nocomplain child
+} -result 1
+#>>>
 
 # cleanup
 ::tcltest::cleanupTests

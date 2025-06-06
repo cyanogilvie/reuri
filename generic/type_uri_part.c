@@ -36,65 +36,67 @@ static void free_internal_rep(Tcl_Obj* obj, Reuri_ObjType* objtype);
 static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup, Reuri_ObjType* objtype);
 static void update_string_rep(Tcl_Obj* obj, Reuri_ObjType* objtype);
 
+#define DECL_UPDATER(name) static int name(Tcl_Interp* interp, Tcl_Obj* obj)
+
 static void free_internal_rep_scheme(Tcl_Obj* obj)				{ free_internal_rep(obj, &scheme_objtype);     }
 static void dup_internal_rep_scheme(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &scheme_objtype); }
 static void update_string_rep_scheme(Tcl_Obj* obj)				{ update_string_rep(obj, &scheme_objtype);     }
-static int update_decoded_rep_scheme(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_scheme(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_scheme);
+DECL_UPDATER(update_normalized_rep_scheme);
 
 static void free_internal_rep_userinfo(Tcl_Obj* obj)				{ free_internal_rep(obj, &userinfo_objtype);     }
 static void dup_internal_rep_userinfo(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &userinfo_objtype); }
 static void update_string_rep_userinfo(Tcl_Obj* obj)				{ update_string_rep(obj, &userinfo_objtype);     }
-static int update_decoded_rep_userinfo(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_userinfo(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_userinfo);
+DECL_UPDATER(update_normalized_rep_userinfo);
 
 static void free_internal_rep_host_reg_name(Tcl_Obj* obj)				{ free_internal_rep(obj, &host_reg_name_objtype);     }
 static void dup_internal_rep_host_reg_name(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &host_reg_name_objtype); }
 static void update_string_rep_host_reg_name(Tcl_Obj* obj)				{ update_string_rep(obj, &host_reg_name_objtype);     }
-static int update_decoded_rep_host_reg_name(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_host_reg_name(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_host_reg_name);
+DECL_UPDATER(update_normalized_rep_host_reg_name);
 
 static void free_internal_rep_host_ipv4(Tcl_Obj* obj)				{ free_internal_rep(obj, &host_ipv4_objtype);     }
 static void dup_internal_rep_host_ipv4(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &host_ipv4_objtype); }
 static void update_string_rep_host_ipv4(Tcl_Obj* obj)				{ update_string_rep(obj, &host_ipv4_objtype);     }
-static int update_decoded_rep_host_ipv4(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_host_ipv4(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_host_ipv4);
+DECL_UPDATER(update_normalized_rep_host_ipv4);
 
 static void free_internal_rep_host_ipv6(Tcl_Obj* obj)				{ free_internal_rep(obj, &host_ipv6_objtype);     }
 static void dup_internal_rep_host_ipv6(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &host_ipv6_objtype); }
 static void update_string_rep_host_ipv6(Tcl_Obj* obj)				{ update_string_rep(obj, &host_ipv6_objtype);     }
-static int update_decoded_rep_host_ipv6(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_host_ipv6(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_host_ipv6);
+DECL_UPDATER(update_normalized_rep_host_ipv6);
 
 static void free_internal_rep_host_local(Tcl_Obj* obj)				{ free_internal_rep(obj, &host_local_objtype);     }
 static void dup_internal_rep_host_local(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &host_local_objtype); }
 static void update_string_rep_host_local(Tcl_Obj* obj)				{ update_string_rep(obj, &host_local_objtype);     }
-static int update_decoded_rep_host_local(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_host_local(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_host_local);
+DECL_UPDATER(update_normalized_rep_host_local);
 
 static void free_internal_rep_port(Tcl_Obj* obj)				{ free_internal_rep(obj, &port_objtype);     }
 static void dup_internal_rep_port(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &port_objtype); }
 static void update_string_rep_port(Tcl_Obj* obj)				{ update_string_rep(obj, &port_objtype);     }
-static int update_decoded_rep_port(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_port(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_port);
+DECL_UPDATER(update_normalized_rep_port);
 
 static void free_internal_rep_path(Tcl_Obj* obj)				{ free_internal_rep(obj, &path_objtype);     }
 static void dup_internal_rep_path(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &path_objtype); }
 static void update_string_rep_path(Tcl_Obj* obj)				{ update_string_rep(obj, &path_objtype);     }
-static int update_decoded_rep_path(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_path(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_path);
+DECL_UPDATER(update_normalized_rep_path);
 
 static void free_internal_rep_query(Tcl_Obj* obj)				{ free_internal_rep(obj, &query_objtype);     }
 static void dup_internal_rep_query(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &query_objtype); }
 static void update_string_rep_query(Tcl_Obj* obj)				{ update_string_rep(obj, &query_objtype);     }
-static int update_decoded_rep_query(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_query(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_query);
+DECL_UPDATER(update_normalized_rep_query);
 
 static void free_internal_rep_fragment(Tcl_Obj* obj)				{ free_internal_rep(obj, &fragment_objtype);     }
 static void dup_internal_rep_fragment(Tcl_Obj* src, Tcl_Obj* dup)	{ dup_internal_rep(src, dup, &fragment_objtype); }
 static void update_string_rep_fragment(Tcl_Obj* obj)				{ update_string_rep(obj, &fragment_objtype);     }
-static int update_decoded_rep_fragment(Tcl_Interp* interp, Tcl_Obj* obj);
-static int update_normalized_rep_fragment(Tcl_Interp* interp, Tcl_Obj* obj);
+DECL_UPDATER(update_decoded_rep_fragment);
+DECL_UPDATER(update_normalized_rep_fragment);
 
 Reuri_ObjType scheme_objtype = {
 	.base = {
@@ -675,61 +677,6 @@ Tcl_Obj* Reuri_NewPartFromString(Reuri_ObjType* objtype, const char* str, int le
 }
 
 //>>>
-int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlistPtrPtr) //<<<
-{
-	int					code = TCL_OK;
-	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(pathPtr, (Tcl_ObjType*)&path_objtype);
-
-	if (ir == NULL) {
-		Tcl_ObjInternalRep	newir = {0};
-
-		code = decode_path(interp, Tcl_GetString(pathPtr), DECODED_PTR(&newir));
-		if (code != TCL_OK) {
-			replace_tclobj(DECODED_PTR(&newir), NULL);
-			replace_tclobj(NORMALIZED_PTR(&newir), NULL);
-			goto finally;
-		}
-
-		Tcl_StoreInternalRep(pathPtr, (Tcl_ObjType*)&path_objtype, &newir);
-		register_intrep(pathPtr);
-		ir = Tcl_FetchInternalRep(pathPtr, (Tcl_ObjType*)&path_objtype);
-	}
-
-	if (pathlistPtrPtr) replace_tclobj(pathlistPtrPtr, DECODED(ir));
-
-finally:
-	return code;
-}
-
-//>>>
-int Reuri_CompilePath(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* pathListPtr) //<<<
-{
-	int			code = TCL_OK;
-	Tcl_Obj**	ov = NULL;
-	int			oc;
-	int			i;
-
-	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, pathListPtr, &oc, &ov));
-
-	if (oc == 0)
-		return code;
-
-	if (strcmp(Tcl_GetString(ov[0]), "/") != 0) {
-		percent_encode_ds(REURI_ENCODE_PATH, ds, Tcl_GetString(ov[0]));
-	} else if (oc == 1) {
-		Tcl_DStringAppend(ds, "/", 1);
-	}
-
-	for (i=1; i<oc; i++) {
-		Tcl_DStringAppend(ds, "/", 1);
-		percent_encode_ds(REURI_ENCODE_PATH2, ds, Tcl_GetString(ov[i]));
-	}
-
-finally:
-	return code;
-}
-
-//>>>
 int query_add_index(Tcl_Interp* interp, Tcl_Obj* index, Tcl_Obj* name, const int pnum) //<<<
 {
 	int				code = TCL_OK;
@@ -910,12 +857,13 @@ int Reuri_CompileQuery(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* params) //<
 	if (pc == 0) goto finally;
 
 	const char*	str = NULL;
+	enum reuri_encode_mode	valmode = g_quirks.encode_query_val_eq ? REURI_ENCODE_QUERY : REURI_ENCODE_QUERYVAL;
 
 	percent_encode_ds(REURI_ENCODE_QUERY, ds, Tcl_GetString(pv[i++]));
 	str = Tcl_GetString(pv[i++]);
 	if (str[0]) {
 		Tcl_DStringAppend(ds, "=", 1);
-		percent_encode_ds(REURI_ENCODE_QUERYVAL, ds, str);
+		percent_encode_ds(valmode, ds, str);
 	}
 	while (i<pc) {
 		Tcl_DStringAppend(ds, "&", 1);
@@ -923,7 +871,7 @@ int Reuri_CompileQuery(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* params) //<
 		str = Tcl_GetString(pv[i++]);
 		if (str[0]) {
 			Tcl_DStringAppend(ds, "=", 1);
-			percent_encode_ds(REURI_ENCODE_QUERYVAL, ds, str);
+			percent_encode_ds(valmode, ds, str);
 		}
 	}
 
@@ -937,6 +885,61 @@ enum reuri_pathtype Reuri_PathType(Tcl_Obj* pathPtr) //<<<
 	if (pathPtr == NULL) return REURI_PATH_EMPTY;
 	const char*	str = Tcl_GetString(pathPtr);
 	return (str[0] == '/') ? REURI_PATH_ABSOLUTE : REURI_PATH_ROOTLESS;
+}
+
+//>>>
+int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlistPtrPtr) //<<<
+{
+	int					code = TCL_OK;
+	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(pathPtr, (Tcl_ObjType*)&path_objtype);
+
+	if (ir == NULL) {
+		Tcl_ObjInternalRep	newir = {0};
+
+		code = decode_path(interp, Tcl_GetString(pathPtr), DECODED_PTR(&newir));
+		if (code != TCL_OK) {
+			replace_tclobj(DECODED_PTR(&newir), NULL);
+			replace_tclobj(NORMALIZED_PTR(&newir), NULL);
+			goto finally;
+		}
+
+		Tcl_StoreInternalRep(pathPtr, (Tcl_ObjType*)&path_objtype, &newir);
+		register_intrep(pathPtr);
+		ir = Tcl_FetchInternalRep(pathPtr, (Tcl_ObjType*)&path_objtype);
+	}
+
+	if (pathlistPtrPtr) replace_tclobj(pathlistPtrPtr, DECODED(ir));
+
+finally:
+	return code;
+}
+
+//>>>
+int Reuri_CompilePath(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* pathListPtr) //<<<
+{
+	int			code = TCL_OK;
+	Tcl_Obj**	ov = NULL;
+	int			oc;
+	int			i;
+
+	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, pathListPtr, &oc, &ov));
+
+	if (oc == 0)
+		return code;
+
+	if (strcmp(Tcl_GetString(ov[0]), "/") != 0) {
+		percent_encode_ds(REURI_ENCODE_PATH, ds, Tcl_GetString(ov[0]));
+	} else if (oc == 1) {
+		Tcl_DStringAppend(ds, "/", 1);
+	}
+
+	for (i=1; i<oc; i++) {
+		Tcl_DStringAppend(ds, "/", 1);
+		percent_encode_ds(REURI_ENCODE_PATH2, ds, Tcl_GetString(ov[i]));
+	}
+
+finally:
+	return code;
 }
 
 //>>>

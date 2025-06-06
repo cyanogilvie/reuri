@@ -16,9 +16,7 @@ EXTERN int		Reuri_URIObjGetPart(Tcl_Interp*interp,
 /* 1 */
 EXTERN int		Reuri_URIObjGetAll(Tcl_Interp*interp, Tcl_Obj*uriPtr,
 				Tcl_Obj**res);
-/* 2 */
-EXTERN Tcl_Obj*		Reuri_PercentEncodeObj(Tcl_Interp*interp,
-				enum reuri_encode_mode mode, Tcl_Obj*objPtr);
+/* Slot 2 is reserved */
 /* 3 */
 EXTERN int		Reuri_NewQueryObj(Tcl_Interp*interp, int objc,
 				Tcl_Obj* const objv[], Tcl_Obj**res);
@@ -37,8 +35,7 @@ EXTERN int		Reuri_URIObjPartExists(Tcl_Interp*interp,
 EXTERN int		Reuri_GetPathFromObj(Tcl_Interp*interp,
 				Tcl_Obj*pathPtr, Tcl_Obj**pathlistPtrPtr);
 /* Slot 9 is reserved */
-/* 10 */
-EXTERN Tcl_Obj*		Reuri_PercentDecodeObj(Tcl_Obj*in);
+/* Slot 10 is reserved */
 /* 11 */
 EXTERN int		Reuri_GetPartFromObj(Tcl_Interp*interp,
 				Tcl_Obj*partObj, enum reuri_part*part);
@@ -55,7 +52,8 @@ EXTERN int		Reuri_URIObjSet(Tcl_Interp*interp, Tcl_Obj*uriPtr,
 				Tcl_Obj**resPtrPtr);
 /* 15 */
 EXTERN int		Reuri_URIObjQueryGet(Tcl_Interp*interp,
-				Tcl_Obj*uriPtr, Tcl_Obj*param,
+				Tcl_Obj*uriPtr,
+				Tcl_Obj* param /* NULL for all */,
 				Tcl_Obj* def /* may be NULL */,
 				Tcl_Obj* index /* may be NULL */, int flags,
 				Tcl_Obj**out);
@@ -81,6 +79,19 @@ EXTERN int		Reuri_URIObjQueryNames(Tcl_Interp*interp,
 EXTERN int		Reuri_URIObjQueryNew(Tcl_Interp*interp,
 				Tcl_Obj*uriPtr, Tcl_Obj* params /* list */,
 				Tcl_Obj**out);
+/* 23 */
+EXTERN int		Reuri_URIObjHostType(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, enum reuri_hosttype*hosttype);
+/* 24 */
+EXTERN int		Reuri_URIObjNormalize(Tcl_Interp*interp,
+				Tcl_Obj*uriPtr, Tcl_Obj**out);
+/* 25 */
+EXTERN void		Reuri_PercentDecode(Tcl_Obj*in, Tcl_Obj**out);
+/* 26 */
+EXTERN void		Reuri_PercentEncode(
+				Tcl_Interp* interp /* can be NULL */,
+				enum reuri_encode_mode mode, Tcl_Obj*in,
+				Tcl_Obj**out);
 
 typedef struct ReuriStubs {
     int magic;
@@ -88,7 +99,7 @@ typedef struct ReuriStubs {
 
     int (*reuri_URIObjGetPart) (Tcl_Interp*interp, Tcl_Obj*uriPtr, enum reuri_part part, Tcl_Obj*defaultPtr, Tcl_Obj**valuePtrPtr); /* 0 */
     int (*reuri_URIObjGetAll) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj**res); /* 1 */
-    Tcl_Obj* (*reuri_PercentEncodeObj) (Tcl_Interp*interp, enum reuri_encode_mode mode, Tcl_Obj*objPtr); /* 2 */
+    void (*reserved2)(void);
     int (*reuri_NewQueryObj) (Tcl_Interp*interp, int objc, Tcl_Obj* const objv[], Tcl_Obj**res); /* 3 */
     int (*reuri_CompileQuery) (Tcl_Interp*interp, Tcl_DString*ds, Tcl_Obj*params); /* 4 */
     int (*reuri_CompilePath) (Tcl_Interp*interp, Tcl_DString*ds, Tcl_Obj*pathListPtr); /* 5 */
@@ -96,12 +107,12 @@ typedef struct ReuriStubs {
     void (*reserved7)(void);
     int (*reuri_GetPathFromObj) (Tcl_Interp*interp, Tcl_Obj*pathPtr, Tcl_Obj**pathlistPtrPtr); /* 8 */
     void (*reserved9)(void);
-    Tcl_Obj* (*reuri_PercentDecodeObj) (Tcl_Obj*in); /* 10 */
+    void (*reserved10)(void);
     int (*reuri_GetPartFromObj) (Tcl_Interp*interp, Tcl_Obj*partObj, enum reuri_part*part); /* 11 */
     int (*reuri_URIObjExtractPart) (Tcl_Interp*interp, Tcl_Obj*uriPtr, enum reuri_part part, Tcl_Obj*defaultPtr, Tcl_Obj**valuePtrPtr); /* 12 */
     int (*reuri_URIObjExtractAll) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj**res); /* 13 */
     int (*reuri_URIObjSet) (Tcl_Interp*interp, Tcl_Obj*uriPtr, enum reuri_part part, Tcl_Obj*valuePtr, Tcl_Obj**resPtrPtr); /* 14 */
-    int (*reuri_URIObjQueryGet) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj* def /* may be NULL */, Tcl_Obj* index /* may be NULL */, int flags, Tcl_Obj**out); /* 15 */
+    int (*reuri_URIObjQueryGet) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj* param /* NULL for all */, Tcl_Obj* def /* may be NULL */, Tcl_Obj* index /* may be NULL */, int flags, Tcl_Obj**out); /* 15 */
     int (*reuri_URIObjQueryValues) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj**out); /* 16 */
     int (*reuri_URIObjQueryAdd) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj*value, Tcl_Obj**out); /* 17 */
     void (*reserved18)(void);
@@ -109,6 +120,10 @@ typedef struct ReuriStubs {
     int (*reuri_URIObjQueryUnset) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj*param, Tcl_Obj**out); /* 20 */
     int (*reuri_URIObjQueryNames) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj**out); /* 21 */
     int (*reuri_URIObjQueryNew) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj* params /* list */, Tcl_Obj**out); /* 22 */
+    int (*reuri_URIObjHostType) (Tcl_Interp*interp, Tcl_Obj*uriPtr, enum reuri_hosttype*hosttype); /* 23 */
+    int (*reuri_URIObjNormalize) (Tcl_Interp*interp, Tcl_Obj*uriPtr, Tcl_Obj**out); /* 24 */
+    void (*reuri_PercentDecode) (Tcl_Obj*in, Tcl_Obj**out); /* 25 */
+    void (*reuri_PercentEncode) (Tcl_Interp* interp /* can be NULL */, enum reuri_encode_mode mode, Tcl_Obj*in, Tcl_Obj**out); /* 26 */
 } ReuriStubs;
 
 extern const ReuriStubs *reuriStubsPtr;
@@ -127,8 +142,7 @@ extern const ReuriStubs *reuriStubsPtr;
 	(reuriStubsPtr->reuri_URIObjGetPart) /* 0 */
 #define Reuri_URIObjGetAll \
 	(reuriStubsPtr->reuri_URIObjGetAll) /* 1 */
-#define Reuri_PercentEncodeObj \
-	(reuriStubsPtr->reuri_PercentEncodeObj) /* 2 */
+/* Slot 2 is reserved */
 #define Reuri_NewQueryObj \
 	(reuriStubsPtr->reuri_NewQueryObj) /* 3 */
 #define Reuri_CompileQuery \
@@ -141,8 +155,7 @@ extern const ReuriStubs *reuriStubsPtr;
 #define Reuri_GetPathFromObj \
 	(reuriStubsPtr->reuri_GetPathFromObj) /* 8 */
 /* Slot 9 is reserved */
-#define Reuri_PercentDecodeObj \
-	(reuriStubsPtr->reuri_PercentDecodeObj) /* 10 */
+/* Slot 10 is reserved */
 #define Reuri_GetPartFromObj \
 	(reuriStubsPtr->reuri_GetPartFromObj) /* 11 */
 #define Reuri_URIObjExtractPart \
@@ -166,6 +179,14 @@ extern const ReuriStubs *reuriStubsPtr;
 	(reuriStubsPtr->reuri_URIObjQueryNames) /* 21 */
 #define Reuri_URIObjQueryNew \
 	(reuriStubsPtr->reuri_URIObjQueryNew) /* 22 */
+#define Reuri_URIObjHostType \
+	(reuriStubsPtr->reuri_URIObjHostType) /* 23 */
+#define Reuri_URIObjNormalize \
+	(reuriStubsPtr->reuri_URIObjNormalize) /* 24 */
+#define Reuri_PercentDecode \
+	(reuriStubsPtr->reuri_PercentDecode) /* 25 */
+#define Reuri_PercentEncode \
+	(reuriStubsPtr->reuri_PercentEncode) /* 26 */
 
 #endif /* defined(USE_REURI_STUBS) */
 

@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([reuri], [0.13.7])
+AC_INIT([reuri], [0.14.0])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -83,7 +83,7 @@ TEABASE_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c type_uri.c type_uri_p
 TEA_ADD_HEADERS([generic/reuri.h generic/idx.h generic/reuriDecls.h])
 TEA_ADD_INCLUDES([-Igeneric ${dedup_INCLUDE_SPEC}])
 TEA_ADD_LIBS([])
-TEA_ADD_CFLAGS([])
+TEA_ADD_CFLAGS([-std=c17])
 TEA_ADD_STUB_SOURCES([reuriStubLib.c])
 TEA_ADD_TCL_SOURCES([])
 

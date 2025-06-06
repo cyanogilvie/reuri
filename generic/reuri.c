@@ -21,6 +21,10 @@ static Tcl_Config cfg[] = {
 	{NULL, NULL}
 };
 
+struct reuri_quirks g_quirks = {
+	.encode_query_val_eq = 0,	// Default: don't encode '=' in query values
+};
+
 // Internal API <<<
 
 // Must be kept in sync with reuri_part
@@ -925,31 +929,6 @@ finally:
 }
 
 //>>>
-Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode, Tcl_Obj* objPtr) //<<<
-{
-	switch (mode) {
-		case REURI_ENCODE_QUERY:    return percent_encode(interp, objPtr, REURI_ENCODE_QUERY);
-		case REURI_ENCODE_QUERYVAL: return percent_encode(interp, objPtr, REURI_ENCODE_QUERYVAL);
-		case REURI_ENCODE_PATH:     return percent_encode(interp, objPtr, REURI_ENCODE_PATH);
-		case REURI_ENCODE_PATH2:    return percent_encode(interp, objPtr, REURI_ENCODE_PATH2);
-		case REURI_ENCODE_USERINFO: return percent_encode(interp, objPtr, REURI_ENCODE_USERINFO);
-		case REURI_ENCODE_HOST:     return percent_encode(interp, objPtr, REURI_ENCODE_HOST);
-		case REURI_ENCODE_FRAGMENT: return percent_encode(interp, objPtr, REURI_ENCODE_FRAGMENT);
-		case REURI_ENCODE_AWSSIG:	return percent_encode_awssig(interp, objPtr);
-		default:					Tcl_Panic("Invalid encode mode: %d", mode); return NULL;
-	}
-}
-
-//>>>
-Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in) //<<<
-{
-	Tcl_Obj*	res = NULL;
-
-	percent_decode(in, &res);
-	return res;
-}
-
-//>>>
 int Reuri_GetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* part) //<<<
 {
 	int			ipart, code;
@@ -1070,12 +1049,75 @@ finally:
 }
 
 //>>>
+int Reuri_URIObjHostType(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_hosttype* hosttype) //<<<
+{
+	int			code = TCL_OK;
+	struct uri*	uri = NULL;
+
+	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri));
+	*hosttype = uri->hosttype;
+
+finally:
+	return code;
+}
+
+//>>>
+int Reuri_URIObjNormalize(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** out) //<<<
+{
+	int			code = TCL_OK;
+	struct uri*	uri;
+
+	// TODO: keep track of a "dirty" flag so that we know when we can skip regenerating:
+	//	- true on init
+	//	- set false by UpdateStringRep
+	//	- set true when intrep changes
+	replace_tclobj(out, Tcl_IsShared(uriPtr) ? Tcl_DuplicateObj(uriPtr) : uriPtr);
+	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, *out, &uri));
+	Tcl_InvalidateStringRep(*out);
+	/*
+	Tcl_InvalidateStringRep(uri->scheme);
+	Tcl_InvalidateStringRep(uri->userinfo);
+	Tcl_InvalidateStringRep(uri->host);
+	Tcl_InvalidateStringRep(uri->port);
+	Tcl_InvalidateStringRep(uri->path);
+	Tcl_InvalidateStringRep(uri->query);
+	Tcl_InvalidateStringRep(uri->fragment);
+	*/
+
+finally:
+	return code;
+}
+
+//>>>
+void Reuri_PercentDecode(Tcl_Obj* in, Tcl_Obj** out) //<<<
+{
+	percent_decode(in, out);
+}
+
+//>>>
+void Reuri_PercentEncode(Tcl_Interp* interp, enum reuri_encode_mode mode, Tcl_Obj* in, Tcl_Obj** out) //<<<
+{
+	switch (mode) {
+		case REURI_ENCODE_QUERY:    replace_tclobj(out, percent_encode(interp, in, REURI_ENCODE_QUERY));	break;
+		case REURI_ENCODE_QUERYVAL: replace_tclobj(out, percent_encode(interp, in, REURI_ENCODE_QUERYVAL));	break;
+		case REURI_ENCODE_PATH:     replace_tclobj(out, percent_encode(interp, in, REURI_ENCODE_PATH));		break;
+		case REURI_ENCODE_PATH2:    replace_tclobj(out, percent_encode(interp, in, REURI_ENCODE_PATH2));	break;
+		case REURI_ENCODE_USERINFO: replace_tclobj(out, percent_encode(interp, in, REURI_ENCODE_USERINFO));	break;
+		case REURI_ENCODE_HOST:     replace_tclobj(out, percent_encode(interp, in, REURI_ENCODE_HOST));		break;
+		case REURI_ENCODE_FRAGMENT: replace_tclobj(out, percent_encode(interp, in, REURI_ENCODE_FRAGMENT));	break;
+		case REURI_ENCODE_AWSSIG:	replace_tclobj(out, percent_encode_awssig(interp, in));					break;
+		default:					Tcl_Panic("Invalid encode mode: %d", mode); return;
+	}
+}
+
+//>>>
 // Stubs API >>>
 // Script API <<<
 static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
 	int					code = TCL_OK;
 	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
+	Tcl_Obj*			tmp = NULL;
 	static const char*	methods[] = {
 		"get",
 		"extract",
@@ -1105,7 +1147,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		M_DECODE,
 		M_QUERY,
 		M_PATH,
-		M_NORMALIZE
+		M_NORMALIZE,
 	};
 	int	methodidx;
 
@@ -1272,7 +1314,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 							"mode", TCL_EXACT, &imode));
 				mode = imode;
 
-				replace_tclobj(&res, Reuri_PercentEncodeObj(interp, mode, objv[A_VAL]));
+				Reuri_PercentEncode(interp, mode, objv[A_VAL], &res);
 				Tcl_SetObjResult(interp, res);
 				replace_tclobj(&res, NULL);
 			}
@@ -1594,12 +1636,10 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 			//>>>
 		case M_NORMALIZE: //<<<
 			{
-				struct uri*	uri;
 				enum {A_cmd=1, A_URI, A_objc};
 				CHECK_ARGS_LABEL(finally, code, "uri");
-				TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, objv[A_URI], &uri));
-				Tcl_InvalidateStringRep(objv[A_URI]);
-				Tcl_SetObjResult(interp, objv[A_URI]);
+				TEST_OK_LABEL(finally, code, Reuri_URIObjNormalize(interp, objv[A_URI], &tmp));
+				Tcl_SetObjResult(interp, tmp);
 			}
 			break;
 			//>>>
@@ -1607,6 +1647,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 	}
 
 finally:
+	replace_tclobj(&tmp, NULL);
 	return code;
 }
 
@@ -1974,6 +2015,82 @@ finally:
 }
 
 //>>>
+static int QuirkObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
+{
+	int					code = TCL_OK;
+	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
+	static const char*	quirks[] = {
+		"encode_query_val_eq",
+		NULL
+	};
+	enum {
+		Q_ENCODE_QUERY_VAL_EQ,
+	} quirk;
+	int	quirkidx;
+	int flush_dedup_pools = 0;
+
+	if (objc < 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "quirk ?val?");
+		code = TCL_ERROR;
+		goto finally;
+	}
+
+	TEST_OK_LABEL(finally, code, Tcl_GetIndexFromObj(interp, objv[1], quirks, "quirk", TCL_EXACT, &quirkidx));
+	quirk = quirkidx;
+
+	switch (quirk) {
+		case Q_ENCODE_QUERY_VAL_EQ: //<<<
+			{
+				enum {A_cmd=1, A_args, A_objc};
+				const int A_ENABLED = A_args;
+				CHECK_RANGE_ARGS_LABEL(finally, code, "?enabled?");
+				if (objc > A_ENABLED) {
+					int val;
+					TEST_OK_LABEL(finally, code, Tcl_GetBooleanFromObj(interp, objv[A_ENABLED], &val));
+					g_quirks.encode_query_val_eq = val ? 1 : 0;
+					flush_dedup_pools = 1;
+				}
+				Tcl_SetObjResult(interp, g_quirks.encode_query_val_eq ? l->t : l->f);
+			}
+			break;
+			//>>>
+		default: THROW_PRINTF_LABEL(finally, code, "Invalid quirk index: %d", quirkidx);
+	}
+
+	if (flush_dedup_pools) {
+		if (l->dedup_pool)			{ Dedup_FreePool(l->dedup_pool);			l->dedup_pool = NULL; }
+
+		if (l->dedup_scheme)		{ Dedup_FreePool(l->dedup_scheme);			l->dedup_scheme = NULL; }
+		if (l->dedup_userinfo)		{ Dedup_FreePool(l->dedup_userinfo);		l->dedup_userinfo = NULL; }
+		if (l->dedup_host_reg_name) { Dedup_FreePool(l->dedup_host_reg_name);	l->dedup_host_reg_name = NULL; }
+		if (l->dedup_host_ipv4)		{ Dedup_FreePool(l->dedup_host_ipv4);		l->dedup_host_ipv4 = NULL; }
+		if (l->dedup_host_ipv6)		{ Dedup_FreePool(l->dedup_host_ipv6);		l->dedup_host_ipv6 = NULL; }
+		if (l->dedup_host_local)	{ Dedup_FreePool(l->dedup_host_local);		l->dedup_host_local = NULL; }
+		if (l->dedup_port)			{ Dedup_FreePool(l->dedup_port);			l->dedup_port = NULL; }
+		if (l->dedup_path)			{ Dedup_FreePool(l->dedup_path);			l->dedup_path = NULL; }
+		if (l->dedup_query)			{ Dedup_FreePool(l->dedup_query);			l->dedup_query = NULL; }
+		if (l->dedup_fragment)		{ Dedup_FreePool(l->dedup_fragment);		l->dedup_fragment = NULL; }
+
+		l->dedup_pool = Dedup_NewPool(interp);
+
+		// Part-specific dedup pools
+		l->dedup_scheme			= Dedup_NewPool(interp);
+		l->dedup_userinfo		= Dedup_NewPool(interp);
+		l->dedup_host_reg_name	= Dedup_NewPool(interp);
+		l->dedup_host_ipv4		= Dedup_NewPool(interp);
+		l->dedup_host_ipv6		= Dedup_NewPool(interp);
+		l->dedup_host_local		= Dedup_NewPool(interp);
+		l->dedup_port			= Dedup_NewPool(interp);
+		l->dedup_path			= Dedup_NewPool(interp);
+		l->dedup_query			= Dedup_NewPool(interp);
+		l->dedup_fragment		= Dedup_NewPool(interp);
+	}
+
+finally:
+	return code;
+}
+
+//>>>
 static int _setdir(Tcl_Interp* interp) //<<<
 {
 	int				code = TCL_OK;
@@ -2046,23 +2163,22 @@ static int NopObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 static struct cmd {
 	char*			name;
 	Tcl_ObjCmdProc*	proc;
+	int				is_safe;
 } cmds[] = {
-	{"::reuri",			UriObjCmd},
-	{NS "::uri",		UriObjCmd},			// Undocumented compatibility with old command name
-	{NS "::query",		QueryObjCmd},
-	{NS "::path",		PathObjCmd},
+	{"::reuri",			UriObjCmd,		1},
+	{NS "::uri",		UriObjCmd,		1},			// Undocumented compatibility with old command name
+	{NS "::query",		QueryObjCmd,	1},
+	{NS "::path",		PathObjCmd,		1},
+	{NS "::quirk",		QuirkObjCmd,	0},
 #if TESTMODE
-	{NS "::nop",		NopObjCmd}
+	{NS "::nop",		NopObjCmd,		1}
 #endif
 };
 // Script API >>>
 
 extern const ReuriStubs* const reuriConstStubsPtr;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
+static int Init(Tcl_Interp* interp, int safe) //<<<
 {
 	int					code = TCL_OK;
 	struct interp_cx*	l = NULL;
@@ -2122,6 +2238,7 @@ DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
 	Tcl_SetAssocData(interp, "reuri", free_interp_cx, l);
 
 	for (size_t i=0; i<l->numcmds; i++) {
+		if (safe && !cmds[i].is_safe) continue;
 		if (NULL == (l->commands[i] = Tcl_CreateObjCommand(interp, cmds[i].name, cmds[i].proc, l, NULL))) {
 			Tcl_SetObjResult(interp, Tcl_ObjPrintf("Could not create command %s", cmds[i].name));
 			code = TCL_ERROR;
@@ -2148,10 +2265,19 @@ finally:
 }
 
 //>>>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+DLLEXPORT int Reuri_Init(Tcl_Interp* interp) //<<<
+{
+	return Init(interp, 0);
+}
+
+//>>>
 DLLEXPORT int Reuri_SafeInit(Tcl_Interp* interp) //<<<
 {
-	// No unsafe features
-	return Reuri_Init(interp);
+	return Init(interp, 1);
 }
 
 //>>>

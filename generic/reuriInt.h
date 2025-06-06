@@ -9,20 +9,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#ifdef __STDC_NO_ATOMICS__
+typedef char atomic_bool;
+#else
+#include <stdatomic.h>
+#endif
 #include <setjmp.h>
 
 extern Tcl_HashTable	g_intreps;
 extern const char* reuri_part_str[];
-
-enum reuri_hosttype {
-	REURI_HOST_NONE,
-	REURI_HOST_IPV6,			// IPv6 literal address: [::1]
-	REURI_HOST_IPV4,			// IPv4 literal address: 127.0.0.1
-	REURI_HOST_HOSTNAME,		// hostname: localhost
-	REURI_HOST_UNIX,			// unix domain socket path: /tmp/myserv.80
-	REURI_HOST_SIZE				// Marker for the size of the set
-};
 extern const char* reuri_hosttype_str[];
+
+struct reuri_quirks {
+	atomic_bool		encode_query_val_eq;	// AWS CloudFront chokes on query values with '='
+};
+
+extern struct reuri_quirks	g_quirks;
 
 struct param {
 	Tcl_Obj*		name;

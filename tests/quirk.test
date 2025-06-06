@@ -1,0 +1,135 @@
+if {[lsearch [namespace children] ::tcltest] == -1} {
+	package require tcltest
+	namespace import ::tcltest::*
+}
+
+tcltest::loadTestedCommands
+package require reuri
+
+test reuri_quirk-0.1 {missing quirk name}		-body {reuri::quirk}								-returnCodes error -result {wrong # args: should be "reuri::quirk quirk ?val?"} -errorCode {TCL WRONGARGS}
+test reuri_quirk-0.2 {too many args}			-body {reuri::quirk encode_query_val_eq 0 foo}		-returnCodes error -result {wrong # args: should be "reuri::quirk encode_query_val_eq ?enabled?"} -errorCode {TCL WRONGARGS}
+test reuri_quirk-0.3 {invalid quirk name}		-body {reuri::quirk invalid_quirk}					-returnCodes error -match glob -result {bad quirk "invalid_quirk": must be *}
+test reuri_quirk-0.4 {invalid boolean value}	-body {reuri::quirk encode_query_val_eq invalid}	-returnCodes error -result {expected boolean value but got "invalid"}
+
+test reuri_quirk-1.1 {quirk toggle} -body { #<<<
+	list \
+		[reuri::quirk encode_query_val_eq] \
+		[reuri::quirk encode_query_val_eq 1] \
+		[reuri::quirk encode_query_val_eq] \
+		[reuri::quirk encode_query_val_eq 0] \
+		[reuri::quirk encode_query_val_eq]
+} -cleanup {
+	reuri::quirk encode_query_val_eq 0
+} -result {0 1 1 0 0}
+#>>>
+
+test reuri_quirk-2.1 {quirk boolean values true}	-body { reuri::quirk encode_query_val_eq true	} -result 1 -cleanup {reuri::quirk encode_query_val_eq 0}
+test reuri_quirk-2.2 {quirk boolean values false}	-body { reuri::quirk encode_query_val_eq false	} -result 0 -cleanup {reuri::quirk encode_query_val_eq 0}
+test reuri_quirk-2.3 {quirk boolean values yes}		-body { reuri::quirk encode_query_val_eq yes	} -result 1 -cleanup {reuri::quirk encode_query_val_eq 0}
+test reuri_quirk-2.4 {quirk boolean values no}		-body { reuri::quirk encode_query_val_eq no		} -result 0 -cleanup {reuri::quirk encode_query_val_eq 0}
+
+test reuri_quirk-3.1 {encode_query_val_eq quirk disabled, equals in value} -setup { #<<<
+	reuri::quirk encode_query_val_eq 0
+} -body {
+	set uri http://example.com/
+	reuri query set uri param value=with=equals
+	set uri
+} -cleanup {
+	unset -nocomplain uri
+	reuri::quirk encode_query_val_eq 0
+} -result http://example.com/?param=value=with=equals
+#>>>
+test reuri_quirk-3.2 {encode_query_val_eq quirk enabled, equals in value} -setup { #<<<
+	reuri::quirk encode_query_val_eq 1
+} -body {
+	set uri http://example.com/
+	reuri query set uri param value=with=equals
+	set uri
+} -cleanup {
+	unset -nocomplain uri
+	reuri::quirk encode_query_val_eq 0
+} -result http://example.com/?param=value%3Dwith%3Dequals
+#>>>
+test reuri_quirk-4.1 {changing quirk context} -setup { #<<<
+	reuri::quirk encode_query_val_eq 0
+} -body {
+	set uri http://example.com/
+	reuri query set uri foo bar=baz
+	set a	[string length $uri; set uri]	;# Force string rep generation
+	reuri::quirk encode_query_val_eq 1
+	reuri query set uri foo bar=baz
+	set b	[string length $uri; set uri]	;# Force string rep generation
+	list $a $b
+} -cleanup {
+	unset -nocomplain uri a b c
+	reuri::quirk encode_query_val_eq 0
+} -result [list \
+   http://example.com/?foo=bar=baz \
+   http://example.com/?foo=bar%3Dbaz \
+]
+#>>>
+
+test query_quirk-1.1 {new query, standard} -setup { #<<<
+	reuri::quirk encode_query_val_eq 0
+} -body {
+	reuri::query new foo bar=baz
+} -cleanup {
+	reuri::quirk encode_query_val_eq 0
+} -result foo=bar=baz
+#>>>
+test query_quirk-1.2 {new query, encode eq} -setup { #<<<
+	reuri::quirk encode_query_val_eq 1
+} -body {
+	reuri::query new foo bar=baz
+} -cleanup {
+	reuri::quirk encode_query_val_eq 0
+} -result foo=bar%3Dbaz
+#>>>
+test query_quirk-2.1 {query encode, standard} -setup { #<<<
+	reuri::quirk encode_query_val_eq 0
+} -body {
+	reuri::query encode foo bar=baz
+} -cleanup {
+	reuri::quirk encode_query_val_eq 0
+} -result ?foo=bar=baz
+#>>>
+test query_quirk-2.2 {query encode, encode eq} -setup { #<<<
+	reuri::quirk encode_query_val_eq 1
+} -body {
+	reuri::query encode foo bar=baz
+} -cleanup {
+	reuri::quirk encode_query_val_eq 0
+} -result ?foo=bar%3Dbaz
+#>>>
+
+test normalize_quirk-1.1 {normalize, standard} -setup { #<<<
+	reuri::quirk encode_query_val_eq 0
+} -body {
+	reuri normalize [string trim {http://example.com/?f%6Fo=bar=baz }]
+} -cleanup {
+	reuri::quirk encode_query_val_eq 0
+} -result http://example.com/?foo=bar=baz
+#>>>
+test normalize_quirk-1.2 {normalize, encode_eq} -setup { #<<<
+	reuri::quirk encode_query_val_eq 1
+} -body {
+	reuri normalize [string trim {http://example.com/?f%6Fo=bar=baz }]
+} -cleanup {
+	reuri::quirk encode_query_val_eq 0
+} -result http://example.com/?foo=bar%3Dbaz
+#>>>
+test normalize_quirk-1.3 {normalize, encode_eq} -setup { #<<<
+	reuri::quirk encode_query_val_eq 0
+} -body {
+	set uri	[string trim {http://example.com/?f%6Fo=bar=baz }]
+	subst {[reuri normalize $uri] [reuri::quirk encode_query_val_eq 1; reuri normalize $uri]}
+} -cleanup {
+	reuri::quirk encode_query_val_eq 0
+} -result {http://example.com/?foo=bar=baz http://example.com/?foo=bar%3Dbaz}
+#>>>
+
+# cleanup
+::tcltest::cleanupTests
+return
+
+# vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4 noexpandtab

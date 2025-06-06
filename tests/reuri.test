@@ -177,9 +177,9 @@ test reuri-5.3 {normalize}  { reuri normalize {http://[::1]:81/one/two?three=3&f
 test reuri-5.4 {normalize}  { reuri normalize {http://127.0.0.1:81/one/two?three=3&four=4#endbit} } {http://127.0.0.1:81/one/two?three=3&four=4#endbit}
 test reuri-5.5 {normalize}  { reuri normalize {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit} } {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit}
 test reuri-5.6 {normalize}  { reuri normalize {http://[v0.local:/tmp/foo.80]/one/two?three=3&four=4#endbit} } {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit}
-test reuri-5.7 {normalize}  { reuri normalize {file:///one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
-test reuri-5.8 {normalize}  { reuri normalize {file://foo@/one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
-test reuri-5.9 {normalize}  { reuri normalize {file://:81/one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
+test reuri-5.7 {normalize}  { reuri normalize {file:///one/two?three=3&four=4#endbit} } {file:/one/two?three=3&four=4#endbit}
+test reuri-5.8 {normalize}  { reuri normalize {file://foo@/one/two?three=3&four=4#endbit} } {file:/one/two?three=3&four=4#endbit}
+test reuri-5.9 {normalize}  { reuri normalize {file://:81/one/two?three=3&four=4#endbit} } {file:/one/two?three=3&four=4#endbit}
 test reuri-5.10 {normalize} { reuri normalize {http://localhost:81/one/two#endbit} } {http://localhost:81/one/two#endbit}
 test reuri-5.11 {normalize} { reuri normalize {http://localhost:81#endbit} } {http://localhost:81#endbit}
 test reuri-5.12 {normalize} { reuri normalize {http://localhost:81?} } {http://localhost:81}

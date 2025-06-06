@@ -87,7 +87,7 @@ static void update_string_rep(Tcl_Obj* obj) //<<<
 static void append_part(Tcl_DString* ds, Tcl_Obj* part, Reuri_ObjType* objtype) //<<<
 {
 	Tcl_Obj* norm = NULL;
-	
+
 	if (TCL_OK != Reuri_GetNormalizedFromPart(NULL, part, objtype, &norm))
 		Tcl_Panic("Could not get normalized form of URI part");
 

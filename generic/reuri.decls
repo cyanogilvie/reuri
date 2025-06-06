@@ -7,9 +7,9 @@ declare 0 generic {
 declare 1 generic {
 	int Reuri_URIObjGetAll(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** res)
 }
-declare 2 generic {
-    Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode, Tcl_Obj* objPtr)
-}
+#declare 2 generic {
+#    Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode, Tcl_Obj* objPtr)
+#}
 declare 3 generic {
 	int Reuri_NewQueryObj(Tcl_Interp* interp, int objc, Tcl_Obj* const objv[], Tcl_Obj** res)
 }
@@ -25,9 +25,9 @@ declare 6 generic {
 declare 8 generic {
 	int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlistPtrPtr)
 }
-declare 10 generic {
-	Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in)
-}
+#declare 10 generic {
+#	Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in)
+#}
 declare 11 generic {
 	int Reuri_GetPartFromObj(Tcl_Interp* interp, Tcl_Obj* partObj, enum reuri_part* part)
 }
@@ -42,7 +42,7 @@ declare 14 generic {
 }
 
 declare 15 generic {
-	int Reuri_URIObjQueryGet(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj* param, Tcl_Obj* def /* may be NULL */, Tcl_Obj* index /* may be NULL */, int flags, Tcl_Obj** out)
+	int Reuri_URIObjQueryGet(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj* param /* NULL for all */, Tcl_Obj* def /* may be NULL */, Tcl_Obj* index /* may be NULL */, int flags, Tcl_Obj** out)
 }
 declare 16 generic {
 	int Reuri_URIObjQueryValues(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj* param, Tcl_Obj** out)
@@ -65,6 +65,18 @@ declare 21 generic {
 }
 declare 22 generic {
 	int Reuri_URIObjQueryNew(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj* params /* list */, Tcl_Obj** out)
+}
+declare 23 generic {
+	int Reuri_URIObjHostType(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_hosttype* hosttype)
+}
+declare 24 generic {
+	int Reuri_URIObjNormalize(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** out)
+}
+declare 25 generic {
+	void Reuri_PercentDecode(Tcl_Obj* in, Tcl_Obj** out)
+}
+declare 26 generic {
+	void Reuri_PercentEncode(Tcl_Interp* interp /* can be NULL */, enum reuri_encode_mode mode, Tcl_Obj* in, Tcl_Obj** out)
 }
 
 # vim: ft=tcl foldmethod=marker foldmarker=<<<,>>>

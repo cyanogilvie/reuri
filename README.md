@@ -18,7 +18,7 @@ reuri - URI Manipulation for Tcl
 **reuri** **decode** *value*  
 **reuri** **query** *op* *uri* ?*arg* …?  
 **reuri** **path** *op* *uri* ?*arg* …?  
-**reuri** **normalize** *uri*
+**reuri** **normalize** *uri*  
 
 **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??  
 **reuri::query** **values** *query* *param*  
@@ -37,6 +37,8 @@ reuri - URI Manipulation for Tcl
 **reuri::path** **join** ?*segment* …?  
 ?? **reuri::path** **set** *variable* *index* *value*  
 ?? **reuri::path** **resolve** *path*
+
+**reuri::quirk** *quirk* ?*value*?
 
 ### Note
 
@@ -142,6 +144,15 @@ While this package is in the 0 major version series this API is not stable and w
 
   - **reuri::path** **resolve** *path*  
     Return *path* resolved in the context of all the URIs on the callstack from **reuri** **context** calls.
+
+  - **reuri::quirk** *quirk* ?*value*?  
+    Control or query process-scope encoding quirks to work around bugs in third-party URI parsers. If *value* is provided, set the quirk to that value. Returns the current state of the quirk. Currently supported quirks:
+    
+    **encode\_query\_val\_eq** (bool) - When enabled, query parameter values containing “=” are percent-encoded. This works around a bug in AWS CloudFront’s URI parser which incorrectly treats all “=” characters as parameter separators.
+    
+    The quirk state only affects values generated after it is set - already cached string reps for urls or parts that were generated before the value was toggled will not change, so it’s best to set the required quirk context before doing any URI parsing or manipulation.
+    
+    Since this command changes state for all interps in the process, it is not available in safe interps.
 
 ## INDEX SYNTAX
 

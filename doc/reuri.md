@@ -1,6 +1,6 @@
-% reuri(3) 0.13 | URI Manipulation for Tcl
+% reuri(3) 0.14.1 | URI Manipulation for Tcl
 % Cyan Ogilvie
-% 0.13
+% 0.14.1
 
 
 # NAME
@@ -10,7 +10,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.13?
+**package require reuri** ?0.14.1?
 
 **reuri** **get** *uri* ?*part* ?*defaultVal*??\
 **reuri** **extract** *uri* ?*part* ?*defaultVal*??\
@@ -146,7 +146,9 @@ CODE IS NOT RECOMMENDED.**</span>
 :   Equivalent to calling **reuri::path** *op* ?*arg* ...? on the path portion of *uri*.
 
 **reuri** **normalize** *uri*
-:   Return a canonical representation of *uri*, as described in RFC3986.
+:   Return a canonical representation of *uri*, as described in RFC3986. This includes
+    normalizing percent-encoding, converting scheme and host to lowercase, and 
+    preserving semantically significant trailing slashes in paths.
 
 **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??
 :   Retrieve the value for the named *param* in the *query* part.  If *param*
@@ -543,6 +545,6 @@ The uri module of tcllib.
 
 ## LICENSE
 
-This package is Copyright 2023 Cyan Ogilvie, and is made available under the
+This package is Copyright 2025 Cyan Ogilvie, and is made available under the
 same license terms as the Tcl Core
 

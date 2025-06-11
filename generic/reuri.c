@@ -1074,15 +1074,13 @@ int Reuri_URIObjNormalize(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj** out) //
 	replace_tclobj(out, Tcl_IsShared(uriPtr) ? Tcl_DuplicateObj(uriPtr) : uriPtr);
 	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, *out, &uri));
 	Tcl_InvalidateStringRep(*out);
-	/*
-	Tcl_InvalidateStringRep(uri->scheme);
-	Tcl_InvalidateStringRep(uri->userinfo);
-	Tcl_InvalidateStringRep(uri->host);
-	Tcl_InvalidateStringRep(uri->port);
-	Tcl_InvalidateStringRep(uri->path);
-	Tcl_InvalidateStringRep(uri->query);
-	Tcl_InvalidateStringRep(uri->fragment);
-	*/
+	if (uri->scheme)	{Reuri_GetNormalizedFromPart(interp, uri->scheme,	&scheme_objtype,				NULL); Tcl_InvalidateStringRep(uri->scheme);}
+	if (uri->userinfo)	{Reuri_GetNormalizedFromPart(interp, uri->userinfo,	&userinfo_objtype,				NULL); Tcl_InvalidateStringRep(uri->userinfo);}
+	if (uri->host)		{Reuri_GetNormalizedFromPart(interp, uri->host,		host_objtype(uri->hosttype),	NULL); Tcl_InvalidateStringRep(uri->host);}
+	if (uri->port)		{Reuri_GetNormalizedFromPart(interp, uri->port,		&port_objtype,					NULL); Tcl_InvalidateStringRep(uri->port);}
+	if (uri->path)		{Reuri_GetNormalizedFromPart(interp, uri->path,		&path_objtype,					NULL); Tcl_InvalidateStringRep(uri->path);}
+	if (uri->query)		{Reuri_GetNormalizedFromPart(interp, uri->query,	&query_objtype,					NULL); Tcl_InvalidateStringRep(uri->query);}
+	if (uri->fragment)	{Reuri_GetNormalizedFromPart(interp, uri->fragment,	&fragment_objtype,				NULL); Tcl_InvalidateStringRep(uri->fragment);}
 
 finally:
 	return code;
@@ -2329,7 +2327,7 @@ DLLEXPORT int Reuri_Unload(Tcl_Interp* interp, int flags) //<<<
 //>>>
 DLLEXPORT int Reuri_SafeUnload(Tcl_Interp* interp, int flags) //<<<
 {
-	return Reuri_SafeUnload(interp, flags);
+	return Reuri_Unload(interp, flags);
 }
 
 //>>>

@@ -647,7 +647,7 @@ int Reuri_GetNormalizedFromPart(Tcl_Interp* interp, Tcl_Obj* obj, Reuri_ObjType*
 	if (NORMALIZED(ir) == NULL)
 		TEST_OK_LABEL(finally, code, objtype->Reuri_UpdateNormalizedProc(interp, obj));
 
-	replace_tclobj(normalized, NORMALIZED(ir));
+	if (normalized) replace_tclobj(normalized, NORMALIZED(ir));
 
 finally:
 	return code;

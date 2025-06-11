@@ -87,7 +87,7 @@ test $t-2.5 {} {*}[{*}$std]	-body { reuri set u port 1%32		} -returnCodes error 
 set t	uri_set_path
 test $t-1.1  {} {*}[{*}$std]				-body { reuri set u path /			} -result http://foo/
 test $t-1.2  {} {*}[{*}$std]				-body { reuri set u path /bar/baz	} -result http://foo/bar/baz
-test $t-1.3  {} {*}[{*}$std]				-body { reuri set u path /bar/baz/	} -result http://foo/bar/baz
+test $t-1.3  {} {*}[{*}$std]				-body { reuri set u path /bar/baz/	} -result http://foo/bar/baz/
 test $t-1.4  {} {*}[{*}$std http://foo/x]	-body { reuri set u path {}			} -result http://foo
 test $t-1.5  {} {*}[{*}$std http://foo]		-body { reuri set u path {}			} -result http://foo
 test $t-1.6  {} {*}[{*}$std http://foo/x]	-body { reuri set u path /			} -result http://foo/

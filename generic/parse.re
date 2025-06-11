@@ -842,8 +842,13 @@ top:
 		goto top;
 	}
 	end {
-		if (Tcl_DStringLength(&acc))
+		if (Tcl_DStringLength(&acc)) {
 			TEST_OK_LABEL(finally, code, _add_path(interp, l, &acc, res_pathlist));
+		} else if (s >= base + 3 && s[-2] == '/') {
+			// If string ends with a slash and has content before it, add empty element for trailing slash
+			// s >= base + 3 ensures we have at least "/x/" pattern (not just "/")
+			TEST_OK_LABEL(finally, code, _add_path(interp, l, &acc, res_pathlist));
+		}
 		goto finally;
 	}
 

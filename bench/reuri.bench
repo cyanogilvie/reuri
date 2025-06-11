@@ -119,12 +119,16 @@ proc main {} {
 			unset -nocomplain name
 			foreach arg {a first -foo b} {
 				if {[info exists name]} {
-					reuri::uri query set uri $name $arg
+					reuri query set uri $name $arg
+					unset name
 				} elseif {[string match -* $arg]} {
-					reuri::uri query unset uri [string range $arg 1 end]
+					reuri query unset uri [string range $arg 1 end]
 				} else {
 					set name	$arg
 				}
+			}
+			if {[info exists name]} {
+				reuri query set uri $name
 			}
 			set uri
 		}

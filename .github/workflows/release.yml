@@ -32,6 +32,23 @@ jobs:
         make -j 8
         sudo make install
 
+    - name: Cache dedup build
+      id: cache-dedup
+      uses: actions/cache@v4
+      with:
+        path: /opt/tcl8.7/lib/dedup0.9.7
+        key: ${{ runner.os }}-dedup0.9.7
+
+    - name: Build dedup
+      if: steps.cache-dedup.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p /tmp/src/dedup
+        cd /tmp/src/dedup
+        git clone --recurse-submodules --shallow-submodules --branch v0.9.7 --single-branch --depth 1 https://github.com/cyanogilvie/dedup .
+        autoconf && ./configure --with-tcl=/opt/tcl8.7/lib --prefix=/opt/tcl8.7
+        make -j 8
+        sudo make install
+
     - uses: actions/checkout@v4
       with:
         submodules: 'true'

@@ -25,7 +25,9 @@ cg.out
 lexers/
 parsers/
 prof/
-tools/bin/
+local/
+build/
 generic/reuri.h
 reuriConfig.sh
 Makefile.teabase
+doc/.build

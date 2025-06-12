@@ -1,8 +1,8 @@
 ---
 author:
 - Cyan Ogilvie
-date: 0.14.1
-title: reuri(3) 0.14.1 \| URI Manipulation for Tcl
+date: 0.14.2
+title: reuri(3) 0.14.2 \| URI Manipulation for Tcl
 ---
 
 # NAME
@@ -11,7 +11,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.14.1?
+**package require reuri** ?0.14.2?
 
 **reuri** **get** *uri* ?*part* ?*defaultVal*??  
 **reuri** **extract** *uri* ?*part* ?*defaultVal*??  
@@ -60,6 +60,8 @@ This package serves a similar purpose to the **uri** module of tcllib, but is mu
 The **reuri query** and **reuri::query** commands operate on the query portion of the URI assuming it follows the HTTP scheme query format (parameters separated by &, names separated from values with =).
 
 While this package is in the 0 major version series this API is not stable and will change in backwards-incompatible ways. Starting with a 1 series release the API will preserve backwards compatibility within a major version number sequence. <span color="red">**USING THE 0 SERIES VERSIONS IN PRODUCTION CODE IS NOT RECOMMENDED.**</span>
+
+To meet its performance requirements, this package generates its URI parsers using the excellent **re2c** tool: https://re2c.org/. To enforce the integrity of the generated code, the tested version of **re2c** is included as a submodule in this repo (and included in the dist tar file), and built as part of the package build process.
 
 ## COMMANDS
 
@@ -382,6 +384,66 @@ finally:
 
     return code;
 }
+```
+
+## BUILDING
+
+Besides Tcl, this package requires the dedup package: https://github.com/cyanogilvie/dedup. The build system will attempt to autodetect the location of the installed dedup, if the target Tcl’s tclsh can load the package. If for some reason this doesn’t work (or you are cross compiling or for some other reason can’t execute the target tclsh on the build machine), supply the `--with-dedup` configure option with the path to the dedupConfig.sh file from the installed dedup package.
+
+Currently Tcl 8.7 is required, but if needed polyfills could be built to support 8.6.
+
+### From a Release Tarball
+
+Download and extract [the release](https://github.com/cyanogilvie/reuri/releases/download/v0.14.2/reuri0.14.2.tar.gz), then build in the standard TEA way:
+
+``` sh
+wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.2/reuri0.14.2.tar.gz
+tar xf reuri0.14.2.tar.gz
+cd reuri0.14.2
+./configure
+make
+sudo make install
+```
+
+### From the Git Sources
+
+Fetch [the code](https://github.com/cyanogilvie/reuri) and submodules recursively, then build in the standard autoconf / TEA way:
+
+``` sh
+git clone --recurse-submodules https://github.com/cyanogilvie/reuri
+cd reuri
+autoconf
+./configure
+make
+sudo make install
+```
+
+### In a Docker Build
+
+Build from a specified release version, avoiding layer pollution and only adding the installed package without documentation to the image, and strip debug symbols, minimising image size:
+
+``` dockerfile
+WORKDIR /tmp/reuri
+RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.2/reuri0.14.2.tar.gz -O - | tar xz --strip-components=1 && \
+    ./configure; make test install-binaries install-libraries && \
+    strip /usr/local/lib/libreuri*.so && \
+    cd .. && rm -rf reuri
+```
+
+For any of the build methods you may need to pass `--with-tcl /path/to/tcl/lib` to `configure` if your Tcl install is somewhere nonstandard.
+
+### Testing
+
+It’s a good idea to run the test suite after building:
+
+``` sh
+make test
+```
+
+And maybe also the memory checker `valgrind` (requires that Tcl and this package are built with suitable memory debugging flags, like `CFLAGS="-DPURIFY -Og" --enable-symbols`):
+
+``` sh
+make valgrind
 ```
 
 ## CONFORMING TO

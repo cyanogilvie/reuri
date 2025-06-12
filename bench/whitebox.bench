@@ -10,6 +10,8 @@ proc main {} {
 		set idx	end-1
 	} -overhead {
 		* {reuri::nop $idx}
+	} -deps {
+		* {reuri::nop}
 	} -compare {
 		re2c   { reuri::_test parse_index_re2c $idx   }
 	} -cleanup {
@@ -20,6 +22,8 @@ proc main {} {
 		set idx	end-3..end-1,-1..2,5,end+1
 	} -overhead {
 		* {reuri::nop $idx}
+	} -deps {
+		* {reuri::nop}
 	} -compare {
 		re2c   { reuri::_test parse_index_re2c $idx   }
 	} -cleanup {

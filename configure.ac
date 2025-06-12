@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([reuri], [0.14.1])
+AC_INIT([reuri], [0.14.2])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -29,8 +29,6 @@ AC_INIT([reuri], [0.14.1])
 
 #AC_PROG_AWK
 ENABLE_TESTMODE
-
-touch generic/reuri.h
 
 TEA_INIT()
 
@@ -42,6 +40,27 @@ AC_CONFIG_AUX_DIR(tclconfig)
 
 TEA_PATH_TCLCONFIG
 TEA_LOAD_TCLCONFIG
+
+#--------------------------------------------------------------------
+# Determine the name of the tclsh executable early for dedup detection
+#--------------------------------------------------------------------
+
+TEA_PROG_TCLSH
+
+#--------------------------------------------------------------------
+# Set default dedup location if not specified via --with-dedup
+#--------------------------------------------------------------------
+if test "x${with_dedup}" = "x"; then
+    AC_MSG_CHECKING([for default dedup location via target tclsh])
+    dedup_default_dir=`${TCLSH_PROG} ${srcdir}/find_dedup.tcl 2>/dev/null`
+    if test $? -eq 0 && test "x${dedup_default_dir}" != "x"; then
+        AC_MSG_RESULT([${dedup_default_dir}])
+        with_dedup="${dedup_default_dir}"
+    else
+        AC_MSG_RESULT([not found])
+        AC_MSG_WARN([dedup package not found in tclsh, --with-dedup may be required])
+    fi
+fi
 
 #--------------------------------------------------------------------
 # Load the tkConfig.sh file if necessary (Tk extension)
@@ -80,7 +99,7 @@ TEA_SETUP_COMPILER
 #-----------------------------------------------------------------------
 
 TEABASE_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c type_uri.c type_uri_part.c type_index.c testmode.c reuriStubInit.c])
-TEA_ADD_HEADERS([generic/reuri.h generic/idx.h generic/reuriDecls.h])
+TEA_ADD_HEADERS([generic/idx.h generic/reuriDecls.h])
 TEA_ADD_INCLUDES([-Igeneric ${dedup_INCLUDE_SPEC}])
 TEA_ADD_LIBS([])
 TEA_ADD_CFLAGS([-std=c17])
@@ -191,7 +210,6 @@ TEA_MAKE_LIB
 # a pkgIndex.tcl file or anything else at extension build time.
 #--------------------------------------------------------------------
 
-TEA_PROG_TCLSH
 #TEA_PROG_WISH
 
 #--------------------------------------------------------------------

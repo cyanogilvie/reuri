@@ -6,17 +6,19 @@ if {"bench" ni [info commands bench]} {
 package require reuri
 
 set here    [file dirname [file normalize [info script]]]
-source [file join $here ../ref/urlencode-1.0.tm]
-package provide urlencode 1.0
+if {[file readable [file join $here ../ref/urlencode-1.0.tm]]} {
+	source [file join $here ../ref/urlencode-1.0.tm]
+	package provide urlencode 1.0
 
-# Hack urlencode to use uppercase % encoding to match reuri
-foreach v {
-	uri_charmap
-	uri_charmap_compat
-	uri_charmap_path
-	uri_charmap_path_compat
-} {
-	set ::urlencode::_uri::$v [lmap t [set ::urlencode::_uri::$v] {if {[string length $t] > 1} {string toupper $t} else {set t}}]
+	# Hack urlencode to use uppercase % encoding to match reuri
+	foreach v {
+		uri_charmap
+		uri_charmap_compat
+		uri_charmap_path
+		uri_charmap_path_compat
+	} {
+		set ::urlencode::_uri::$v [lmap t [set ::urlencode::_uri::$v] {if {[string length $t] > 1} {string toupper $t} else {set t}}]
+	}
 }
 
 proc main {} {
@@ -24,9 +26,11 @@ proc main {} {
         set val     foo
 	} -overhead {
 		* {return -level 0 $val}
+	} -deps {
+		urlencode	{ package require urlencode }
 	} -compare {
 		urlencode { urlencode::rfc_urlencode -- $val }
-		reuri     { reuri::uri encode query $val }
+		reuri     { reuri encode query $val }
 	} -cleanup {
 		unset -nocomplain val
 	} -result foo
@@ -35,9 +39,11 @@ proc main {} {
         set val     fo=o
 	} -overhead {
 		* {return -level 0 $val}
+	} -deps {
+		urlencode	{ package require urlencode }
 	} -compare {
 		urlencode { urlencode::rfc_urlencode -- $val }
-		reuri     { reuri::uri encode query $val }
+		reuri     { reuri encode query $val }
 	} -cleanup {
 		unset -nocomplain val
 	} -result fo%3Do
@@ -46,9 +52,11 @@ proc main {} {
         set val     f\x00o=o
 	} -overhead {
 		* {return -level 0 $val}
+	} -deps {
+		urlencode	{ package require urlencode }
 	} -compare {
 		urlencode { urlencode::rfc_urlencode -- $val }
-		reuri     { reuri::uri encode query $val }
+		reuri     { reuri encode query $val }
 	} -cleanup {
 		unset -nocomplain val
 	} -result f%00o%3Do
@@ -61,9 +69,11 @@ proc main {} {
 		append testchars    \u306f
 	} -overhead {
 		* {return -level 0 $testchars}
+	} -deps {
+		urlencode	{ package require urlencode }
 	} -compare {
 		urlencode { urlencode::rfc_urlencode -- $testchars }
-		reuri     { reuri::uri encode query $testchars }
+		reuri     { reuri encode query $testchars }
 	} -cleanup {
 		unset -nocomplain testchars
 	} -results {
@@ -75,6 +85,9 @@ proc main {} {
 		set params	{lane jewelry q estate ipp 180 page 3 style 4}
 	} -overhead {
 		* {return -level 0 $params}
+	} -deps {
+		urlencode_list	{ package require urlencode }
+		urlencode_args	{ package require urlencode }
 	} -compare {
 		urlencode_list { urlencode::encode_query $params }
 		urlencode_args { urlencode::encode_query {*}$params }
@@ -88,6 +101,9 @@ proc main {} {
 		set params	{lane a&c q {estate rings} ipp 180 page 3 +style 4}
 	} -overhead {
 		* {return -level 0 $params}
+	} -deps {
+		urlencode_list	{ package require urlencode }
+		urlencode_args	{ package require urlencode }
 	} -compare {
 		urlencode_list     { urlencode::encode_query $params    }
 		urlencode_args     { urlencode::encode_query {*}$params }
@@ -110,6 +126,9 @@ proc main {} {
 	} -overhead {
 		urlencode_reparse - reuri_reparse	{return -level 0 $q1$q2}
 		urlencode_reuse - reuri_reuse		{return -level 0 $query}
+	} -deps {
+		urlencode_reparse { package require urlencode }
+		urlencode_reuse   { package require urlencode }
 	} -compare {
 		urlencode_reparse { urlencode::decode_query $q1$q2 }
 		urlencode_reuse   { urlencode::decode_query $query }
@@ -128,6 +147,9 @@ proc main {} {
 	} -overhead {
 		urlencode_reparse - reuri_reparse	{return -level 0 $q1$q2}
 		urlencode_reuse - reuri_reuse		{return -level 0 $query}
+	} -deps {
+		urlencode_reparse { package require urlencode }
+		urlencode_reuse   { package require urlencode }
 	} -compare {
 		urlencode_reparse { urlencode::decode_query $q1$q2 }
 		urlencode_reuse   { urlencode::decode_query $query }

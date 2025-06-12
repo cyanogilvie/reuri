@@ -13,16 +13,16 @@ proc main {} {
 		set uri_a http://foo:bar@localhost:81
 		set uri_b /one/two?three=3&four=4#endbit
 		set uri		$uri_a$uri_b
-		reuri::uri get $uri scheme
+		reuri get $uri scheme
 	} -overhead {
 		reuri_parse	- uri	{return -level 0 $uri_a$uri_b}
 		uri_reuse			{return -level 0 $uri}
 	} -compare {
 		reuri_parse {
-			reuri::uri get $uri_a$uri_b fragment
+			reuri get $uri_a$uri_b fragment
 		}
 		reuri_reuse {
-			reuri::uri get $uri fragment
+			reuri get $uri fragment
 		}
 		uri {
 			dict get [uri::split $uri_a$uri_b] fragment
@@ -35,7 +35,7 @@ proc main {} {
 		set uri_a http://foo:bar@localhost:81
 		set uri_b /one/two?three=3&four=4#endbit
 		set uri		$uri_a$uri_b
-		reuri::uri get $uri scheme
+		reuri get $uri scheme
 	} -overhead {
 		reuri_reparse				{set newuri $uri_a$uri_b; return -level 0 $newuri}
 		reuri_reuse					{return -level 0 $uri}
@@ -45,20 +45,20 @@ proc main {} {
 		reuri_reparse {
 			set newuri	$uri_a$uri_b
 			list \
-				[reuri::uri extract $newuri scheme] \
-				[reuri::uri extract $newuri host] \
-				[reuri::uri extract $newuri port 80] \
-				[reuri::uri extract $newuri path]
+				[reuri extract $newuri scheme] \
+				[reuri extract $newuri host] \
+				[reuri extract $newuri port 80] \
+				[reuri extract $newuri path]
 		}
 		reuri_reuse {
 			list \
-				[reuri::uri extract $uri scheme] \
-				[reuri::uri extract $uri host] \
-				[reuri::uri extract $uri port 80] \
-				[reuri::uri extract $uri path]
+				[reuri extract $uri scheme] \
+				[reuri extract $uri host] \
+				[reuri extract $uri port 80] \
+				[reuri extract $uri path]
 		}
 		reuri_dict_reparse {
-			set parts	[reuri::uri extract $uri_a$uri_b]
+			set parts	[reuri extract $uri_a$uri_b]
 			list \
 				[dict get $parts scheme] \
 				[dict get $parts host] \
@@ -66,7 +66,7 @@ proc main {} {
 				[dict get $parts path]
 		}
 		reuri_dict_reuse {
-			set parts	[reuri::uri extract $uri]
+			set parts	[reuri extract $uri]
 			list \
 				[dict get $parts scheme] \
 				[dict get $parts host] \
@@ -90,8 +90,10 @@ proc main {} {
 		set uri_b /one/two?three=3&four=4#endbit
 	} -overhead {
 		* {reuri::nop $uri_a$uri_b}
+	} -deps {
+		* {reuri::nop}
 	} -compare {
-		reuri	{reuri::uri valid $uri_a$uri_b}
+		reuri	{reuri valid $uri_a$uri_b}
 		uri		{expr {![catch {uri::split $uri_a$uri_b}]}}
 	} -cleanup {
 		unset -nocomplain uri_a uri_b newuri
@@ -102,8 +104,10 @@ proc main {} {
 		set uri_b /one/two?three=3&four=4#endbit
 	} -overhead {
 		* {reuri::nop $uri_a$uri_b}
+	} -deps {
+		* {reuri::nop}
 	} -compare {
-		reuri	{reuri::uri valid $uri_a$uri_b}
+		reuri	{reuri valid $uri_a$uri_b}
 		uri		{expr {![catch {uri::split $uri_a$uri_b}]}}
 	} -cleanup {
 		unset -nocomplain uri_a uri_b newuri
@@ -112,7 +116,7 @@ proc main {} {
 	bench reuri_edit-1.1 {Apply a query edit list} -batch auto -setup { #<<<
 	} -compare {
 		native {
-			reuri::uri query edit https://localhost/x/y?foo=bar&x=y&foo=baz#frag a first -foo b
+			reuri query edit https://localhost/x/y?foo=bar&x=y&foo=baz#frag a first -foo b
 		}
 		tcl {
 			set uri	https://localhost/x/y?foo=bar&x=y&foo=baz#frag

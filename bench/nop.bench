@@ -11,11 +11,16 @@ proc main {} {
 		proc proc_nop args {}
 		namespace import ::reuri::nop
 		interp alias {} alias_nop {} ::reuri::nop
+	} -deps {
+		reuri_nop		{ reuri::nop }
+		fqreuri_nop		{ ::reuri::nop }
+		imported_nop	{ ::reuri::nop }
+		alias_nop		{ alias_nop }
 	} -compare {
 		reuri_nop		{ reuri::nop }
 		fqreuri_nop		{ ::reuri::nop }
 		imported_nop	{ nop }
-		alias_nop		{ nop }
+		alias_nop		{ alias_nop }
 		proc_nop		{ proc_nop }
 		bytecode		{ return -level 0 }
 		list			{ list }

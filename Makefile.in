@@ -208,11 +208,18 @@ libraries:
 
 doc: doc/reuri.n README.md
 
-doc/reuri.n: doc/reuri.md
-	pandoc --standalone --from markdown --to man doc/reuri.md --output doc/reuri.n
+# Intermediate processed markdown file
+doc/.build/reuri.md: $(srcdir)/doc/reuri.md.in $(top_builddir)/config.status
+	cd $(top_builddir) \
+	  && mkdir -p doc/.build \
+	  && ln -sf ../reuri.md.in doc/.build/reuri.md.in \
+	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
-README.md: doc/reuri.md
-	pandoc --standalone --wrap=none --from markdown --to gfm doc/reuri.md --output README.md
+doc/reuri.n: doc/.build/reuri.md
+	pandoc --standalone --from markdown --to man doc/.build/reuri.md --output doc/reuri.n
+
+README.md: doc/.build/reuri.md
+	pandoc --standalone --wrap=none --from markdown --to gfm doc/.build/reuri.md --output README.md
 
 
 install: all install-binaries install-libraries install-doc
@@ -231,6 +238,8 @@ install-libraries: libraries
 	    echo "Installing $(srcdir)/$$i" ; \
 	    $(INSTALL_DATA) $(srcdir)/$$i $(DESTDIR)$(includedir) ; \
 	done;
+	@echo "Installing generated header generic/reuri.h"
+	@$(INSTALL_DATA) generic/reuri.h $(DESTDIR)$(pkglibdir)
 
 #========================================================================
 # Install documentation.  Unix manpages should go in the $(mandir)
@@ -270,12 +279,16 @@ valgrind: binaries libraries
 valgrindshell: binaries libraries
 	$(TCLSH_ENV) $(PKG_ENV) $(VALGRIND) $(VALGRINDARGS) $(TCLSH_PROG) $(SCRIPT)
 
-tools/bin/re2c:
-	mkdir -p tools/bin
-	(cd tools/re2c; ./autogen.sh && ./configure CFLAGS="-march=native -O3" CC="$(CC_FOR_BUILD)" --disable-golang --disable-rust && make)
-	cp tools/re2c/re2c tools/bin
+tools/re2c/configure: tools/re2c/configure.ac
+	cd tools/re2c && ./autogen.sh
 
-tools: tools/bin/re2c
+local/bin/re2c: tools/re2c/configure
+	mkdir -p local/bin
+	mkdir -p build/re2c
+	cd build/re2c && ../../tools/re2c/configure CC="$(CC_FOR_BUILD)" --disable-golang --disable-rust --disable-benchmarks --no-recursion --enable-libs --disable-dlang --disable-haskell --disable-java --disable-ocaml --disable-python --disable-swift --disable-vlang --disable-js --disable-zig --disable-shared --enable-static --disable-docs --disable-debug --disable-libs && make -j 16
+	make -C build/re2c install-strip DESTDIR="`pwd`" prefix=/local
+
+tools: local/bin/re2c
 
 depend:
 
@@ -316,10 +329,10 @@ $(PKG_STUB_LIB_FILE): $(PKG_STUB_OBJECTS)
 
 VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macosx:$(srcdir)/lexers
 
-$(filter lexers/%,$(PKG_SOURCES)): lexers/%.c: generic/%.re generic/parse.h tools/bin/re2c
+$(filter lexers/%,$(PKG_SOURCES)): lexers/%.c: generic/%.re generic/parse.h tools
 	mkdir -p lexers
 	@echo "Building lexer $@ from $<"
-	tools/bin/re2c $(RE2CARGS) $< -o $@
+	local/bin/re2c $(RE2CARGS) $< -o $@
 
 lexers: $(filter lexers/%,$(PKG_SOURCES))
 
@@ -348,36 +361,58 @@ DIST_INSTALL_SCRIPT	= CPPROG='cp -p' $(INSTALL) -m 755
 dist-clean:
 	rm -rf $(DIST_DIR) $(DIST_ROOT)/$(PKG_DIR).tar.*
 
-dist: dist-clean
+dist: dist-clean doc
 	$(INSTALL_DATA_DIR) $(DIST_DIR)
 
 	# TEA files
 	$(DIST_INSTALL_DATA) $(srcdir)/Makefile.in \
 	    $(srcdir)/aclocal.m4 $(srcdir)/configure.ac \
+	    $(srcdir)/Makefile.teabase.in \
 	    $(DIST_DIR)/
 	$(DIST_INSTALL_SCRIPT) $(srcdir)/configure $(DIST_DIR)/
 
 	$(INSTALL_DATA_DIR) $(DIST_DIR)/tclconfig
 	$(DIST_INSTALL_DATA) $(srcdir)/tclconfig/README.txt \
 	    $(srcdir)/tclconfig/tcl.m4 $(srcdir)/tclconfig/install-sh \
+	    $(srcdir)/tclconfig/license.terms \
 	    $(DIST_DIR)/tclconfig/
+
+	$(INSTALL_DATA_DIR) $(DIST_DIR)/teabase
+	$(DIST_INSTALL_DATA) $(srcdir)/teabase/* $(DIST_DIR)/teabase/
 
 	# Extension files
 	$(DIST_INSTALL_DATA) \
-	    $(srcdir)/ChangeLog \
-	    $(srcdir)/README.sha \
 	    $(srcdir)/license.terms \
-	    $(srcdir)/README \
+	    $(srcdir)/README.md \
 	    $(srcdir)/pkgIndex.tcl.in \
+	    $(srcdir)/reuriConfig.sh.in \
+		$(srcdir)/find_dedup.tcl \
+	    $(srcdir)/suppressions \
 	    $(DIST_DIR)/
 
-	list='demos doc generic library mac tests unix win'; \
+	# Copy source directories
+	list='doc generic tests bench'; \
 	for p in $$list; do \
 	    if test -d $(srcdir)/$$p ; then \
 		$(INSTALL_DATA_DIR) $(DIST_DIR)/$$p; \
-		$(DIST_INSTALL_DATA) $(srcdir)/$$p/* $(DIST_DIR)/$$p/; \
+		$(INSTALL_DATA_DIR) $(DIST_DIR)/$$p/.build; \
+		if test "$$p" = "doc" ; then \
+		    $(DIST_INSTALL_DATA) $(srcdir)/$$p/reuri.md.in $(srcdir)/$$p/reuri.n $(DIST_DIR)/$$p/; \
+		    $(DIST_INSTALL_DATA) $(srcdir)/$$p/.build/* $(DIST_DIR)/$$p/.build/; \
+		else \
+		    $(DIST_INSTALL_DATA) $(srcdir)/$$p/* $(DIST_DIR)/$$p/; \
+		fi; \
 	    fi; \
 	done
+
+	# Copy tools directory but exclude built binaries
+	if test -d $(srcdir)/tools ; then \
+	    $(INSTALL_DATA_DIR) $(DIST_DIR)/tools; \
+	    if test -d $(srcdir)/tools/re2c ; then \
+		$(INSTALL_DATA_DIR) $(DIST_DIR)/tools/re2c; \
+		cd $(srcdir)/tools/re2c && tar cf - --exclude='examples' --exclude='*.o' --exclude='re2c' --exclude='.git' --exclude='autom4te.cache' --exclude='config.log' --exclude='config.status' --exclude='Makefile' . | (cd $(DIST_DIR)/tools/re2c && tar xf -); \
+	    fi; \
+	fi
 
 	(cd $(DIST_ROOT); $(COMPRESS);)
 
@@ -394,7 +429,10 @@ clean:
 	-test -z "$(BINARIES)" || rm -f $(BINARIES)
 	-rm -f *.$(OBJEXT) core *.core
 	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
+	-rm -rf doc/.build
 	-rm -f *.gcda *.gcno *.gcov
+	-rm -rf local build
+	-test -z tools/re2c/configure || rm tools/re2c/configure
 
 distclean: clean
 	-rm -f *.tab.c

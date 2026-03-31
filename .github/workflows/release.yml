@@ -12,42 +12,44 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install pandoc texlive-latex-base texlive-latex-recommended
+        sudo apt install pandoc texlive-latex-base texlive-latex-recommended ninja-build
+        pip3 install --user meson
 
     - name: Cache Tcl build
       id: cache-tcl
       uses: actions/cache@v4
       with:
-        path: /opt/tcl8.7
-        key: ${{ runner.os }}-tcl8.7-f7629abff2
+        path: /opt/tcl9.0
+        key: ${{ runner.os }}-tcl9.0
 
-    - name: Build Tcl 8.7
+    - name: Build Tcl 9.0
       if: steps.cache-tcl.outputs.cache-hit != 'true'
       run: |
         mkdir -p /tmp/src/tcl
         cd /tmp/src/tcl
-        wget https://core.tcl-lang.org/tcl/tarball/f7629abff2/tcl.tar.gz -O - | tar xz --strip-components=1
+        sudo mkdir /opt/tcl9.0
+        sudo chown -R $(id -u) /opt/tcl9.0
+        wget https://core.tcl-lang.org/tcl/tarball/core-9-0-3/tcl.tar.gz -O - | tar xz --strip-components=1
         cd unix
-        ./configure CFLAGS="-DPURIFY" --enable-symbols --enable-testmode --prefix=/opt/tcl8.7
+        ./configure CFLAGS="-DPURIFY" --enable-symbols --enable-testmode --prefix=/opt/tcl9.0
         make -j 8
-        sudo make install
+        make install
 
     - name: Cache dedup build
       id: cache-dedup
       uses: actions/cache@v4
       with:
-        path: /opt/tcl8.7/lib/dedup0.9.7
-        key: ${{ runner.os }}-dedup0.9.7
+        path: /opt/tcl9.0/lib/dedup0.9.13
+        key: ${{ runner.os }}-dedup0.9.13
 
     - name: Build dedup
       if: steps.cache-dedup.outputs.cache-hit != 'true'
       run: |
         mkdir -p /tmp/src/dedup
         cd /tmp/src/dedup
-        git clone --recurse-submodules --shallow-submodules --branch v0.9.7 --single-branch --depth 1 https://github.com/cyanogilvie/dedup .
-        autoconf && ./configure --with-tcl=/opt/tcl8.7/lib --prefix=/opt/tcl8.7
-        make -j 8
-        sudo make install
+        git clone --recurse-submodules --shallow-submodules --branch v0.9.13 --single-branch --depth 1 https://github.com/cyanogilvie/dedup .
+        PKG_CONFIG_PATH=/opt/tcl9.0/lib/pkgconfig meson setup builddir
+        meson install -C builddir
 
     - uses: actions/checkout@v4
       with:
@@ -56,7 +58,7 @@ jobs:
     - name: Build reuri
       run: |
         autoconf
-        ./configure --with-tcl=/opt/tcl8.7/lib --enable-testmode
+        PKG_CONFIG_PATH=/opt/tcl9.0/lib/./configure --with-tcl=/opt/tcl9.0/lib --enable-testmode
         make
 
     - name: Run tests
@@ -67,6 +69,14 @@ jobs:
       with:
         name: test-results
         path: /tmp/test_results.log
+
+    - name: Build reuri (meson)
+      run: |
+        PKG_CONFIG_PATH=/opt/tcl9.0/lib/pkgconfig meson setup builddir -Dtestmode=true
+        meson compile -C builddir
+
+    - name: Run tests (meson)
+      run: meson test -C builddir --print-errorlogs
 
     - name: Create distribution
       run: |

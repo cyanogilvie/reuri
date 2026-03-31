@@ -515,24 +515,35 @@ finally:
 
 ## BUILDING
 
-Besides Tcl, this package requires the dedup package:
-https://github.com/cyanogilvie/dedup.  The build system will attempt to
+Besides Tcl, this package requires the `dedup` package:
+https://github.com/cyanogilvie/dedup.  The primary build system is now `meson`, it will
+find `dedup` using it's pkg-config file, use the `PKG_CONFIG_PATH` environment variable
+to point meson to it (and Tcl) if they're installed in a nonstandard location.
+
+The legacy autotools build system will attempt to
 autodetect the location of the installed dedup, if the target Tcl's tclsh can
 load the package.  If for some reason this doesn't work (or you are cross compiling
 or for some other reason can't execute the target tclsh on the build machine), supply
 the `--with-dedup` configure option with the path to the dedupConfig.sh file from the
 installed dedup package.
 
-Currently Tcl 8.7 is required, but if needed polyfills could be built to support 8.6.
+Currently Tcl 9.0 is supported, at least Tcl 8.7 is required, but if needed polyfills
+could be built to support 8.6.
 
 ### From a Release Tarball
 
-Download and extract [the release](https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz), then build in the standard TEA way:
+Download and extract [the release](https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz), then build with meson, or in the standard TEA autotools way:
 
 ```sh
 wget https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz
 tar xf @PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz
 cd @PACKAGE_NAME@@PACKAGE_VERSION@
+
+# meson
+meson setup builddir --buildtype=release
+meson install -C builddir
+
+# autotools
 ./configure
 make
 sudo make install
@@ -545,6 +556,12 @@ Fetch [the code](https://github.com/cyanogilvie/@PACKAGE_NAME@) and submodules r
 ```sh
 git clone --recurse-submodules https://github.com/cyanogilvie/@PACKAGE_NAME@
 cd @PACKAGE_NAME@
+
+# meson
+meson setup builddir --buildtype=release
+meson install -C builddir
+
+# autotools
 autoconf
 ./configure
 make
@@ -555,6 +572,17 @@ sudo make install
 
 Build from a specified release version, avoiding layer pollution and only adding the installed package without documentation to the image, and strip debug symbols, minimising image size:
 
+Meson:
+```dockerfile
+WORKDIR /tmp/@PACKAGE_NAME@
+RUN wget https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz -O - | tar xz --strip-components=1 && \
+    meson setup builddir --buildtype=release && \
+    meson install -C builddir && \
+    strip /usr/local/lib/lib@PACKAGE_NAME@*.so && \
+    cd .. && rm -rf @PACKAGE_NAME@
+```
+
+Autotools:
 ```dockerfile
 WORKDIR /tmp/@PACKAGE_NAME@
 RUN wget https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz -O - | tar xz --strip-components=1 && \
@@ -569,12 +597,24 @@ For any of the build methods you may need to pass `--with-tcl /path/to/tcl/lib` 
 
 It's a good idea to run the test suite after building:
 
+Meson:
+```sh
+meson test -C builddir
+```
+
+Autotools:
 ```sh
 make test
 ```
 
 And maybe also the memory checker `valgrind` (requires that Tcl and this package are built with suitable memory debugging flags, like `CFLAGS="-DPURIFY -Og" --enable-symbols`):
 
+Meson:
+```sh
+meson test -C builddir --wrapper 'valgrind --keep-debuginfo=yes --track-origins=yes --trace-children=yes'
+```
+
+Autotools:
 ```sh
 make valgrind
 ```
@@ -620,6 +660,6 @@ The uri module of tcllib.
 
 ## LICENSE
 
-This package is Copyright 2025 Cyan Ogilvie, and is made available under the
+This package is Copyright 2025-2026 Cyan Ogilvie, and is made available under the
 same license terms as the Tcl Core
 

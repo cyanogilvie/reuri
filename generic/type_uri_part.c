@@ -223,7 +223,7 @@ static void free_internal_rep(Tcl_Obj* obj, Reuri_ObjType* objtype) //<<<
 static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup, Reuri_ObjType* objtype) //<<<
 {
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(src, (Tcl_ObjType*)objtype);
-	Tcl_ObjInternalRep		newir = {0};
+	Tcl_ObjInternalRep		newir = {.twoPtrValue = {0}};
 
 	replace_tclobj(DECODED_PTR(&newir),		DECODED(ir));
 	replace_tclobj(NORMALIZED_PTR(&newir),	NORMALIZED(ir));
@@ -236,7 +236,7 @@ static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup, Reuri_ObjType* objtype)
 static void update_string_rep(Tcl_Obj* obj, Reuri_ObjType* objtype) //<<<
 {
 	Tcl_Obj*	norm = NULL;
-	int			len;
+	Tcl_Size	len;
 	const char*	str;
 
 	if (TCL_OK != Reuri_GetNormalizedFromPart(NULL, obj, objtype, &norm))
@@ -251,6 +251,7 @@ static void update_string_rep(Tcl_Obj* obj, Reuri_ObjType* objtype) //<<<
 
 static int update_decoded_rep_scheme(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 {
+	(void)interp;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&scheme_objtype);
 	Tcl_DString	ds;
 	Tcl_DStringInit(&ds);
@@ -279,6 +280,7 @@ finally:
 
 static int update_decoded_rep_userinfo(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 {
+	(void)interp;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&userinfo_objtype);
 	Tcl_DString				ds;
 
@@ -308,6 +310,7 @@ finally:
 
 static int update_decoded_rep_host_reg_name(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 {
+	(void)interp;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&host_reg_name_objtype);
 	Tcl_DString				ds;
 
@@ -337,6 +340,7 @@ finally:
 
 static int update_decoded_rep_host_ipv4(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 {
+	(void)interp;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&host_ipv4_objtype);
 	replace_tclobj(DECODED_PTR(ir), Tcl_DuplicateObj(obj));
 
@@ -372,8 +376,9 @@ static int update_decoded_rep_host_ipv6(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 //>>>
 static int update_normalized_rep_host_ipv6(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 {
+	(void)interp;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&host_ipv6_objtype);
-	int						len;
+	Tcl_Size				len;
 	const char*				str = Tcl_GetStringFromObj(DECODED(ir), &len);
 	Tcl_DString				ds;
 	Tcl_DStringInit(&ds);
@@ -408,7 +413,7 @@ static int update_normalized_rep_host_local(Tcl_Interp* interp, Tcl_Obj* obj) //
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&host_local_objtype);
 	Tcl_DString				ds;
 	Tcl_Obj**				pathv = NULL;
-	int						pathc;
+	Tcl_Size				pathc;
 	int						i;
 
 	if (TCL_OK != (code = Tcl_ListObjGetElements(interp, DECODED(ir), &pathc, &pathv))) {
@@ -540,7 +545,7 @@ static int update_normalized_rep_query(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&query_objtype);
 	Tcl_DString				ds;
 	Tcl_Obj**				irv = NULL;
-	int						irc;
+	Tcl_Size				irc;
 
 	if (TCL_OK != (code = Tcl_ListObjGetElements(interp, DECODED(ir), &irc, &irv))) {
 		if (interp) goto finally; else Tcl_Panic("Couldn't interpret query decoded value as a list");
@@ -569,6 +574,7 @@ finally:
 
 static int update_decoded_rep_fragment(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 {
+	(void)interp;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&fragment_objtype);
 	Tcl_DString				ds;
 
@@ -603,7 +609,7 @@ int Reuri_GetDecodedFromPart(Tcl_Interp* interp, Tcl_Obj* obj, Reuri_ObjType* ob
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)objtype);
 
 	if (!ir) {
-		Tcl_ObjInternalRep	newir = {0};
+		Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 		Tcl_GetString(obj);	// Ensure the string rep is available
 		Tcl_StoreInternalRep(obj, (Tcl_ObjType*)objtype, &newir);
 		register_intrep(obj);
@@ -615,7 +621,7 @@ int Reuri_GetDecodedFromPart(Tcl_Interp* interp, Tcl_Obj* obj, Reuri_ObjType* ob
 
 	if (objtype == &query_objtype) {
 		Tcl_Obj**	irv = NULL;
-		int			irc;
+		Tcl_Size	irc;
 		TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, DECODED(ir), &irc, &irv));
 		if (irc < 1) THROW_ERROR_LABEL(finally, code, "Corrupt uri query decoded intrep, must have at least 1 element");
 		replace_tclobj(decoded, irv[0]);
@@ -634,7 +640,7 @@ int Reuri_GetNormalizedFromPart(Tcl_Interp* interp, Tcl_Obj* obj, Reuri_ObjType*
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)objtype);
 
 	if (!ir) {
-		Tcl_ObjInternalRep	newir = {0};
+		Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 		Tcl_GetString(obj);	// Ensure the string rep is available
 		Tcl_StoreInternalRep(obj, (Tcl_ObjType*)objtype, &newir);
 		register_intrep(obj);
@@ -668,7 +674,7 @@ Reuri_ObjType* host_objtype(enum reuri_hosttype hosttype) //<<<
 //>>>
 Tcl_Obj* Reuri_NewPartFromString(Reuri_ObjType* objtype, const char* str, int len) //<<<
 {
-	Tcl_ObjInternalRep	newir = {0};
+	Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 
 	Tcl_Obj*	res = Tcl_NewStringObj(str, len);
 	Tcl_StoreInternalRep(res, (Tcl_ObjType*)objtype, &newir);
@@ -707,8 +713,8 @@ int ReuriRebuildIndex(Tcl_Interp* interp, Tcl_Obj* params, Tcl_Obj** index) //<<
 	int					code = TCL_OK;
 	Tcl_Obj*			res = NULL;
 	Tcl_Obj**			pv = NULL;
-	int					pc;
-	
+	Tcl_Size			pc;
+
 	replace_tclobj(&res, Tcl_NewDictObj());
 
 	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, params, &pc, &pv));
@@ -732,7 +738,7 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 	Tcl_Obj*			newidx = NULL;
 
 	if (ir == NULL) {
-		Tcl_ObjInternalRep	newir = {0};
+		Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 		const char*			str = Tcl_GetString(query);
 		const char*			s = str;
 
@@ -753,7 +759,7 @@ int ReuriGetQueryFromObj(Tcl_Interp* interp, Tcl_Obj* query, Tcl_Obj** params, T
 	}
 
 	{
-		int			irc;
+		Tcl_Size	irc;
 		Tcl_Obj**	irv = NULL;
 		TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, DECODED(ir), &irc, &irv));
 		if (irc < 1 || irc > 2)
@@ -783,7 +789,7 @@ finally:
 //>>>
 void ReuriSetQuery(Tcl_Obj* query, Tcl_Obj* params, Tcl_Obj* index) //<<<
 {
-	Tcl_ObjInternalRep	newir = {0};
+	Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 	Tcl_Obj*			irv[2] = {params, index};
 
 	replace_tclobj(DECODED_PTR(&newir), Tcl_NewListObj(index?2:1, irv));
@@ -796,10 +802,10 @@ void ReuriSetQuery(Tcl_Obj* query, Tcl_Obj* params, Tcl_Obj* index) //<<<
 //>>>
 // Internal API >>>
 // Stubs API <<<
-int Reuri_NewQueryObj(Tcl_Interp* interp, int objc, Tcl_Obj* const objv[], Tcl_Obj** res) //<<<
+int Reuri_NewQueryObj(Tcl_Interp* interp, Tcl_Size objc, Tcl_Obj* const objv[], Tcl_Obj** res) //<<<
 {
 	int					code = TCL_OK;
-	Tcl_ObjInternalRep	newir = {0};
+	Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 	Tcl_Obj*			newobj = NULL;
 	Tcl_Obj*			new_params = NULL;
 	Tcl_Obj*			new_index = NULL;
@@ -841,7 +847,7 @@ int Reuri_CompileQuery(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* params) //<
 {
 	int			code = TCL_OK;
 	Tcl_Obj**	pv = NULL;
-	int			pc;
+	Tcl_Size	pc;
 	int			i = 0;
 
 	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, params, &pc, &pv));
@@ -894,7 +900,7 @@ int Reuri_GetPathFromObj(Tcl_Interp* interp, Tcl_Obj* pathPtr, Tcl_Obj** pathlis
 	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(pathPtr, (Tcl_ObjType*)&path_objtype);
 
 	if (ir == NULL) {
-		Tcl_ObjInternalRep	newir = {0};
+		Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 
 		code = decode_path(interp, Tcl_GetString(pathPtr), DECODED_PTR(&newir));
 		if (code != TCL_OK) {
@@ -919,7 +925,7 @@ int Reuri_CompilePath(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* pathListPtr)
 {
 	int			code = TCL_OK;
 	Tcl_Obj**	ov = NULL;
-	int			oc;
+	Tcl_Size	oc;
 	int			i;
 
 	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, pathListPtr, &oc, &ov));

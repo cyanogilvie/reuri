@@ -3,11 +3,6 @@
 #
 package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ [list apply {
 	dir {
-		if {[package vsatisfies [package provide Tcl] 9.0-]} {
-			set libfile	[file join $dir @PKG_LIB_FILE9@]
-		} else {
-			set libfile	[file join $dir @PKG_LIB_FILE8@]
-		}
-		load $libfile [string totitle @PACKAGE_NAME@]
+		load [file join $dir @PKG_LIB_FILE@] [string totitle @PACKAGE_NAME@]
 	}
 } $dir]

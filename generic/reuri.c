@@ -1,10 +1,10 @@
 #include "reuriInt.h"
 
-TCL_DECLARE_MUTEX(g_intreps_mutex);
+TCL_DECLARE_MUTEX(g_intreps_mutex)
 int				g_intreps_refcount = 0;
 Tcl_HashTable	g_intreps;
 
-TCL_DECLARE_MUTEX(g_config_mutex);
+TCL_DECLARE_MUTEX(g_config_mutex)
 Tcl_Obj*		g_packagedir = NULL;
 Tcl_Obj*		g_includedir = NULL;
 int				g_config_refcount = 0;
@@ -107,7 +107,7 @@ void register_intrep(Tcl_Obj* obj) //<<<
 
 	Tcl_MutexLock(&g_intreps_mutex);
 	Tcl_HashEntry*	he = Tcl_CreateHashEntry(&g_intreps, obj, &isnew);
-	if (!isnew) Tcl_Panic("g_intreps already contains an entry for %p", obj);
+	if (!isnew) Tcl_Panic("g_intreps already contains an entry for %p", (void*)obj);
 	Tcl_SetHashValue(he, obj);
 	Tcl_MutexUnlock(&g_intreps_mutex);
 }
@@ -117,7 +117,7 @@ void forget_intrep(Tcl_Obj* obj) //<<<
 {
 	Tcl_MutexLock(&g_intreps_mutex);
 	Tcl_HashEntry*	he = Tcl_FindHashEntry(&g_intreps, obj);
-	if (!he) Tcl_Panic("no entry in g_intreps found for %p", obj);
+	if (!he) Tcl_Panic("no entry in g_intreps found for %p", (void*)obj);
 	Tcl_DeleteHashEntry(he);
 	Tcl_MutexUnlock(&g_intreps_mutex);
 }
@@ -180,9 +180,9 @@ static int _query_get(Tcl_Interp* interp, Tcl_Obj* queryObj, Tcl_Obj* param, Tcl
 	Tcl_Obj*	idxlist = NULL;
 	Tcl_Obj*	allvals = NULL;
 	Tcl_Obj**	qv = NULL;
-	int			qc;
+	Tcl_Size	qc;
 	Tcl_Obj**	idxv = NULL;
-	int			idxc;
+	Tcl_Size	idxc;
 
 	TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, queryObj, &query, &index));
 
@@ -330,9 +330,9 @@ static int query_values(Tcl_Interp* interp, Tcl_Obj* queryObj, Tcl_Obj* param, T
 	Tcl_Obj*			index = NULL;
 	Tcl_Obj*			idxlist = NULL;
 	Tcl_Obj**			idxv = NULL;
-	int					idxc;
+	Tcl_Size			idxc;
 	Tcl_Obj**			qv = NULL;
-	int					qc;
+	Tcl_Size			qc;
 
 	TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, queryObj, &query, &index));
 	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, query, &qc, &qv));
@@ -368,7 +368,7 @@ static int query_names(Tcl_Interp* interp, Tcl_Obj* queryObj, Tcl_Obj** out) //<
 	Tcl_Obj*			query = NULL;
 	Tcl_Obj*			names = NULL;
 	Tcl_Obj**			qv = NULL;
-	int					qc;
+	Tcl_Size			qc;
 
 	TEST_OK_LABEL(finally, code, ReuriGetQueryFromObj(interp, queryObj, &query, NULL));
 	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, query, &qc, &qv));
@@ -413,9 +413,9 @@ static int query_add(Tcl_Interp* interp, Tcl_Obj* queryObj, Tcl_Obj* param, Tcl_
 	replace_tclobj(&index,  Tcl_DuplicateObj(index));
 	// params and index are unshared
 
-	int last;
+	Tcl_Size last;
 	TEST_OK_LABEL(finally, code, Tcl_ListObjLength(interp, params, &last));
-	replace_tclobj(&newidx, Tcl_NewIntObj(last/2));
+	replace_tclobj(&newidx, Tcl_NewWideIntObj(last/2));
 
 	// Append this instance of param
 	TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, params, param));
@@ -473,10 +473,10 @@ static int query_unset(Tcl_Interp* interp, Tcl_Obj* queryObj, int paramc, Tcl_Ob
 	// Gather the indices for all instances of all the params we're unsetting
 	replace_tclobj(&hitlist, Tcl_NewListObj(paramc, NULL));	// Guess that we will have an average of one idx per param
 	for (int p=0; p<paramc; p++) {
-		int			len;
+		Tcl_Size	len;
 		Tcl_Obj*	idxlist = NULL;
 		Tcl_Obj**	idxv = NULL;
-		int			idxc;
+		Tcl_Size	idxc;
 
 		TEST_OK_LABEL(finally, code, Tcl_ListObjLength(interp, hitlist, &len));	// TODO: keep track of this directly instead?
 		TEST_OK_LABEL(finally, code, Tcl_DictObjGet(interp, index, paramv[p], &idxlist));
@@ -493,7 +493,7 @@ static int query_unset(Tcl_Interp* interp, Tcl_Obj* queryObj, int paramc, Tcl_Ob
 
 	// Remove the elements from the params list
 	Tcl_Obj**	hitv = NULL;
-	int			hitc;
+	Tcl_Size	hitc;
 	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, hitlist, &hitc, &hitv));
 	for (int i=0; i<hitc; i++) {
 		int		idx;
@@ -542,15 +542,15 @@ static int query_set(Tcl_Interp* interp, Tcl_Obj* queryObj, Tcl_Obj* param, Tcl_
 	// Gather the indices for all instances of all the params we're unsetting
 	Tcl_Obj*	idxlist = NULL;
 	Tcl_Obj**	idxv = NULL;
-	int			idxc;
+	Tcl_Size	idxc;
 
 	TEST_OK_LABEL(finally, code, Tcl_DictObjGet(interp, index, param, &idxlist));
 	if (!idxlist) {
 		// param doesn't exist in query yet, append it
-		int last;
+		Tcl_Size last;
 add:
 		TEST_OK_LABEL(finally, code, Tcl_ListObjLength(interp, params, &last));
-		replace_tclobj(&newidx, Tcl_NewIntObj(last/2));
+		replace_tclobj(&newidx, Tcl_NewWideIntObj(last/2));
 
 		// Append this instance of param
 		TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, params, param));
@@ -1037,7 +1037,7 @@ int Reuri_URIObjQueryNew(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj* params /*
 	int			code = TCL_OK;
 	Tcl_Obj*	query = NULL;
 	Tcl_Obj**	ov = NULL;
-	int			oc;
+	Tcl_Size	oc;
 
 	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, params, &oc, &ov));
 	TEST_OK_LABEL(finally, code, Reuri_NewQueryObj(interp, oc, ov, &query));
@@ -1113,6 +1113,7 @@ void Reuri_PercentEncode(Tcl_Interp* interp, enum reuri_encode_mode mode, Tcl_Ob
 // Script API <<<
 static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
+	(void)cdata;
 	int					code = TCL_OK;
 	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 	Tcl_Obj*			tmp = NULL;
@@ -1470,7 +1471,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 					case OP_NEW: //<<<
 						{
 							Tcl_Obj* const*	ov = NULL;
-							int				oc;
+							Tcl_Size			oc;
 
 							switch (objc - A_args) {
 								case 1:
@@ -1606,7 +1607,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 								CHECK_ARGS_LABEL(path_exists_finally, code, "uri ?index?");
 
 							if (objc > A_INDEX) {
-								int pathc;
+								Tcl_Size pathc;
 								TEST_OK_LABEL(path_exists_finally, code, Reuri_GetPathFromObj(interp, path, &pathlist));
 								TEST_OK_LABEL(path_exists_finally, code, Tcl_ListObjLength(interp, pathlist, &pathc));
 								TEST_OK_LABEL(path_exists_finally, code, Idx_Exists(interp, pathc, objv[A_INDEX], &res));
@@ -1652,6 +1653,7 @@ finally:
 //>>>
 static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
+	(void)cdata;
 	int					code = TCL_OK;
 	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
 	static const char*	methods[] = {
@@ -1792,7 +1794,7 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 		case M_NEW: //<<<
 			{
 				Tcl_Obj* const*	ov = NULL;
-				int				oc;
+				Tcl_Size		oc;
 
 				switch (objc) {
 					case 3:
@@ -1812,7 +1814,7 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 		case M_ENCODE: //<<<
 			{
 				Tcl_Obj* const*	ov = NULL;
-				int				oc;
+				Tcl_Size		oc;
 
 				switch (objc) {
 					case 3:
@@ -1842,7 +1844,7 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 				CHECK_ARGS_LABEL(decode_finally, code, "query");
 				replace_tclobj(&q, objv[A_QUERY]);
 
-				int			len;
+				Tcl_Size	len;
 				const char*	str = Tcl_GetStringFromObj(q, &len);
 				if (str[0] == '?') replace_tclobj(&q, Tcl_NewStringObj(str+1, len-1));
 
@@ -1864,6 +1866,7 @@ finally:
 //>>>
 static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
+	(void)cdata;
 	int					code = TCL_OK;
 	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 	static const char*	methods[] = {
@@ -1934,7 +1937,7 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 			{
 				Tcl_Obj*		pathlist = NULL;
 				Tcl_Obj*		res = NULL;
-				int pathc;
+				Tcl_Size        pathc;
 
 				enum {A_cmd=1, A_PATH, A_INDEX, A_objc};
 				if (objc < A_INDEX || objc > A_objc)
@@ -1973,7 +1976,7 @@ static int PathObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* c
 
 				int segmentc	= objc - A_args;
 				if (segmentc > 0) {
-					int			len;
+					Tcl_Size	len;
 					const char* seg = Tcl_GetStringFromObj(objv[A_args], &len);
 					if (len == 1 && seg[0] == '/') {
 						// Root
@@ -2015,6 +2018,7 @@ finally:
 //>>>
 static int QuirkObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
+	(void)cdata;
 	int					code = TCL_OK;
 	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 	static const char*	quirks[] = {
@@ -2151,6 +2155,10 @@ finally:
 #if TESTMODE
 static int NopObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
+	(void)cdata;
+	(void)interp;
+	(void)objc;
+	(void)objv;
 	return TCL_OK;
 }
 
@@ -2216,7 +2224,6 @@ static int Init(Tcl_Interp* interp, int safe) //<<<
 	l->dedup_query			= Dedup_NewPool(interp);
 	l->dedup_fragment		= Dedup_NewPool(interp);
 
-	l->typeInt = Tcl_GetObjType("int");
 	for (int i=0; reuri_hosttype_str[i]; i++)
 		replace_tclobj(&l->hosttype[i], Dedup_NewStringObj(l->dedup_pool, reuri_hosttype_str[i], -1));
 	replace_tclobj(&l->empty,		Dedup_NewStringObj(l->dedup_pool, "", 0));
@@ -2282,6 +2289,7 @@ DLLEXPORT int Reuri_SafeInit(Tcl_Interp* interp) //<<<
 
 DLLEXPORT int Reuri_Unload(Tcl_Interp* interp, int flags) //<<<
 {
+	(void)flags;
 	int				code = TCL_OK;
 	Tcl_HashSearch	search;
 

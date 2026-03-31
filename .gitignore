@@ -28,6 +28,11 @@ prof/
 local/
 build/
 generic/reuri.h
+generic/reuriDecls.h
+generic/reuriStubInit.c
 reuriConfig.sh
 Makefile.teabase
 doc/.build
+subprojects/re2c-*
+subprojects/packagecache
+subprojects/.wraplock

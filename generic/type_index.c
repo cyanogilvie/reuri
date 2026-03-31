@@ -171,7 +171,7 @@ int IdxGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_c
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(indexObj, &index_objtype);
 
 	if (ir == NULL) {
-		Tcl_ObjInternalRep	newir;
+		Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 
 		*INDEX_PTR(&newir) = NULL;
 		code = parse_index(interp, Tcl_GetString(indexObj), INDEX_PTR(&newir));
@@ -225,9 +225,9 @@ int Idx_PickFromList(Tcl_Interp* interp, Tcl_Obj* listObj, Tcl_Obj* indexObj, Tc
 	int					idx;
 	enum idx_type		idxtype;
 	Tcl_Obj**			lv;
-	int					lc;
+	Tcl_Size			lc;
 	Tcl_Obj**			idxv;
-	int					idxc;
+	Tcl_Size			idxc;
 
 	TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, listObj, &lc, &lv));
 	TEST_OK_LABEL(finally, code, Idx_Resolve(interp, indexObj, lc, &idxlist, &idxtype));
@@ -267,26 +267,26 @@ int Idx_Exists(Tcl_Interp* interp, size_t length, Tcl_Obj* indexObj, Tcl_Obj** e
 	struct interp_cx*	l = Tcl_GetAssocData(interp, "reuri", NULL);
 	Tcl_Obj*			idxlist = NULL;
 	Tcl_Obj*			res = NULL;
-	int					idx;
+	Tcl_WideInt			idx;
 	enum idx_type		idxtype;
 	Tcl_Obj**			idxv;
-	int					idxc;
+	Tcl_Size			idxc;
 
 	TEST_OK_LABEL(finally, code, Idx_Resolve(interp, indexObj, length, &idxlist, &idxtype));
 
 	switch (idxtype) {
 		case IDX_SINGLE:
-			TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxlist, &idx));
-			replace_tclobj(&res, (idx>=0 && idx<length) ? l->t : l->f);
+			TEST_OK_LABEL(finally, code, Tcl_GetWideIntFromObj(interp, idxlist, &idx));
+			replace_tclobj(&res, (idx>=0 && (size_t)idx<length) ? l->t : l->f);
 			break;
 
 		case IDX_RANGE:
 			TEST_OK_LABEL(finally, code, Tcl_ListObjGetElements(interp, idxlist, &idxc, &idxv));
 			replace_tclobj(&res, Tcl_NewListObj(0, NULL));
-			for (int i=0; i<idxc; i++) {
-				TEST_OK_LABEL(finally, code, Tcl_GetIntFromObj(interp, idxv[i], &idx));
+			for (Tcl_WideInt i=0; i<idxc; i++) {
+				TEST_OK_LABEL(finally, code, Tcl_GetWideIntFromObj(interp, idxv[i], &idx));
 				TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res,
-							(idx>=0 && idx<length) ? l->t : l->f
+							(idx>=0 && (size_t)idx<length) ? l->t : l->f
 				));
 			}
 			break;
@@ -307,29 +307,23 @@ finally:
 int Idx_Resolve(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** elementsPtrPtr, enum idx_type* type) //<<<
 {
 	int						code = TCL_OK;
-	//struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
-	struct interp_cx*		l = NULL;
 	Tcl_Obj*				res = NULL;
 	int						i;
 	struct parse_idx_cx*	index = NULL;
-	//Tcl_ObjInternalRep*			int_ir = Tcl_FetchInternalRep(indexObj, l->typeInt);
-	Tcl_ObjInternalRep*		int_ir = NULL;
 
-	TIME("Retrieve interp_cx from assoc data",
-	l = Tcl_GetAssocData(interp, "reuri", NULL);
-	);
-
-	// First check if the indexObj is a native integer, in which case don't shimmer it to our intrep
-	TIME("Check for int intrep",
-	int_ir = Tcl_FetchInternalRep(indexObj, l->typeInt);
-	);
-
-	if (int_ir) {
-		//fprintf(stderr, "Using native int directly: %s\n", Tcl_GetString(indexObj));
-		replace_tclobj(&res, indexObj);
-		*type = IDX_SINGLE;
-		goto done;
+#if TCL_MAJOR_VERSION > 8
+	// If the obj is already a native number (not bignum), use it directly
+	{
+		void*	clientData;
+		int		numType;
+		if (TCL_OK == Tcl_GetNumberFromObj(NULL, indexObj, &clientData, &numType)
+				&& numType == TCL_NUMBER_INT) {
+			replace_tclobj(&res, indexObj);
+			*type = IDX_SINGLE;
+			goto done;
+		}
 	}
+#endif
 
 	replace_tclobj(&res, Tcl_NewListObj(0, NULL));
 
@@ -338,7 +332,7 @@ int Idx_Resolve(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** 
 	if (index->set.top == 1 && index->set.range[0].to.type == IDX_NONE) {
 		// Special case: index resolves to a single element, not a range
 		int64_t		idx = _resolve_index_val(index->set.range[0].from.type, length, index->set.range[0].from.val);
-		replace_tclobj(&res, Tcl_NewIntObj(idx));
+		replace_tclobj(&res, Tcl_NewWideIntObj(idx));
 		*type = IDX_SINGLE;
 	} else {
 		for (i=0; i<index->set.top; i++) {
@@ -351,10 +345,10 @@ int Idx_Resolve(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** 
 
 			if (to >= from) {
 				for (r=from; r<=to; r++)
-					TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, Tcl_NewIntObj(r)));
+					TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, Tcl_NewWideIntObj(r)));
 			} else {
 				for (r=from; r>=to; r--)
-					TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, Tcl_NewIntObj(r)));
+					TEST_OK_LABEL(finally, code, Tcl_ListObjAppendElement(interp, res, Tcl_NewWideIntObj(r)));
 			}
 		}
 		*type = IDX_RANGE;
@@ -372,15 +366,19 @@ finally:
 int Idx_IndexType(Tcl_Interp* interp, Tcl_Obj* indexObj, enum idx_type* type) //<<<
 {
 	int						code = TCL_OK;
-	struct interp_cx*		l = Tcl_GetAssocData(interp, "reuri", NULL);
 	struct parse_idx_cx*	index = NULL;
 
-	// First check if the indexObj is a native integer, in which case don't shimmer it to our intrep
-	Tcl_ObjInternalRep*		int_ir = Tcl_FetchInternalRep(indexObj, l->typeInt);
-	if (int_ir) {
-		*type = IDX_SINGLE;
-		goto finally;
+#if TCL_MAJOR_VERSION > 8
+	{
+		void*	clientData;
+		int		numType;
+		if (TCL_OK == Tcl_GetNumberFromObj(NULL, indexObj, &clientData, &numType)
+				&& numType == TCL_NUMBER_INT) {
+			*type = IDX_SINGLE;
+			goto finally;
+		}
 	}
+#endif
 
 	TEST_OK_LABEL(finally, code, IdxGetIndexFromObj(interp, indexObj, &index));
 	*type = (index->set.top == 1 && index->set.range[0].to.type == IDX_NONE) ? IDX_SINGLE : IDX_RANGE;

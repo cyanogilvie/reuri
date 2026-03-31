@@ -1,4 +1,9 @@
 #include <tcl.h>
+
+#ifndef TCL_SIZE_MAX
+typedef int Tcl_Size;
+#endif
+
 #include "idx.h"
 
 #ifdef __cplusplus
@@ -80,7 +85,7 @@ static inline Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_enc
 	return out;
 }
 
-EXTERN int Reuri_Init _ANSI_ARGS_((Tcl_Interp * interp));
+EXTERN int Reuri_Init(Tcl_Interp *interp);
 
 #ifdef __cplusplus
 }

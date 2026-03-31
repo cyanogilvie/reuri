@@ -127,6 +127,13 @@ int parse_index(Tcl_Interp* interp, const char* str, struct parse_idx_cx** index
 	} while(0);
 
 top:
+#if defined(__GNUC__)
+	_Pragma("GCC diagnostic push")
+	_Pragma("GCC diagnostic ignored \"-Wpedantic\"")
+#elif defined(__clang__)
+	_Pragma("clang diagnostic push")
+	_Pragma("clang diagnostic ignored \"-Wpedantic\"")
+#endif
 	/*!local:re2c:index
 
 	!use:common;
@@ -163,6 +170,11 @@ top:
 		goto finally;
 	}
 	*/
+#if defined(__GNUC__)
+	_Pragma("GCC diagnostic pop")
+#elif defined(__clang__)
+	_Pragma("clang diagnostic pop")
+#endif
 
 finally:
 	if (code == TCL_OK) {

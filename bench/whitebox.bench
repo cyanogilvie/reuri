@@ -35,7 +35,7 @@ proc main {} {
 if {[llength [info commands ::reuri::_test]] > 0} {
 	main
 } else {
-	puts stderr "Skipping whitebox benchmarks because build is not -DDEBUG=1"
+	puts stderr "Skipping whitebox benchmarks because build is not -DTESTMODE=1 or the REURI_TESTMODE environment variable is not set."
 }
 
 # vim: ft=tcl foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

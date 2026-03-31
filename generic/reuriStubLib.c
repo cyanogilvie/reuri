@@ -1,3 +1,7 @@
+#if HAVE_CONFIG_H
+#	include <config.h>
+#endif
+
 #undef USE_TCL_STUBS
 #undef USE_REURI_STUBS
 #define USE_TCL_STUBS 1

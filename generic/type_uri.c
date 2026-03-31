@@ -48,7 +48,7 @@ static void free_internal_rep(Tcl_Obj* obj) //<<<
 static void dup_internal_rep(Tcl_Obj* src, Tcl_Obj* dup) //<<<
 {
 	Tcl_ObjInternalRep*	ir = Tcl_FetchInternalRep(src, &uri_objtype);
-	Tcl_ObjInternalRep	newir;
+	Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 	struct uri*			uri = (struct uri*)ir->twoPtrValue.ptr1;
 	struct uri*			dup_uri = ckalloc(sizeof *dup_uri);
 
@@ -91,7 +91,7 @@ static void append_part(Tcl_DString* ds, Tcl_Obj* part, Reuri_ObjType* objtype) 
 	if (TCL_OK != Reuri_GetNormalizedFromPart(NULL, part, objtype, &norm))
 		Tcl_Panic("Could not get normalized form of URI part");
 
-	int len;
+	Tcl_Size len;
 	const char*	str = Tcl_GetStringFromObj(norm, &len);
 	Tcl_DStringAppend(ds, str, len);
 	replace_tclobj(&norm, NULL);
@@ -158,7 +158,7 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 		const int end = Tcl_DStringLength(ds);
 		append_part(ds, uri->query, &query_objtype);
 		// If the query was empty, walk back the ?
-		if (Tcl_DStringLength(ds) == end) Tcl_DStringTrunc(ds, end-1);
+		if (Tcl_DStringLength(ds) == end) Tcl_DStringSetLength(ds, end-1);
 	}
 
 	if (uri->fragment) {
@@ -175,9 +175,9 @@ int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri) //
 	struct uri*			newuri = NULL;
 
 	if (ir == NULL) {
-		Tcl_ObjInternalRep	newir;
+		Tcl_ObjInternalRep	newir = {.twoPtrValue = {0}};
 		const char*			uristr;
-		int					uristr_len;
+		Tcl_Size			uristr_len;
 		struct parse_context	pc = {
 			.interp			= interp,
 			.rc				= TCL_OK
@@ -191,7 +191,6 @@ int ReuriGetURIFromObj(Tcl_Interp* interp, Tcl_Obj* uriPtr, struct uri** uri) //
 		code = pc.rc;
 		if (pc.rc != TCL_OK) goto finally;
 
-		memset(&newir, 0, sizeof newir);
 		newir.twoPtrValue.ptr1 = newuri;
 		newuri = NULL;
 		pc.uri = NULL;

@@ -1,0 +1,2 @@
+set _meson_config(REURI_LIBRARY) {@REURI_LIBRARY@}
+set _meson_config(REURI_STUBLIB) {@REURI_STUBLIB@}

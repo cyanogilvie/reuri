@@ -2,6 +2,15 @@
 
 #include "reuriInt.h"
 
+// Case ranges is strictly a c23 thing, but gcc and clang support it long before that
+#if defined(__GNUC__)
+	_Pragma("GCC diagnostic push")
+	_Pragma("GCC diagnostic ignored \"-Wpedantic\"")
+#elif defined(__clang__)
+	_Pragma("clang diagnostic push")
+	_Pragma("clang diagnostic ignored \"-Wpedantic\"")
+#endif
+
 /*!types:re2c*/
 /*!include:re2c "parse.h"*/
 
@@ -36,7 +45,7 @@ static void parse_fail(Tcl_Interp* interp, const unsigned char* fail, const unsi
 static int cesu8_to_pct_encoding(Tcl_DString* ds, const unsigned char* str, Tcl_Obj** ofs_adjustments) //<<<
 {
 	const unsigned char	*s = str, *tok, *YYMARKER;
-	int					adj = 0;
+	Tcl_WideInt			adj = 0;
 	Tcl_Obj*			adjs = NULL;
 
 	replace_tclobj(&adjs, Tcl_NewListObj(1, NULL));
@@ -73,9 +82,9 @@ top:
 			Tcl_DStringAppend(ds, "%00", 3);
 			s++;
 			adj += 2;
-			if (TCL_OK != Tcl_ListObjAppendElement(NULL, adjs, Tcl_NewIntObj(s-str)))
+			if (TCL_OK != Tcl_ListObjAppendElement(NULL, adjs, Tcl_NewWideIntObj(s-str)))
 				Tcl_Panic("Append to ofs_adjustments list failed");
-			if (TCL_OK != Tcl_ListObjAppendElement(NULL, adjs, Tcl_NewIntObj(adj)))
+			if (TCL_OK != Tcl_ListObjAppendElement(NULL, adjs, Tcl_NewWideIntObj(adj)))
 				Tcl_Panic("Append to ofs_adjustments list failed");
 			goto top;
 		}
@@ -140,7 +149,7 @@ top:
 			goto top;
 		}
 
-		size_t		byte_fail_ofs = fail - base;
+		Tcl_WideInt		byte_fail_ofs = fail - base;
 		const char*	p = (const char*)base;
 		for (
 			pc->fail_ofs = 0;
@@ -148,15 +157,15 @@ top:
 			p = Tcl_UtfNext(p), pc->fail_ofs++
 		);
 
-		int			ac;
+		Tcl_Size	ac;
 		Tcl_Obj**	av = NULL;
 
 		if (ofs_adjustments) {
 			TEST_OK_LABEL(finally, pc->rc, Tcl_ListObjGetElements(pc->interp, ofs_adjustments, &ac, &av));
 			for (int i=ac-2; i>=0; i-=2) {
-				int		byte, adj;
-				TEST_OK_LABEL(finally, pc->rc, Tcl_GetIntFromObj(pc->interp, av[i],   &byte));
-				TEST_OK_LABEL(finally, pc->rc, Tcl_GetIntFromObj(pc->interp, av[i+1], &adj));
+				Tcl_WideInt		byte, adj;
+				TEST_OK_LABEL(finally, pc->rc, Tcl_GetWideIntFromObj(pc->interp, av[i],   &byte));
+				TEST_OK_LABEL(finally, pc->rc, Tcl_GetWideIntFromObj(pc->interp, av[i+1], &adj));
 				if (byte <= byte_fail_ofs) {
 					pc->fail_ofs -= adj;
 					break;
@@ -1282,6 +1291,7 @@ finally:
 //>>>
 int parse_fragment(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out) //<<<
 {
+	(void)interp;
 	int						code = TCL_OK;
 	const char*				str = Tcl_GetString(in);
 	const unsigned char*	base = (const unsigned char*)str;
@@ -1306,5 +1316,11 @@ finally:
 }
 
 //>>>
+
+#if defined(__GNUC__)
+	_Pragma("GCC diagnostic pop")
+#elif defined(__clang__)
+	_Pragma("clang diagnostic pop")
+#endif
 
 // vim: ft=c foldmethod=marker foldmarker=<<<,>>> ts=4 shiftwidth=4

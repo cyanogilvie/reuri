@@ -1,8 +1,9 @@
-#ifdef TESTMODE
 #include "reuriInt.h"
+#ifdef TESTMODE
 
 static int TestObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<
 {
+	(void)cdata;
 	int			code = TCL_OK;
 	static const char*	methods[] = {
 		"parse_index_re2c",

@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([reuri], [0.14.3])
+AC_INIT([reuri], [0.14.4])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -48,18 +48,12 @@ TEA_LOAD_TCLCONFIG
 TEA_PROG_TCLSH
 
 #--------------------------------------------------------------------
-# Set default dedup location if not specified via --with-dedup
+# Generate stubs files if they don't exist (they are no longer checked
+# into the repo, but are needed by the build)
 #--------------------------------------------------------------------
-if test "x${with_dedup}" = "x"; then
-    AC_MSG_CHECKING([for default dedup location via target tclsh])
-    dedup_default_dir=`${TCLSH_PROG} ${srcdir}/find_dedup.tcl 2>/dev/null`
-    if test $? -eq 0 && test "x${dedup_default_dir}" != "x"; then
-        AC_MSG_RESULT([${dedup_default_dir}])
-        with_dedup="${dedup_default_dir}"
-    else
-        AC_MSG_RESULT([not found])
-        AC_MSG_WARN([dedup package not found in tclsh, --with-dedup may be required])
-    fi
+if test ! -f "${srcdir}/generic/reuriStubInit.c"; then
+    AC_MSG_NOTICE([Generating stubs files...])
+    ${TCLSH_PROG} ${srcdir}/teabase/tools/genStubs.tcl ${srcdir}/generic ${srcdir}/generic/reuri.decls
 fi
 
 #--------------------------------------------------------------------
@@ -68,9 +62,6 @@ fi
 
 #TEA_PATH_TKCONFIG
 #TEA_LOAD_TKCONFIG
-
-TEA_PATH_CONFIG(dedup)
-TEA_LOAD_CONFIG(dedup)
 
 #-----------------------------------------------------------------------
 # Handle the --prefix=... option by defaulting to what Tcl gave.
@@ -100,8 +91,8 @@ TEA_SETUP_COMPILER
 
 TEABASE_ADD_SOURCES([reuri.c lexers/parse.c lexers/index.c type_uri.c type_uri_part.c type_index.c testmode.c reuriStubInit.c])
 TEA_ADD_HEADERS([generic/idx.h generic/reuriDecls.h])
-TEA_ADD_INCLUDES([-Igeneric ${dedup_INCLUDE_SPEC}])
-TEA_ADD_LIBS([])
+TEA_ADD_INCLUDES([-Igeneric $(pkg-config dedup --cflags)])
+TEA_ADD_LIBS([$(pkg-config dedup --libs)])
 TEA_ADD_CFLAGS([-std=c17])
 TEA_ADD_STUB_SOURCES([reuriStubLib.c])
 TEA_ADD_TCL_SOURCES([])
@@ -172,7 +163,6 @@ TEA_CONFIG_CFLAGS
 
 # Check for required polyfill
 TIP445
-DEDUP_STUBS
 
 TEABASE_INIT()
 

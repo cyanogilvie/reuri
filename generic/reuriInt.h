@@ -1,6 +1,10 @@
 #ifndef _REURIINT_H
 #define _REURIINT_H
 
+#if HAVE_CONFIG_H
+#	include <config.h>
+#endif
+
 #include "reuri.h"
 #include "polyfill.h"
 #include "tclstuff.h"
@@ -62,7 +66,6 @@ struct interp_cx {
 	struct dedup_pool*	dedup_path;
 	struct dedup_pool*	dedup_query;
 	struct dedup_pool*	dedup_fragment;
-	const Tcl_ObjType*	typeInt;
 	Tcl_Obj*			hosttype[REURI_HOST_SIZE];
 	Tcl_Obj*			empty;
 	Tcl_Obj*			empty_list;

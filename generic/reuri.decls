@@ -11,7 +11,7 @@ declare 1 generic {
 #    Tcl_Obj* Reuri_PercentEncodeObj(Tcl_Interp* interp, enum reuri_encode_mode mode, Tcl_Obj* objPtr)
 #}
 declare 3 generic {
-	int Reuri_NewQueryObj(Tcl_Interp* interp, int objc, Tcl_Obj* const objv[], Tcl_Obj** res)
+	int Reuri_NewQueryObj(Tcl_Interp* interp, Tcl_Size objc, Tcl_Obj* const objv[], Tcl_Obj** res)
 }
 declare 4 generic {
 	int Reuri_CompileQuery(Tcl_Interp* interp, Tcl_DString* ds, Tcl_Obj* params)

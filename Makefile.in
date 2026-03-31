@@ -144,7 +144,7 @@ TCLSH		= $(TCLSH_ENV) $(PKG_ENV) $(TCLSH_PROG)
 
 SHARED_BUILD	= @SHARED_BUILD@
 
-INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@
+INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ -I$(srcdir)/generic
 #INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @TK_INCLUDES@ @TK_XINCLUDES@
 
 PKG_CFLAGS	= @PKG_CFLAGS@
@@ -212,7 +212,7 @@ doc: doc/reuri.n README.md
 doc/.build/reuri.md: $(srcdir)/doc/reuri.md.in $(top_builddir)/config.status
 	cd $(top_builddir) \
 	  && mkdir -p doc/.build \
-	  && ln -sf ../reuri.md.in doc/.build/reuri.md.in \
+	  && ln -sf "$(abspath $(srcdir)/doc/reuri.md.in)" doc/.build/reuri.md.in \
 	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
 doc/reuri.n: doc/.build/reuri.md
@@ -261,7 +261,7 @@ shell: binaries libraries
 	@$(TCLSH) $(SCRIPT)
 
 vim-gdb-benchmark: binaries libraries
-	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args $(TCLSH_PROG) bench/run.tcl $(BENCHFLAGS) -load $(PACKAGE_LOAD_EMBED)" generic/reuri.c
+	$(TCLSH_ENV) $(PKG_ENV) vim -c "set number" -c "set mouse=a" -c "set foldlevel=100" -c "Termdebug --args $(TCLSH_PROG) $(srcdir)/bench/run.tcl $(BENCHFLAGS) -load $(PACKAGE_LOAD_EMBED)" $(srcdir)/generic/reuri.c
 
 gdb:
 	$(TCLSH_ENV) $(PKG_ENV) $(GDB) $(TCLSH_PROG) $(SCRIPT)
@@ -332,7 +332,7 @@ VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macos
 $(filter lexers/%,$(PKG_SOURCES)): lexers/%.c: generic/%.re generic/parse.h tools
 	mkdir -p lexers
 	@echo "Building lexer $@ from $<"
-	local/bin/re2c $(RE2CARGS) $< -o $@
+	$(srcdir)/local/bin/re2c $(RE2CARGS) $< -o $@
 
 lexers: $(filter lexers/%,$(PKG_SOURCES))
 
@@ -378,7 +378,17 @@ dist: dist-clean doc
 	    $(DIST_DIR)/tclconfig/
 
 	$(INSTALL_DATA_DIR) $(DIST_DIR)/teabase
-	$(DIST_INSTALL_DATA) $(srcdir)/teabase/* $(DIST_DIR)/teabase/
+	cd $(srcdir)/teabase && tar cf - . | (cd $(DIST_DIR)/teabase && tar xf -);
+
+	# Meson build system
+	$(DIST_INSTALL_DATA) \
+	    $(srcdir)/meson.build \
+	    $(srcdir)/meson.options \
+	    $(DIST_DIR)/
+	$(INSTALL_DATA_DIR) $(DIST_DIR)/subprojects
+	$(DIST_INSTALL_DATA) $(srcdir)/subprojects/*.wrap $(DIST_DIR)/subprojects/
+	$(INSTALL_DATA_DIR) $(DIST_DIR)/subprojects/packagefiles
+	cd $(srcdir)/subprojects/packagefiles && tar cf - . | (cd $(DIST_DIR)/subprojects/packagefiles && tar xf -);
 
 	# Extension files
 	$(DIST_INSTALL_DATA) \
@@ -386,7 +396,8 @@ dist: dist-clean doc
 	    $(srcdir)/README.md \
 	    $(srcdir)/pkgIndex.tcl.in \
 	    $(srcdir)/reuriConfig.sh.in \
-		$(srcdir)/find_dedup.tcl \
+	    $(srcdir)/reuri.pc.in \
+	    $(srcdir)/find_dedup.tcl \
 	    $(srcdir)/suppressions \
 	    $(DIST_DIR)/
 
@@ -395,9 +406,10 @@ dist: dist-clean doc
 	for p in $$list; do \
 	    if test -d $(srcdir)/$$p ; then \
 		$(INSTALL_DATA_DIR) $(DIST_DIR)/$$p; \
-		$(INSTALL_DATA_DIR) $(DIST_DIR)/$$p/.build; \
 		if test "$$p" = "doc" ; then \
+		    $(INSTALL_DATA_DIR) $(DIST_DIR)/$$p/.build; \
 		    $(DIST_INSTALL_DATA) $(srcdir)/$$p/reuri.md.in $(srcdir)/$$p/reuri.n $(DIST_DIR)/$$p/; \
+		    $(DIST_INSTALL_DATA) $(srcdir)/$$p/meson.build $(srcdir)/$$p/meson.build $(DIST_DIR)/$$p/; \
 		    $(DIST_INSTALL_DATA) $(srcdir)/$$p/.build/* $(DIST_DIR)/$$p/.build/; \
 		else \
 		    $(DIST_INSTALL_DATA) $(srcdir)/$$p/* $(DIST_DIR)/$$p/; \
@@ -515,7 +527,7 @@ uninstall-binaries:
 	done
 
 genstubs: generic/reuri.decls
-	$(TCLSH_PROG) $(TCL_SRC_DIR)/tools/genStubs.tcl generic generic/reuri.decls
+	$(TCLSH_PROG) $(srcdir)/teabase/tools/genStubs.tcl $(top_builddir) $(srcdir)/generic/reuri.decls
 
 .PHONY: all binaries clean depend distclean doc install libraries test
 .PHONY: gdb gdb-test valgrind valgrindshell genstubs lexers tools

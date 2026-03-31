@@ -39,7 +39,7 @@ jobs:
       id: cache-dedup
       uses: actions/cache@v4
       with:
-        path: /opt/tcl9.0/lib/dedup0.9.13
+        path: /opt/tcl9.0/lib/dedup-0.9.13
         key: ${{ runner.os }}-dedup0.9.13
 
     - name: Build dedup

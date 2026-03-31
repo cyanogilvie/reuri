@@ -1,8 +1,8 @@
 ---
 author:
 - Cyan Ogilvie
-date: 0.14.4
-title: reuri(3) 0.14.4 \| URI Manipulation for Tcl
+date: 0.14.7
+title: reuri(3) 0.14.7 \| URI Manipulation for Tcl
 ---
 
 # NAME
@@ -11,7 +11,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.14.4?
+**package require reuri** ?0.14.7?
 
 **reuri** **get** *uri* ?*part* ?*defaultVal*??  
 **reuri** **extract** *uri* ?*part* ?*defaultVal*??  
@@ -555,13 +555,13 @@ needed polyfills could be built to support 8.6.
 ### From a Release Tarball
 
 Download and extract [the
-release](https://github.com/cyanogilvie/reuri/releases/download/v0.14.4/reuri0.14.4.tar.gz),
+release](https://github.com/cyanogilvie/reuri/releases/download/v0.14.7/reuri0.14.7.tar.gz),
 then build with meson, or in the standard TEA autotools way:
 
 ``` sh
-wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.4/reuri0.14.4.tar.gz
-tar xf reuri0.14.4.tar.gz
-cd reuri0.14.4
+wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.7/reuri0.14.7.tar.gz
+tar xf reuri0.14.7.tar.gz
+cd reuri0.14.7
 
 # meson
 meson setup builddir --buildtype=release
@@ -603,7 +603,7 @@ Meson:
 
 ``` dockerfile
 WORKDIR /tmp/reuri
-RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.4/reuri0.14.4.tar.gz -O - | tar xz --strip-components=1 && \
+RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.7/reuri0.14.7.tar.gz -O - | tar xz --strip-components=1 && \
     meson setup builddir --buildtype=release && \
     meson install -C builddir && \
     strip /usr/local/lib/libreuri*.so && \
@@ -614,7 +614,7 @@ Autotools:
 
 ``` dockerfile
 WORKDIR /tmp/reuri
-RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.4/reuri0.14.4.tar.gz -O - | tar xz --strip-components=1 && \
+RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.7/reuri0.14.7.tar.gz -O - | tar xz --strip-components=1 && \
     ./configure; make test install-binaries install-libraries && \
     strip /usr/local/lib/libreuri*.so && \
     cd .. && rm -rf reuri

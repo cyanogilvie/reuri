@@ -1,8 +1,8 @@
 ---
 author:
 - Cyan Ogilvie
-date: 0.14.7
-title: reuri(3) 0.14.7 \| URI Manipulation for Tcl
+date: 0.14.8
+title: reuri(3) 0.14.8 \| URI Manipulation for Tcl
 ---
 
 # NAME
@@ -11,7 +11,7 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.14.7?
+**package require reuri** ?0.14.8?
 
 **reuri** **get** *uri* ?*part* ?*defaultVal*??  
 **reuri** **extract** *uri* ?*part* ?*defaultVal*??  
@@ -26,6 +26,7 @@ reuri - URI Manipulation for Tcl
 *value*  
 **reuri** **decode** *value*  
 **reuri** **query** *op* *uri* ?*arg* …?  
+**reuri** **query** **edit** *uri* ?*arg* …?  
 **reuri** **path** *op* *uri* ?*arg* …?  
 **reuri** **normalize** *uri*  
 
@@ -91,12 +92,20 @@ file), and built as part of the package build process.
 
 **reuri** **get** *uri* ?*part* ?*defaultVal*??  
 Return the fully decoded URL *part* from *uri* or throw an exception if
-G*uri* can’t be parsed or doesn’t have the specified *part* and no
+*uri* can’t be parsed or doesn’t have the specified *part* and no
 *defaultVal* was specified. If *part* isn’t defined in *uri* (but is a
 valid part name) and a *defaultVal* is given, that will be returned
 instead. If *part* isn’t specified, return a dictionary containing all
 parts. See **PARTS** below for valid parts, and **EXCEPTIONS** for the
 exceptions that might be thrown.
+
+Structured parts come back as Tcl lists rather than strings: **path**
+returns a list of decoded segments (with a literal `/` as the first
+element when the path is absolute), **query** returns a flat list of
+alternating parameter names and values, and **host** returns a list of
+decoded segments when **hosttype** is **local** (unix-domain-socket
+host). Use **reuri extract** if you want the raw encoded string form
+instead.
 
 **reuri** **extract** *uri* ?*part* ?*defaultVal*??  
 Return the encoded URL *part* from *uri* or throw an exception if *uri*
@@ -107,6 +116,9 @@ name) and a *defaultVal* is given, that will be returned instead. If
 **PARTS** below for valid parts, and **EXCEPTIONS** for the exceptions
 that might be thrown.
 
+In contrast to **reuri get**, this returns the raw encoded string form
+of each part, exactly as it appears in the URI.
+
 **reuri** **exists** *uri* *part*  
 Return true if *uri* contains *part*, false otherwise.
 
@@ -115,6 +127,19 @@ Replace the *part* of the URI value contained in *variable* with the
 *value* (which must parse correctly as that part), returning the updated
 uri value stored in *variable*. If *value* is an empty string, unset the
 *part*.
+
+To set a unix-domain-socket host, include the brackets in the value,
+e.g. `reuri set u host {[/var/run/myapp.sock]}`. Passing a bare path
+without brackets raises a **REURI** **PARSE_ERROR**.
+
+Some part combinations can’t be serialised as a valid URI and raise
+**REURI** **CONFLICT**:
+
+- Setting **host** on a URI with a rootless path (e.g. `http:foo` or
+  bare `foo/bar`). Make the path absolute first
+  (`reuri set u path /foo`) or start from an empty string.
+- Setting a rootless path (`reuri set u path bar`) on a URI that already
+  has a host. Use an absolute path (`/bar`) instead.
 
 **reuri** **valid** *uri*  
 Return true if *uri* is a syntactically valid URI and can be parsed by
@@ -167,7 +192,9 @@ of *uri*.
 Return a canonical representation of *uri*, as described in RFC3986.
 This includes normalizing percent-encoding, converting scheme and host
 to lowercase, and preserving semantically significant trailing slashes
-in paths.
+in paths. Note that this does **not** strip scheme-default ports (for
+example `:80` on an `http://` URI is kept); remove those explicitly with
+`reuri set u port {}` if desired.
 
 **reuri::query** **get** *query* ?*param* ?**-default** *default*? ?**-index** *index*??  
 Retrieve the value for the named *param* in the *query* part. If *param*
@@ -215,7 +242,10 @@ instances preserving their relative positions.
 **reuri::query** **new** *params*\|?*param* *value* …?  
 Create a new query with the supplied *params* (as a list with pairs of
 param and value), or in the *param* and *value* arguments and return a
-properly formatted query string.
+properly formatted query string. The result has **no leading “?”** - use
+this when assigning to the query part of a URI, or when the leading “?”
+is supplied separately. Parameters with an empty corresponding value are
+encoded without an “=”.
 
 **reuri::query** **encode** *params*\|?*param* *value* …?  
 Percent-encode the supplied *params* (as a list with pairs of param and
@@ -223,12 +253,30 @@ value), or in the *param* and *value* arguments and return a properly
 formatted query string. If the supplied parameter set is empty then the
 result is a blank string, otherwise it will have a “?” character
 prefixed. Parameters with an empty corresponding value are encoded
-without an “=”.
+without an “=”. Use this form when concatenating onto a base URL by
+string operations. For the same output without the leading “?”, use
+**reuri::query new**.
 
 **reuri::query** **decode** *query*  
 Decode *query* into a list of params and their values. A single leading
 “?” character will be stripped off if it exists and is unencoded.
 (Inverse of **reuri::query encode**)
+
+**reuri** **query** **edit** *uri* ?*arg* …?  
+Single-shot batch editor for the query portion of *uri*. Each *arg* is
+interpreted in one of three ways:
+
+- A plain *name* followed by a *value* replaces all existing instances
+  of *name* in the query with a single *name=value* instance (or adds it
+  if not already present).
+- An argument of the form *-name* removes every instance of *name*.
+- A trailing lone *name* (with no following value) sets *name* with an
+  empty value.
+
+Operations are applied in order; existing parameters not mentioned in
+the edit list are preserved in their original positions. Returns the
+updated URI string. This is only available in the **reuri query** form
+(taking a URI); there is no **reuri::query edit**.
 
 **reuri::path** **get** *path* ?*index*?  
 Return decoded elements of a path. See **INDEX SYNTAX** for details on
@@ -239,22 +287,36 @@ those elements. If *index* is omitted, return a list of all the elements
 specifies a list or a range, the result is a list of the elements,
 otherwise just the element value.
 
+When the path is absolute, the first element of the returned list is the
+literal string “/” - a marker distinguishing absolute paths (“/a/b” -\>
+`{/ a b}`) from rootless paths (“a/b” -\> `{a b}`). Preserve this
+element if you intend to feed the list back to **reuri::path join**.
+
 **reuri::path** **exists** *path* *index*  
 True if *index* refers to a path element in range. If *index* specifies
 a range or list of indices, return a list with a boolean corresponding
 to each named element. See **INDEX SYNTAX** for details on *index*.
 
 **reuri::path** **set** *variable* *index* *value*  
+Not yet implemented. To modify individual path elements, extract the
+path as a list with **reuri path get**, manipulate with **lset** /
+**lreplace**, rebuild with **reuri::path join**, and assign with **reuri
+set** *variable* **path** *result*.
 
 **reuri::path** **split** *path*  
 Deprecated - use **reuri::path** **get** *path* instead.
 
 **reuri::path** **join** ?*segment* …?  
 Produce a properly encoded URI path part given the list of *segment*s.
+Each *segment* is percent-encoded as a single path segment, which means
+any “/” characters *inside* a segment are encoded as “%2F” rather than
+treated as segment separators. This is the canonical way to put a
+literal “/” inside one segment. A leading *segment* of “/” marks the
+result as an absolute path.
 
 **reuri::path** **resolve** *path*  
-Return *path* resolved in the context of all the URIs on the callstack
-from **reuri** **context** calls.
+Not yet implemented. Intended to return *path* resolved in the context
+of all the URIs on the callstack from **reuri** **context** calls.
 
 **reuri::quirk** *quirk* ?*value*?  
 Control or query process-scope encoding quirks to work around bugs in
@@ -314,7 +376,15 @@ The host part of the authority section: `google.com` in
 `http://[::1]:8080`, and `/tmp/myserv.80` in
 `http://[/tmp/myserv.80]/foo`. This last example isn’t valid by RFC 3986
 but is one of the common ways to refer to the socket in HTTP-over-unix
-sockets.
+sockets. For the unix-socket case, **reuri get** returns the host as a
+list of decoded segments (like **path**, with a leading “/” element),
+while **reuri extract** returns the bracketed form as a string. For the
+other host types, both commands return a plain string.
+
+**hosttype**  
+Read-only. One of `none`, `hostname`, `ipv4`, `ipv6`, or `local`
+(unix-domain-socket-style). Reflects how the host portion was parsed and
+will be emitted.
 
 **port**  
 The numeric port number portion of the authority section, `1234` in
@@ -555,13 +625,13 @@ needed polyfills could be built to support 8.6.
 ### From a Release Tarball
 
 Download and extract [the
-release](https://github.com/cyanogilvie/reuri/releases/download/v0.14.7/reuri0.14.7.tar.gz),
+release](https://github.com/cyanogilvie/reuri/releases/download/v0.14.8/reuri0.14.8.tar.gz),
 then build with meson, or in the standard TEA autotools way:
 
 ``` sh
-wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.7/reuri0.14.7.tar.gz
-tar xf reuri0.14.7.tar.gz
-cd reuri0.14.7
+wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.8/reuri0.14.8.tar.gz
+tar xf reuri0.14.8.tar.gz
+cd reuri0.14.8
 
 # meson
 meson setup builddir --buildtype=release
@@ -603,7 +673,7 @@ Meson:
 
 ``` dockerfile
 WORKDIR /tmp/reuri
-RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.7/reuri0.14.7.tar.gz -O - | tar xz --strip-components=1 && \
+RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.8/reuri0.14.8.tar.gz -O - | tar xz --strip-components=1 && \
     meson setup builddir --buildtype=release && \
     meson install -C builddir && \
     strip /usr/local/lib/libreuri*.so && \
@@ -614,7 +684,7 @@ Autotools:
 
 ``` dockerfile
 WORKDIR /tmp/reuri
-RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.7/reuri0.14.7.tar.gz -O - | tar xz --strip-components=1 && \
+RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.8/reuri0.14.8.tar.gz -O - | tar xz --strip-components=1 && \
     ./configure; make test install-binaries install-libraries && \
     strip /usr/local/lib/libreuri*.so && \
     cd .. && rm -rf reuri
@@ -655,6 +725,37 @@ Autotools:
 ``` sh
 make valgrind
 ```
+
+## USING WITH CLAUDE CODE
+
+This repo ships an Agent Skill for [Claude
+Code](https://claude.com/claude-code) at
+`claude/skills/using-reuri/SKILL.md`. When loaded, it teaches Claude how
+to use this package idiomatically - the tricky bits that don’t come out
+of a casual read of the manpage, such as the `get` vs `extract`
+distinction, mutating-command variable-name conventions, conflict cases,
+and the performance model.
+
+To make the skill available to Claude Code globally, symlink it into
+your user skills directory:
+
+``` sh
+mkdir -p ~/.claude/skills
+ln -s "$(pwd)/claude/skills/using-reuri" ~/.claude/skills/using-reuri
+```
+
+Or for a single project, symlink it into that project’s
+`.claude/skills/` directory:
+
+``` sh
+mkdir -p /path/to/project/.claude/skills
+ln -s /path/to/reuri/claude/skills/using-reuri \
+      /path/to/project/.claude/skills/using-reuri
+```
+
+Claude Code discovers skills on startup and triggers them by name and
+description; no further configuration is needed. Update by pulling the
+latest version of this repo - the symlink stays valid.
 
 ## CONFORMING TO
 

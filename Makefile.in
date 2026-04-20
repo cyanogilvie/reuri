@@ -378,17 +378,15 @@ dist: dist-clean doc
 	    $(DIST_DIR)/tclconfig/
 
 	$(INSTALL_DATA_DIR) $(DIST_DIR)/teabase
-	cd $(srcdir)/teabase && tar cf - . | (cd $(DIST_DIR)/teabase && tar xf -);
+	cd $(srcdir)/teabase && tar cf - --exclude=.git . | (cd $(DIST_DIR)/teabase && tar xf -);
 
 	# Meson build system
 	$(DIST_INSTALL_DATA) \
 	    $(srcdir)/meson.build \
 	    $(srcdir)/meson.options \
 	    $(DIST_DIR)/
-	$(INSTALL_DATA_DIR) $(DIST_DIR)/subprojects
-	$(DIST_INSTALL_DATA) $(srcdir)/subprojects/*.wrap $(DIST_DIR)/subprojects/
 	$(INSTALL_DATA_DIR) $(DIST_DIR)/subprojects/packagefiles
-	cd $(srcdir)/subprojects/packagefiles && tar cf - . | (cd $(DIST_DIR)/subprojects/packagefiles && tar xf -);
+	cd $(srcdir)/subprojects && tar cf - -h . | (cd $(DIST_DIR)/subprojects && tar xf -);
 
 	# Extension files
 	$(DIST_INSTALL_DATA) \

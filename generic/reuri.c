@@ -455,11 +455,16 @@ static int query_unset(Tcl_Interp* interp, Tcl_Obj* queryObj, int paramc, Tcl_Ob
 	Tcl_Obj*			hitlist = NULL;
 	Tcl_Obj*			sortcmdv[3] = {l->apply, l->sort_unique};
 
-	if (
-			queryObj == NULL ||	// Removing anything from an empty query is an invariant
-			paramc == 0			// Do Nothing Gracefully
-	) {
-		replace_tclobj(out, queryObj ? queryObj : l->empty_query);
+	if (queryObj == NULL) {
+		// No query present — unsetting anything leaves it absent. Returning
+		// NULL (rather than an empty-string query) preserves the RFC 3986
+		// §6.2.3 distinction between "no query" and "empty query".
+		replace_tclobj(out, NULL);
+		goto finally;
+	}
+	if (paramc == 0) {
+		// Do Nothing Gracefully
+		replace_tclobj(out, queryObj);
 		goto finally;
 	}
 
@@ -724,7 +729,9 @@ int Reuri_URIObjExtractPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part
 		case REURI_USERINFO:	p = uri->userinfo;				break;
 		case REURI_HOST:		p = uri->host;					break;
 		case REURI_PORT:		p = uri->port;					break;
-		case REURI_PATH:		p = uri->path;					break;
+		// Path is always present per RFC 3986 §3.3; fall back to "" so
+		// callers never get PART_NOT_SET for path.
+		case REURI_PATH:		p = uri->path ? uri->path : (l ? l->empty : NULL);	break;
 		case REURI_QUERY:		p = uri->query;					break;
 		case REURI_FRAGMENT:	p = uri->fragment;				break;
 		case REURI_HOSTTYPE:	p = l->hosttype[uri->hosttype];	break;
@@ -765,7 +772,8 @@ int Reuri_URIObjPartExists(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part 
 		case REURI_USERINFO:	res = uri->userinfo;	break;
 		case REURI_HOST:		res = uri->host;		break;
 		case REURI_PORT:		res = uri->port;		break;
-		case REURI_PATH:		res = uri->path;		break;
+		// Path is always present per RFC 3986 §3.3.
+		case REURI_PATH:		*existsPtr = 1; goto finally;
 		case REURI_QUERY:		res = uri->query;		break;
 		case REURI_FRAGMENT:	res = uri->fragment;	break;
 		case REURI_HOSTTYPE:	res = l->hosttype[uri->hosttype];	break;
@@ -867,6 +875,7 @@ finally:
 //>>>
 int Reuri_URIObjSet(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* valuePtr, Tcl_Obj** resPtrPtr) //<<<
 {
+	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 	int					code = TCL_OK;
 	struct uri*			uri = NULL;
 	Tcl_Obj*			newval = NULL;
@@ -886,15 +895,40 @@ int Reuri_URIObjSet(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, T
 
 	enum reuri_hosttype	old_hosttype = uri->hosttype;
 
+	// A NULL valuePtr means "clear this part" (newval stays NULL). Guard the
+	// parse_* calls since most of them dereference val.
 	switch (part) {
-		case REURI_SCHEME:   partPtr = &uri->scheme;	TEST_OK_LABEL(finally, code, parse_scheme  (interp, val, &newval)); break;
-		case REURI_USERINFO: partPtr = &uri->userinfo;	TEST_OK_LABEL(finally, code, parse_userinfo(interp, val, &newval)); break;
-		case REURI_HOST:     partPtr = &uri->host;		TEST_OK_LABEL(finally, code, parse_host    (interp, val, &newval, &uri->hosttype)); break;
-		case REURI_PORT:     partPtr = &uri->port;		TEST_OK_LABEL(finally, code, parse_port    (interp, val, &newval)); break;
-		case REURI_PATH:     partPtr = &uri->path;		TEST_OK_LABEL(finally, code, parse_path    (interp, val, &newval)); break;
-		case REURI_QUERY:    partPtr = &uri->query;		TEST_OK_LABEL(finally, code, parse_query   (interp, val, &newval)); break;
-		case REURI_FRAGMENT: partPtr = &uri->fragment;	TEST_OK_LABEL(finally, code, parse_fragment(interp, val, &newval)); break;
-			THROW_ERROR_LABEL(finally, code, "Not implemented yet");
+		case REURI_SCHEME:   partPtr = &uri->scheme;
+			if (val) TEST_OK_LABEL(finally, code, parse_scheme  (interp, val, &newval));
+			break;
+		case REURI_USERINFO: partPtr = &uri->userinfo;
+			if (val) TEST_OK_LABEL(finally, code, parse_userinfo(interp, val, &newval));
+			break;
+		case REURI_HOST:     partPtr = &uri->host;
+			if (val) {
+				TEST_OK_LABEL(finally, code, parse_host(interp, val, &newval, &uri->hosttype));
+			} else {
+				uri->hosttype = REURI_HOST_NONE;
+			}
+			break;
+		case REURI_PORT:     partPtr = &uri->port;
+			if (val) TEST_OK_LABEL(finally, code, parse_port    (interp, val, &newval));
+			break;
+		case REURI_PATH:     partPtr = &uri->path;
+			// Path is always present per RFC 3986 §3.3. A NULL value resets
+			// it to the empty path (the closest "less-populated" state).
+			if (val) {
+				TEST_OK_LABEL(finally, code, parse_path(interp, val, &newval));
+			} else {
+				replace_tclobj(&newval, l->empty);
+			}
+			break;
+		case REURI_QUERY:    partPtr = &uri->query;
+			TEST_OK_LABEL(finally, code, parse_query   (interp, val, &newval));
+			break;
+		case REURI_FRAGMENT: partPtr = &uri->fragment;
+			TEST_OK_LABEL(finally, code, parse_fragment(interp, val, &newval));
+			break;
 		default:
 			THROW_ERROR_LABEL(finally, code, "Unhandled part");
 	}
@@ -1003,12 +1037,20 @@ finally:
 //>>>
 int Reuri_URIObjQueryUnset(Tcl_Interp* interp, Tcl_Obj* uriPtr, Tcl_Obj* param, Tcl_Obj** out) //<<<
 {
-	struct interp_cx*	l = (struct interp_cx*)Tcl_GetAssocData(interp, "reuri", NULL);
 	int					code = TCL_OK;
+	struct uri*			uri_ir = NULL;
 	Tcl_Obj*			query = NULL;
 
-	TEST_OK_LABEL(finally, code, Reuri_URIObjExtractPart(interp, uriPtr, REURI_QUERY, l->empty_query, &query));
-	TEST_OK_LABEL(finally, code, query_unset(interp, query, 1, (Tcl_Obj*[]){param}, &query));
+	TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uriPtr, &uri_ir));
+
+	// If the URI has no query, unsetting a param is a no-op — don't promote
+	// "no query" to "empty query".
+	if (uri_ir->query == NULL) {
+		replace_tclobj(out, uriPtr);
+		goto finally;
+	}
+
+	TEST_OK_LABEL(finally, code, query_unset(interp, uri_ir->query, 1, (Tcl_Obj*[]){param}, &query));
 	TEST_OK_LABEL(finally, code, Reuri_URIObjSet(interp, uriPtr, REURI_QUERY, query, out));
 
 finally:
@@ -1122,6 +1164,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		"extract",
 		"exists",
 		"set",
+		"unset",
 		"valid",
 		"context",
 		"resolve",
@@ -1138,6 +1181,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 		M_EXTRACT,
 		M_EXISTS,
 		M_SET,
+		M_UNSET,
 		M_VALID,
 		M_CONTEXT,
 		M_RESOLVE,
@@ -1184,6 +1228,16 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				}
 
 				TEST_OK_LABEL(get_finally, code, Reuri_GetPartFromObj(interp, objv[A_PART], &part));
+				// Path is always present per RFC 3986 §3.3, so a default value
+				// can never be used. Reject rather than silently ignore, so
+				// callers relying on the old "absent path" fallback surface
+				// the behaviour change.
+				if (part == REURI_PATH && def != NULL) {
+					Tcl_SetErrorCode(interp, "REURI", "PART_ALWAYS_PRESENT", "path", NULL);
+					Tcl_SetObjResult(interp, Tcl_NewStringObj("path is always present; default value is not meaningful", -1));
+					code = TCL_ERROR;
+					goto get_finally;
+				}
 				TEST_OK_LABEL(get_finally, code, Reuri_URIObjGetPart(interp, objv[A_URI], part, def, &res));
 
 				Tcl_SetObjResult(interp, res);
@@ -1221,6 +1275,13 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				}
 
 				TEST_OK_LABEL(extract_finally, code, Reuri_GetPartFromObj(interp, objv[A_PART], &part));
+				// See reuri get: path is always present, default is meaningless.
+				if (part == REURI_PATH && def != NULL) {
+					Tcl_SetErrorCode(interp, "REURI", "PART_ALWAYS_PRESENT", "path", NULL);
+					Tcl_SetObjResult(interp, Tcl_NewStringObj("path is always present; default value is not meaningful", -1));
+					code = TCL_ERROR;
+					goto extract_finally;
+				}
 				TEST_OK_LABEL(extract_finally, code, Reuri_URIObjExtractPart(interp, objv[A_URI], part, def, &res));
 
 				Tcl_SetObjResult(interp, res);
@@ -1259,6 +1320,34 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				TEST_OK_LABEL(query_finally, code, ReuriGetURIFromObj(interp, uri, &uri_ir));
 				TEST_OK_LABEL(finally, code, Reuri_GetPartFromObj(interp, objv[A_PART], &part));
 				TEST_OK_LABEL(finally, code, Reuri_URIObjSet(interp, uri, part, objv[A_VALUE], &res));
+				replace_tclobj(&res, Tcl_ObjSetVar2(interp, objv[A_URI], NULL, res, TCL_LEAVE_ERR_MSG));
+				if (res == NULL) {
+					code = TCL_ERROR;
+				} else {
+					Tcl_SetObjResult(interp, res);
+				}
+				replace_tclobj(&res, NULL);
+			}
+			break;
+			//>>>
+		case M_UNSET: //<<<
+			{
+				enum reuri_part	part;
+				Tcl_Obj*		res = NULL;
+				Tcl_Obj*		uri = NULL;
+
+				enum {A_cmd=1, A_URI, A_PART, A_objc};
+				CHECK_ARGS_LABEL(finally, code, "uri part");
+
+				struct uri*	uri_ir = NULL;
+				uri = Tcl_ObjGetVar2(interp, objv[A_URI], NULL, 0);
+				if (!uri) replace_tclobj(&uri, Tcl_NewObj());
+				TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uri, &uri_ir));
+				TEST_OK_LABEL(finally, code, Reuri_GetPartFromObj(interp, objv[A_PART], &part));
+				// Passing NULL as the value clears the part entirely. An
+				// empty-string value would *set* it to an explicit empty part
+				// (e.g. "foo?" for query), which is what `reuri set` does.
+				TEST_OK_LABEL(finally, code, Reuri_URIObjSet(interp, uri, part, NULL, &res));
 				replace_tclobj(&res, Tcl_ObjSetVar2(interp, objv[A_URI], NULL, res, TCL_LEAVE_ERR_MSG));
 				if (res == NULL) {
 					code = TCL_ERROR;
@@ -1768,6 +1857,9 @@ static int QueryObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* 
 				enum {A_cmd=1, A_QUERYVAR, A_args};
 				CHECK_MIN_ARGS_LABEL(finally, code, "queryVarName ?param ...?");
 				TEST_OK_LABEL(finally, code, query_unset(interp, Tcl_ObjGetVar2(interp, objv[A_QUERYVAR], NULL, 0), objc-A_args, objv+A_args, &res));
+				// At the bare-query level "no query" is represented by the
+				// empty string, so map a NULL result (no query present) to "".
+				if (res == NULL) replace_tclobj(&res, l->empty);
 				queryObj = Tcl_ObjSetVar2(interp, objv[A_QUERYVAR], NULL, res, TCL_LEAVE_ERR_MSG);
 				if (queryObj == NULL) { code = TCL_ERROR; goto finally; }
 				replace_tclobj(&res, queryObj);
@@ -2122,10 +2214,25 @@ static int _setdir(Tcl_Interp* interp) //<<<
 
 		stat = Tcl_AllocStatBuf();
 		if (0 == Tcl_FSStat(buildheader, stat)) {
-			// Running from build dir
+			// TEA layout: running from build dir, header sits in generic/
 			replace_tclobj(&g_includedir, Tcl_FSJoinToPath(g_packagedir, 1, (Tcl_Obj*[]){generic}));
 		} else {
-			replace_tclobj(&g_includedir, g_packagedir);
+			// Meson build layout generates reuri.h in the project build root
+			// (one level up from the teabase dir that contains pkgIndex.tcl),
+			// not inside the package dir itself. Probe for that before
+			// falling back to the install-style layout.
+			Tcl_Obj*	parent = NULL;
+			Tcl_Obj*	parentheader = NULL;
+			replace_tclobj(&parent, Tcl_FSJoinToPath(g_packagedir, 1, (Tcl_Obj*[]){Tcl_NewStringObj("..", 2)}));
+			replace_tclobj(&parent, Tcl_FSGetNormalizedPath(interp, parent));
+			replace_tclobj(&parentheader, Tcl_FSJoinToPath(parent, 1, (Tcl_Obj*[]){h}));
+			if (0 == Tcl_FSStat(parentheader, stat)) {
+				replace_tclobj(&g_includedir, parent);
+			} else {
+				replace_tclobj(&g_includedir, g_packagedir);
+			}
+			replace_tclobj(&parent, NULL);
+			replace_tclobj(&parentheader, NULL);
 		}
 
 		cfg[0].value = Tcl_GetString(g_packagedir);		// Under global ref

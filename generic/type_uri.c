@@ -154,11 +154,11 @@ void ReuriCompile(Tcl_DString* ds, struct uri* uri) //<<<
 	}
 
 	if (uri->query) {
+		// Per RFC 3986 §6.2.3, an empty query component (the "?" with no
+		// following chars) is not equivalent to an absent query, so the "?"
+		// delimiter is preserved even when the query is empty.
 		Tcl_DStringAppend(ds, "?", 1);
-		const int end = Tcl_DStringLength(ds);
 		append_part(ds, uri->query, &query_objtype);
-		// If the query was empty, walk back the ?
-		if (Tcl_DStringLength(ds) == end) Tcl_DStringSetLength(ds, end-1);
 	}
 
 	if (uri->fragment) {

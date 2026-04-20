@@ -15,8 +15,8 @@ test $t-2.1 {userinfo, true}	{ reuri exists http://foo:bar@localhost			userinfo	
 test $t-2.2 {userinfo, false}	{ reuri exists http://localhost					userinfo	}	0
 
 test $t-3.1 {host, hostname}	{ reuri exists http://localhost:81				host		}	1
-test $t-3.2 {host, false}		{ reuri exists http://:81						host		}	0
-test $t-3.3 {host, false: ?}	{ reuri exists http://?							host		}	0
+test $t-3.2 {host, present-empty}	{ reuri exists http://:81						host		}	1
+test $t-3.3 {host, present-empty: ?}	{ reuri exists http://?							host		}	1
 test $t-3.4 {host, IPv4}		{ reuri exists http://127.0.0.1					host		}	1
 test $t-3.5 {host, IPv4+port}	{ reuri exists http://127.0.0.1:81				host		}	1
 test $t-3.6 {host, IPv6}		{ reuri exists {http://[::1]}					host		}	1
@@ -27,14 +27,14 @@ test $t-3.9 {host, unix+port}	{ reuri exists {http://[/tmp/mysock.80]:81}		host	
 test $t-4.1 {port, true}		{ reuri exists http://localhost:81				port		}	1
 test $t-4.2 {port, false}		{ reuri exists http://localhost					port		}	0
 
-test $t-5.1 {path, true}		{ reuri exists http://localhost/one/two			path		}	1
-test $t-5.2 {path, no path}		{ reuri exists http://localhost?three=3			path		}	0
-test $t-5.3 {path, true}		{ reuri exists /one/two							path		}	1
-test $t-5.4 {path, no path}		{ reuri exists ?three=3							path		}	0
-test $t-6.1 {path, true}		{ reuri exists http								path		}	1
-test $t-7.1 {path, true}		{ reuri exists http:foo							path		}	1
-test $t-7.1.1 {path, true}		{ reuri get http:foo							path		}	foo
-test $t-7.1.2 {path, false}		{ reuri exists http:							path		}	0
+test $t-5.1 {path, always present (RFC 3986 §3.3)}	{ reuri exists http://localhost/one/two		path	}	1
+test $t-5.2 {path, empty is still present}			{ reuri exists http://localhost?three=3		path	}	1
+test $t-5.3 {path, true}							{ reuri exists /one/two						path	}	1
+test $t-5.4 {path, empty is still present}			{ reuri exists ?three=3						path	}	1
+test $t-6.1 {path, always present}					{ reuri exists http							path	}	1
+test $t-7.1 {path, always present}					{ reuri exists http:foo						path	}	1
+test $t-7.1.1 {path, true}							{ reuri get http:foo						path	}	foo
+test $t-7.1.2 {path, empty is still present}		{ reuri exists http:						path	}	1
 test $t-7.2 {path, true}		{ reuri exists ./http:foo						path		}	1
 test $t-7.2.1 {path, true}		{ reuri get ./http:foo							path		}	{. http:foo}
 test $t-7.3 {path, true}		{ reuri exists http%3Afoo						path		}	1

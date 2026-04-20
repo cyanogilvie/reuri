@@ -1,8 +1,8 @@
 ---
 author:
 - Cyan Ogilvie
-date: 0.14.8
-title: reuri(3) 0.14.8 \| URI Manipulation for Tcl
+date: 0.15.0
+title: reuri(3) 0.15.0 \| URI Manipulation for Tcl
 ---
 
 # NAME
@@ -11,12 +11,13 @@ reuri - URI Manipulation for Tcl
 
 ## SYNOPSIS
 
-**package require reuri** ?0.14.8?
+**package require reuri** ?0.15.0?
 
 **reuri** **get** *uri* ?*part* ?*defaultVal*??  
 **reuri** **extract** *uri* ?*part* ?*defaultVal*??  
 **reuri** **exists** *uri* *part*  
 **reuri** **set** *variable* *part* *value*  
+**reuri** **unset** *variable* *part*  
 **reuri** **valid** *uri*  
 ?? **reuri** **context** *uri* *script*  
 ?? **reuri** **resolve** *uri*  
@@ -99,6 +100,12 @@ instead. If *part* isn’t specified, return a dictionary containing all
 parts. See **PARTS** below for valid parts, and **EXCEPTIONS** for the
 exceptions that might be thrown.
 
+Path is always present per RFC 3986 §3.3 (it may just be zero-length),
+so passing a *defaultVal* when *part* is **path** raises **REURI**
+**PART_ALWAYS_PRESENT** — the default could never be used, and the error
+surfaces callers that were relying on the pre-RFC-alignment “absent
+path” behaviour.
+
 Structured parts come back as Tcl lists rather than strings: **path**
 returns a list of decoded segments (with a literal `/` as the first
 element when the path is absolute), **query** returns a flat list of
@@ -114,7 +121,8 @@ was specified. If *part* isn’t defined in *uri* (but is a valid part
 name) and a *defaultVal* is given, that will be returned instead. If
 *part* isn’t specified, return a dictionary containing all parts. See
 **PARTS** below for valid parts, and **EXCEPTIONS** for the exceptions
-that might be thrown.
+that might be thrown. As for **reuri get**, supplying a *defaultVal* for
+**path** raises **REURI** **PART_ALWAYS_PRESENT**.
 
 In contrast to **reuri get**, this returns the raw encoded string form
 of each part, exactly as it appears in the URI.
@@ -125,8 +133,11 @@ Return true if *uri* contains *part*, false otherwise.
 **reuri** **set** *variable* *part* *value*  
 Replace the *part* of the URI value contained in *variable* with the
 *value* (which must parse correctly as that part), returning the updated
-uri value stored in *variable*. If *value* is an empty string, unset the
-*part*.
+uri value stored in *variable*. An empty *value* sets the *part* to an
+explicit empty component — e.g. `reuri set u query {}` yields `foo?`,
+not `foo` — because RFC 3986 §6.2.3 distinguishes an empty component
+(`foo?`) from an absent one (`foo`). Use **reuri unset** to remove the
+component entirely.
 
 To set a unix-domain-socket host, include the brackets in the value,
 e.g. `reuri set u host {[/var/run/myapp.sock]}`. Passing a bare path
@@ -140,6 +151,16 @@ Some part combinations can’t be serialised as a valid URI and raise
   (`reuri set u path /foo`) or start from an empty string.
 - Setting a rootless path (`reuri set u path bar`) on a URI that already
   has a host. Use an absolute path (`/bar`) instead.
+
+**reuri** **unset** *variable* *part*  
+Remove the *part* from the URI value contained in *variable* entirely,
+returning the updated uri value stored in *variable*. This is distinct
+from `reuri set u part {}` which sets *part* to an explicit empty
+component.
+
+Per RFC 3986 §3.3 the path component is always present (it may just be
+zero-length), so `reuri unset u path` resets the path to empty rather
+than removing it; `reuri exists u path` always returns true.
 
 **reuri** **valid** *uri*  
 Return true if *uri* is a syntactically valid URI and can be parsed by
@@ -625,13 +646,13 @@ needed polyfills could be built to support 8.6.
 ### From a Release Tarball
 
 Download and extract [the
-release](https://github.com/cyanogilvie/reuri/releases/download/v0.14.8/reuri0.14.8.tar.gz),
+release](https://github.com/cyanogilvie/reuri/releases/download/v0.15.0/reuri0.15.0.tar.gz),
 then build with meson, or in the standard TEA autotools way:
 
 ``` sh
-wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.8/reuri0.14.8.tar.gz
-tar xf reuri0.14.8.tar.gz
-cd reuri0.14.8
+wget https://github.com/cyanogilvie/reuri/releases/download/v0.15.0/reuri0.15.0.tar.gz
+tar xf reuri0.15.0.tar.gz
+cd reuri0.15.0
 
 # meson
 meson setup builddir --buildtype=release
@@ -673,7 +694,7 @@ Meson:
 
 ``` dockerfile
 WORKDIR /tmp/reuri
-RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.8/reuri0.14.8.tar.gz -O - | tar xz --strip-components=1 && \
+RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.15.0/reuri0.15.0.tar.gz -O - | tar xz --strip-components=1 && \
     meson setup builddir --buildtype=release && \
     meson install -C builddir && \
     strip /usr/local/lib/libreuri*.so && \
@@ -684,7 +705,7 @@ Autotools:
 
 ``` dockerfile
 WORKDIR /tmp/reuri
-RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.14.8/reuri0.14.8.tar.gz -O - | tar xz --strip-components=1 && \
+RUN wget https://github.com/cyanogilvie/reuri/releases/download/v0.15.0/reuri0.15.0.tar.gz -O - | tar xz --strip-components=1 && \
     ./configure; make test install-binaries install-libraries && \
     strip /usr/local/lib/libreuri*.so && \
     cd .. && rm -rf reuri

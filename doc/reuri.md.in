@@ -16,6 +16,7 @@ reuri - URI Manipulation for Tcl
 **reuri** **extract** *uri* ?*part* ?*defaultVal*??\
 **reuri** **exists** *uri* *part*\
 **reuri** **set** *variable* *part* *value*\
+**reuri** **unset** *variable* *part*\
 **reuri** **valid** *uri*\
 ?? **reuri** **context** *uri* *script*\
 ?? **reuri** **resolve** *uri*\
@@ -93,6 +94,12 @@ package build process.
     specified, return a dictionary containing all parts.  See **PARTS** below
     for valid parts, and **EXCEPTIONS** for the exceptions that might be thrown.
 
+    Path is always present per RFC 3986 §3.3 (it may just be zero-length), so
+    passing a *defaultVal* when *part* is **path** raises
+    **REURI** **PART_ALWAYS_PRESENT** — the default could never be used, and
+    the error surfaces callers that were relying on the pre-RFC-alignment
+    "absent path" behaviour.
+
     Structured parts come back as Tcl lists rather than strings: **path**
     returns a list of decoded segments (with a literal `/` as the first element
     when the path is absolute), **query** returns a flat list of alternating
@@ -106,7 +113,8 @@ package build process.
     defined in *uri* (but is a valid part name) and a *defaultVal* is given, that will be
     returned instead.  If *part* isn't specified, return a dictionary containing all
     parts.  See **PARTS** below for valid parts, and **EXCEPTIONS** for the
-    exceptions that might be thrown.
+    exceptions that might be thrown.  As for **reuri get**, supplying a
+    *defaultVal* for **path** raises **REURI** **PART_ALWAYS_PRESENT**.
 
     In contrast to **reuri get**, this returns the raw encoded string form of each
     part, exactly as it appears in the URI.
@@ -117,7 +125,10 @@ package build process.
 **reuri** **set** *variable* *part* *value*
 :   Replace the *part* of the URI value contained in *variable* with the *value* (which
     must parse correctly as that part), returning the updated uri value stored in *variable*.
-    If *value* is an empty string, unset the *part*.
+    An empty *value* sets the *part* to an explicit empty component — e.g.
+    `reuri set u query {}` yields `foo?`, not `foo` — because RFC 3986 §6.2.3
+    distinguishes an empty component (`foo?`) from an absent one (`foo`).
+    Use **reuri unset** to remove the component entirely.
 
     To set a unix-domain-socket host, include the brackets in the value, e.g.
     `reuri set u host {[/var/run/myapp.sock]}`.  Passing a bare path without
@@ -131,6 +142,16 @@ package build process.
       start from an empty string.
     - Setting a rootless path (`reuri set u path bar`) on a URI that already
       has a host.  Use an absolute path (`/bar`) instead.
+
+**reuri** **unset** *variable* *part*
+:   Remove the *part* from the URI value contained in *variable* entirely,
+    returning the updated uri value stored in *variable*.  This is distinct
+    from `reuri set u part {}` which sets *part* to an explicit empty
+    component.
+
+    Per RFC 3986 §3.3 the path component is always present (it may just be
+    zero-length), so `reuri unset u path` resets the path to empty rather
+    than removing it; `reuri exists u path` always returns true.
 
 **reuri** **valid** *uri*
 :   Return true if *uri* is a syntactically valid URI and can be parsed by this package.

@@ -449,8 +449,19 @@ static int update_decoded_rep_port(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 	int						portnum;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&port_objtype);
 
-	if (TCL_OK != (code = decode_port(interp, Tcl_GetString(obj), &portnum))) {
-		if (interp) goto finally; else Tcl_Panic("Couldn't parse port number from \"%s\"", Tcl_GetString(obj));
+	Tcl_Size	len;
+	const char*	str = Tcl_GetStringFromObj(obj, &len);
+	if (len == 0) {
+		// Present-empty port (RFC 3986 §3.2.3 permits zero digits). Keep the
+		// decoded rep as the empty string rather than integer 0, so callers
+		// can distinguish "port = :" from "port = :0". Use a fresh Tcl_Obj
+		// to avoid a self-reference that would deadlock free_internal_rep.
+		replace_tclobj(DECODED_PTR(ir), Tcl_NewObj());
+		return TCL_OK;
+	}
+
+	if (TCL_OK != (code = decode_port(interp, str, &portnum))) {
+		if (interp) goto finally; else Tcl_Panic("Couldn't parse port number from \"%s\"", str);
 	}
 
 	replace_tclobj(DECODED_PTR(ir), Tcl_NewIntObj(portnum));
@@ -465,6 +476,14 @@ static int update_normalized_rep_port(Tcl_Interp* interp, Tcl_Obj* obj) //<<<
 	int						code = TCL_OK;
 	int						portnum;
 	Tcl_ObjInternalRep*		ir = Tcl_FetchInternalRep(obj, (Tcl_ObjType*)&port_objtype);
+
+	Tcl_Size	dlen;
+	Tcl_GetStringFromObj(DECODED(ir), &dlen);
+	if (dlen == 0) {
+		// Empty port normalizes to empty — don't route through %d.
+		replace_tclobj(NORMALIZED_PTR(ir), DECODED(ir));
+		return TCL_OK;
+	}
 
 	if (TCL_OK != (code = Tcl_GetIntFromObj(interp, DECODED(ir), &portnum))) {
 		if (interp) goto finally; else Tcl_Panic("Couldn't retrieve port number from \"%s\"", Tcl_GetString(DECODED(ir)));
@@ -889,7 +908,9 @@ finally:
 enum reuri_pathtype Reuri_PathType(Tcl_Obj* pathPtr) //<<<
 {
 	if (pathPtr == NULL) return REURI_PATH_EMPTY;
-	const char*	str = Tcl_GetString(pathPtr);
+	Tcl_Size	len;
+	const char*	str = Tcl_GetStringFromObj(pathPtr, &len);
+	if (len == 0) return REURI_PATH_EMPTY;
 	return (str[0] == '/') ? REURI_PATH_ABSOLUTE : REURI_PATH_ROOTLESS;
 }
 

@@ -193,7 +193,10 @@ top:
 			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_host_ipv4,     (const char*)h3, (int)(h4 - h3)));
 			pc->uri->hosttype = REURI_HOST_IPV4;
 		}
-		if (h5 && h6 > h5) {
+		if (h5) {
+			// Empty reg-name is valid per RFC 3986 §3.2.2 (reg-name is
+			// zero-or-more chars). A present-empty host distinguishes
+			// "http://" from "http:".
 			replace_tclobj(&pc->uri->host, Dedup_NewStringObj(l->dedup_host_reg_name, (const char*)h5, (int)(h6 - h5)));
 			pc->uri->hosttype = REURI_HOST_HOSTNAME;
 		}
@@ -202,9 +205,12 @@ top:
 			pc->uri->hosttype = REURI_HOST_UNIX;
 		}
 
-		if (r1 && r2>r1) replace_tclobj(&pc->uri->port, Dedup_NewStringObj(l->dedup_port, (const char*)r1, (int)(r2 - r1)));
-		if (p1 && p2>p1) replace_tclobj(&pc->uri->path, Dedup_NewStringObj(l->dedup_path, (const char*)p1, (int)(p2 - p1)));
-		if (p3 && p4>p3) replace_tclobj(&pc->uri->path, Dedup_NewStringObj(l->dedup_path, (const char*)p3, (int)(p4 - p3)));
+		// Port and path preserve present-empty to distinguish from absent
+		// (RFC 3986 §6.2.3): "http://host:" ≠ "http://host"; path is always
+		// present per §3.3 (path-empty = 0<pchar>).
+		if (r1) replace_tclobj(&pc->uri->port, Dedup_NewStringObj(l->dedup_port, (const char*)r1, (int)(r2 - r1)));
+		if (p1) replace_tclobj(&pc->uri->path, Dedup_NewStringObj(l->dedup_path, (const char*)p1, (int)(p2 - p1)));
+		if (p3) replace_tclobj(&pc->uri->path, Dedup_NewStringObj(l->dedup_path, (const char*)p3, (int)(p4 - p3)));
 		if (q1) replace_tclobj(&pc->uri->query,         Dedup_NewStringObj(l->dedup_query, (const char*)q1, (int)(q2 - q1)));
 		if (f1) replace_tclobj(&pc->uri->fragment,      Dedup_NewStringObj(l->dedup_fragment, (const char*)f1, (int)(f2 - f1)));
 		goto finally;
@@ -1162,6 +1168,15 @@ finally:
 int parse_host(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out, enum reuri_hosttype* hosttype) //<<<
 {
 	int						code = TCL_OK;
+
+	// NULL input means "no authority"; empty-string input is a present-empty
+	// host (reg-name, RFC 3986 §3.2.2).
+	if (in == NULL) {
+		replace_tclobj(out, NULL);
+		*hosttype = REURI_HOST_NONE;
+		return TCL_OK;
+	}
+
 	const char*				str = Tcl_GetString(in);
 	const unsigned char*	base = (const unsigned char*)str;
 	const unsigned char*	s = base;
@@ -1179,22 +1194,17 @@ int parse_host(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out, enum reuri_hostty
 
 	*	{PARSE_ERROR_LABEL(finally, code, "host");}
 
-	end {
-		replace_tclobj(out, NULL);
-		*hosttype = REURI_HOST_NONE;
-		goto finally;
-	}
-
 	host end {
 		replace_tclobj(out, in);
 		if (h1) {
 			*hosttype = REURI_HOST_IPV6;
 		} else if (h3) {
 			*hosttype = REURI_HOST_IPV4;
-		} else if (h5 && h6 > h5) {
-			*hosttype = REURI_HOST_HOSTNAME;
 		} else if (h7) {
 			*hosttype = REURI_HOST_UNIX;
+		} else {
+			// reg-name — matches zero chars too (present-empty host).
+			*hosttype = REURI_HOST_HOSTNAME;
 		}
 		goto finally;
 	}
@@ -1208,6 +1218,14 @@ finally:
 int parse_port(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out) //<<<
 {
 	int						code = TCL_OK;
+
+	// NULL input means "no port"; empty-string input is a present-empty port
+	// (RFC 3986 §3.2.3: port = *DIGIT).
+	if (in == NULL) {
+		replace_tclobj(out, NULL);
+		return TCL_OK;
+	}
+
 	const char*				str = Tcl_GetString(in);
 	const unsigned char*	base = (const unsigned char*)str;
 	const unsigned char*	s = base;
@@ -1224,7 +1242,6 @@ int parse_port(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out) //<<<
 	!use:uri;
 
 	*			{PARSE_ERROR_LABEL(finally, code, "port");}
-	end			{replace_tclobj(out, NULL); goto finally;}
 	port end	{replace_tclobj(out, in);   goto finally;}
 	*/
 
@@ -1236,6 +1253,16 @@ finally:
 int parse_path(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out) //<<<
 {
 	int						code = TCL_OK;
+
+	// Path is always present per RFC 3986 §3.3 (path-empty = 0<pchar>), so a
+	// NULL value has no real meaning for this component — but we still accept
+	// it as equivalent to the empty path, so `reuri unset u path` works
+	// sensibly.
+	if (in == NULL) {
+		replace_tclobj(out, NULL);
+		return TCL_OK;
+	}
+
 	const char*				str = Tcl_GetString(in);
 	const unsigned char*	base = (const unsigned char*)str;
 	const unsigned char*	s = base;
@@ -1252,7 +1279,6 @@ int parse_path(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out) //<<<
 		| path_empty;
 
 	*			{PARSE_ERROR_LABEL(finally, code, "path");}
-	end			{replace_tclobj(out, NULL); goto finally;}
 	path end	{replace_tclobj(out, in);   goto finally;}
 	*/
 
@@ -1264,6 +1290,14 @@ finally:
 int parse_query(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out) //<<<
 {
 	int						code = TCL_OK;
+
+	// NULL input means "no query component present"; empty-string input is a
+	// present-but-empty query (RFC 3986 §3.4 permits zero-length query).
+	if (in == NULL) {
+		replace_tclobj(out, NULL);
+		return TCL_OK;
+	}
+
 	const char*				str = Tcl_GetString(in);
 	const unsigned char*	base = (const unsigned char*)str;
 	const unsigned char*	s = base;
@@ -1280,7 +1314,6 @@ int parse_query(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out) //<<<
 	!use:uri;
 
 	*			{PARSE_ERROR_LABEL(finally, code, "query");}
-	end			{replace_tclobj(out, NULL); goto finally;}
 	query end	{replace_tclobj(out, in);   goto finally;}
 	*/
 
@@ -1293,6 +1326,15 @@ int parse_fragment(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out) //<<<
 {
 	(void)interp;
 	int						code = TCL_OK;
+
+	// NULL input means "no fragment component present"; empty-string input is
+	// a present-but-empty fragment (RFC 3986 §3.5 permits zero-length
+	// fragment and §6.2.3 distinguishes `foo#` from `foo`).
+	if (in == NULL) {
+		replace_tclobj(out, NULL);
+		return TCL_OK;
+	}
+
 	const char*				str = Tcl_GetString(in);
 	const unsigned char*	base = (const unsigned char*)str;
 	const unsigned char*	s = base;
@@ -1307,7 +1349,6 @@ int parse_fragment(Tcl_Interp* interp, Tcl_Obj* in, Tcl_Obj** out) //<<<
 	!use:uri;
 
 	*				{PARSE_ERROR_LABEL(finally, code, "fragment");}
-	end				{replace_tclobj(out, NULL); goto finally;}
 	fragment end	{replace_tclobj(out, in);   goto finally;}
 	*/
 

@@ -452,12 +452,14 @@ test stubs-5.2 {Reuri_URIObjQueryValues} -constraints haveJitc -setup { #<<<
 #>>>
 
 test stubs-6.1 {Reuri_URIObjQueryUnset} -constraints haveJitc -setup { #<<<
+	# Unsetting the only param leaves an explicit empty query (RFC 3986
+	# §6.2.3: "foo?" is not equivalent to "foo").
 	set uri	http://localhost/foo?bar=baz
 } -body {
 	jitc::capply $cdef unset $uri {param bar}
 } -cleanup {
 	unset -nocomplain uri
-} -result http://localhost/foo
+} -result http://localhost/foo?
 #>>>
 test stubs-6.2 {Reuri_URIObjQueryUnset} -constraints haveJitc -setup { #<<<
 	set uri	http://localhost/foo?bat=baz
@@ -522,12 +524,13 @@ test stubs-8.1 {Reuri_URIObjQueryNew} -constraints haveJitc -body { #<<<
 } -result http://localhost/foo?bar=baz
 #>>>
 test stubs-8.2 {Reuri_URIObjQueryNew} -constraints haveJitc -body { #<<<
+	# An empty params list becomes an explicit empty query, not "no query".
 	jitc::capply $cdef new http://localhost/foo {params {}}
-} -result http://localhost/foo
+} -result http://localhost/foo?
 #>>>
 test stubs-8.3 {Reuri_URIObjQueryNew replace existing} -constraints haveJitc -body { #<<<
 	jitc::capply $cdef new http://localhost/foo?old1=x&old2=y {params {}}
-} -result http://localhost/foo
+} -result http://localhost/foo?
 #>>>
 test stubs-8.4 {Reuri_URIObjQueryNew replace existing} -constraints haveJitc -body { #<<<
 	jitc::capply $cdef new http://localhost/foo?old1=x&old2=y {params {new1 a new2 b new1 c}}

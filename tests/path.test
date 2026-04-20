@@ -145,18 +145,19 @@ test $t-3.2 {picked}		{ reuri::path exists /one/two/three 1,end,-1,end-1	} {1 1 
 
 test $t-10.1.1 {uri path exists}	{ reuri path exists http://localhost/one/two/three		}	1
 test $t-10.1.2 {uri path exists}	{ reuri path exists http://localhost/					}	1
-test $t-10.1.3 {uri path exists}	{ reuri path exists http://localhost					}	0
+# Path is always present per RFC 3986 §3.3 (path-empty = 0<pchar>).
+test $t-10.1.3 {uri path exists}	{ reuri path exists http://localhost					}	1
 test $t-10.1.4.0 {uri path exists}	{ reuri path exists http:/one							}	1
 test $t-10.1.4.1 {uri path exists}	{ reuri path exists /one								}	1
-test $t-10.1.5.0 {uri path exists}	{ reuri path exists http:?foo=bar						}	0
-test $t-10.1.5.1 {uri path exists}	{ reuri path exists ?foo=bar							}	0
-test $t-10.1.6.0 {uri path exists}	{ reuri path exists http:#frag							}	0
-test $t-10.1.6.1 {uri path exists}	{ reuri path exists #frag								}	0
-test $t-10.1.7.0 {uri path exists}	{ reuri path exists http:								}	0
-test $t-10.1.7.1 {uri path exists}	{ reuri path exists {}									}	0
-test $t-10.1.8.0 {uri path exists}	{ reuri path exists //localhost							}	0
+test $t-10.1.5.0 {uri path exists}	{ reuri path exists http:?foo=bar						}	1
+test $t-10.1.5.1 {uri path exists}	{ reuri path exists ?foo=bar							}	1
+test $t-10.1.6.0 {uri path exists}	{ reuri path exists http:#frag							}	1
+test $t-10.1.6.1 {uri path exists}	{ reuri path exists #frag								}	1
+test $t-10.1.7.0 {uri path exists}	{ reuri path exists http:								}	1
+test $t-10.1.7.1 {uri path exists}	{ reuri path exists {}									}	1
+test $t-10.1.8.0 {uri path exists}	{ reuri path exists //localhost							}	1
 test $t-10.1.8.1 {uri path exists}	{ reuri path exists //localhost/						}	1
-test $t-10.1.9 {uri path exists}	{ reuri path exists http://localhost?foo=bar			}	0
+test $t-10.1.9 {uri path exists}	{ reuri path exists http://localhost?foo=bar			}	1
 
 test $t-10.2.0 {uri path exists}	{ reuri path exists http://localhost/one/two/three 0		}	1
 test $t-10.2.1 {uri path exists}	{ reuri path exists http://localhost/one/two/three 1		}	1
@@ -205,8 +206,8 @@ test $t-13.3.2 {uri path exists}	{ reuri path exists one/two/three end-2	}	1
 test $t-13.3.3 {uri path exists}	{ reuri path exists one/two/three end-3	}	0
 test $t-13.3.4 {uri path exists}	{ reuri path exists one/two/three end-4	}	0
 
-test $t-14.1 {uri path exists}		{ reuri path exists ?foo=bar		}	0
-test $t-14.2 {uri path exists}		{ reuri path exists #frag			}	0
+test $t-14.1 {uri path exists}		{ reuri path exists ?foo=bar		}	1
+test $t-14.2 {uri path exists}		{ reuri path exists #frag			}	1
 
 set t	path_join
 test $t-1.0.0 {mepty}		{ reuri::path join						}	{}
@@ -235,7 +236,7 @@ test $t-0.13 {allchars}			{ reuri path get http://localhost/$uripath_allchars			
 
 set t	normalize_path
 test $t-1.0 {root}		{ reuri extract [reuri normalize http://localhost/] path		}	/
-test $t-1.1 {none}		{ reuri extract [reuri normalize http://localhost] path {}		}	{}
+test $t-1.1 {none}		{ reuri extract [reuri normalize http://localhost] path		}	{}
 test $t-1.2 {noslash}	{ reuri extract [reuri normalize http://localhost/foo] path		}	/foo
 test $t-1.3 {slash}		{ reuri extract [reuri normalize http://localhost/foo/] path	}	/foo/
 

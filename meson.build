@@ -1,5 +1,5 @@
 project('reuri', 'c',
-  version:          '0.14.8',
+  version:          '0.15.0',
   default_options:  ['c_std=c17', 'warning_level=3', 'werror=true'],
   meson_version:    '>=1.3.0',
 )

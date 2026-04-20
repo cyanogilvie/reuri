@@ -286,9 +286,9 @@ set std	{apply {init {list -setup [list set u $init] -cleanup {unset -nocomplain
 test $t-0.1 {var not set}	-setup {unset -nocomplain u} -body {reuri query unset u foo; set u						} -result {}							-cleanup {unset -nocomplain u}
 test $t-0.2 {dup}			-setup {set u /xyz?x=y&foo=bar}  -body {set d $u; reuri query unset u foo; list $d $u	} -result {/xyz?x=y&foo=bar /xyz?x=y}	-cleanup {unset -nocomplain d u}
 test $t-1.1	{empty}	{*}[{*}$std {}]		-body { list [reuri query unset u foo] $u	} -result {{} {}}
-test $t-1.2	{empty}	{*}[{*}$std ?]		-body { list [reuri query unset u foo] $u	} -result {{} {}}
+test $t-1.2	{empty}	{*}[{*}$std ?]		-body { list [reuri query unset u foo] $u	} -result {? ?}
 test $t-2.1	{other}	{*}[{*}$std ?x=y]	-body { reuri query unset u foo; set u		} -result ?x=y
-test $t-2.2	{same}	{*}[{*}$std ?foo=x]	-body { reuri query unset u foo; set u		} -result {}
+test $t-2.2	{same}	{*}[{*}$std ?foo=x]	-body { reuri query unset u foo; set u		} -result ?
 test $t-2.3	{multi}	{*}[{*}$std /x?a=1&x=y&a=2&foo=bar&a=3]	-body { reuri query unset u a; set u		} -result /x?x=y&foo=bar
 test $t-2.4	{multi}	{*}[{*}$std /x?a=1&x=y&a=2&foo=bar&a=3]	-body { reuri query unset u a foo; set u	} -result /x?x=y
 test $t-2.5	{nop}	{*}[{*}$std /x?a=1&x=y&a=2&foo=bar&a=3]	-body { reuri query unset u; set u			} -result /x?a=1&x=y&a=2&foo=bar&a=3
@@ -554,9 +554,9 @@ set std	{apply {init {list -setup [list set u $init] -cleanup {unset -nocomplain
 test $t-0.1 {var not set}	-setup {unset -nocomplain u} -body {reuri query new u foo bar; set u			} -result {?foo=bar}			-cleanup {unset -nocomplain u}
 test $t-0.2 {dup}			-setup {set u ?x=y&foo=b}    -body {set d $u; reuri query new u a b; list $d $u	} -result {?x=y&foo=b ?a=b}		-cleanup {unset -nocomplain d u}
 test $t-0.3 {dup}			-setup {set u /x?x=y&foo=b}  -body {set d $u; reuri query new u a b; list $d $u	} -result {/x?x=y&foo=b /x?a=b}	-cleanup {unset -nocomplain d u}
-test $t-0.4 {dup}			-setup {set u /x?x=y&foo=b}  -body {set d $u; reuri query new u {};  list $d $u	} -result {/x?x=y&foo=b /x}		-cleanup {unset -nocomplain d u}
-test $t-0.5 {dup}			-setup {set u /x?x=y&foo=b}  -body {set d $u; reuri query new u;     list $d $u	} -result {/x?x=y&foo=b /x}		-cleanup {unset -nocomplain d u}
-test $t-1.0  {}	{*}[{*}$std {}] -body	{reuri query new u						} -result {}
+test $t-0.4 {dup}			-setup {set u /x?x=y&foo=b}  -body {set d $u; reuri query new u {};  list $d $u	} -result {/x?x=y&foo=b /x?}	-cleanup {unset -nocomplain d u}
+test $t-0.5 {dup}			-setup {set u /x?x=y&foo=b}  -body {set d $u; reuri query new u;     list $d $u	} -result {/x?x=y&foo=b /x?}	-cleanup {unset -nocomplain d u}
+test $t-1.0  {}	{*}[{*}$std {}] -body	{reuri query new u						} -result ?
 test $t-1.1  {}	{*}[{*}$std {}] -body	{reuri query new u foo					} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
 test $t-1.2  {}	{*}[{*}$std {}] -body	{reuri query new u foo bar				} -result ?foo=bar
 test $t-1.3  {}	{*}[{*}$std {}]	-body	{reuri query new u foo bar baz			} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
@@ -577,7 +577,7 @@ test $t-1.17 {} {*}[{*}$std {}] -body	{reuri query new u fo@o ba@r			} -result ?
 test $t-1.18 {} {*}[{*}$std {}] -body	{reuri query new u fo:o ba:r			} -result ?fo:o=ba:r
 test $t-1.19 {} {*}[{*}$std {}] -body	{reuri query new u f\u306fo b\u306fr	} -result ?f%E3%81%AFo=b%E3%81%AFr
 test $t-1.20 {} {*}[{*}$std {}] -body	{reuri query new u f\0o b\0r			} -result ?f%00o=b%00r
-test $t-2.0  {} {*}[{*}$std {}] -body	{reuri query new u {}					} -result {}
+test $t-2.0  {} {*}[{*}$std {}] -body	{reuri query new u {}					} -result ?
 test $t-2.1  {} {*}[{*}$std {}] -body	{reuri query new u {foo}				} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}
 test $t-2.2  {} {*}[{*}$std {}] -body	{reuri query new u {foo bar}			} -result ?foo=bar
 test $t-2.3  {} {*}[{*}$std {}] -body	{reuri query new u {foo bar baz}		} -errorCode {REURI UNBALANCED_PARAMS} -result {Parameter list isn't even}

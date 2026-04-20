@@ -27,6 +27,69 @@ package require reuri
 `reuri query <op> $uri ...` is shorthand for `reuri::query <op>
 [query-portion-of-$uri] ...` — same op names, same args after the URI.
 
+## Empty vs absent: three states per component (0.15+)
+
+reuri follows RFC 3986 §6.2.3 strictly: an *empty* component (with its
+delimiter present) is **not** equivalent to an *absent* component.
+Each optional part has three observable states:
+
+| state | query example | host example | port example |
+|------|------|------|------|
+| absent | `/a/b` | `http:foo` | `http://host` |
+| present-empty | `/a/b?` | `http://` | `http://host:` |
+| present-nonempty | `/a/b?x=1` | `http://host` | `http://host:80` |
+
+All three round-trip through parse + serialize, and all three are
+distinguished by `reuri exists`:
+
+```tcl
+reuri exists /a/b query          ;# => 0
+reuri exists /a/b? query         ;# => 1
+reuri exists /a/b?x=1 query      ;# => 1
+
+reuri normalize /a/b?            ;# => /a/b?   (the "?" is preserved)
+reuri normalize http://          ;# => http:// (empty authority preserved)
+reuri normalize http://host:     ;# => http://host:  (empty port preserved)
+```
+
+Port `0` is distinct from an empty port and both distinct from absent:
+
+```tcl
+reuri normalize http://host      ;# => http://host     (no port)
+reuri normalize http://host:     ;# => http://host:    (empty port)
+reuri normalize http://host:0    ;# => http://host:0   (literal port 0, e.g. for OS-assigned-port listener configs)
+```
+
+**Path is the exception: always present** per RFC 3986 §3.3
+(`path-empty = 0<pchar>`). `reuri exists $uri path` always returns 1;
+`reuri get $uri path` / `reuri extract $uri path` always return a string
+(possibly empty).
+
+## `reuri set` vs `reuri unset` (0.15+)
+
+- `reuri set u part value` — sets the part. An empty string sets the
+  part to an explicit empty component (**not** removed):
+  ```tcl
+  set u /x?a=b
+  reuri set u query {}         ;# u is now /x? — empty-but-present query
+  ```
+- `reuri unset u part` — removes the part entirely:
+  ```tcl
+  set u /x?a=b
+  reuri unset u query          ;# u is now /x — no query at all
+  ```
+
+For **path**, which can't be absent, `reuri unset u path` resets it to
+empty (same effect as `reuri set u path {}`).
+
+### Passing a default for path raises (0.15+)
+
+Because path is always present, `reuri get $u path <default>` and
+`reuri extract $u path <default>` raise `REURI PART_ALWAYS_PRESENT`
+rather than silently ignore the default. Drop the default argument,
+and treat an empty string as the "no significant path" case if your
+code needs that.
+
 ## The most important distinction: `get` vs `extract`
 
 Both take an optional *part* and an optional default:
@@ -46,10 +109,13 @@ reuri extract $u query    ;# => x=1&y=hello%20world
 ```
 
 Without a *part*, both return a dict of all set parts (using the same
-decoded-vs-encoded rule). Missing parts are simply absent from the dict.
+decoded-vs-encoded rule). Absent parts are omitted from the dict;
+present-empty parts appear with empty-string values.
 
-If a *part* is missing and no *default* is given, both throw `REURI
+If a *part* is absent and no *default* is given, both throw `REURI
 PART_NOT_SET <part>`. With a *default*, the default is returned instead.
+(Exception: `path`, for which passing a default raises `REURI
+PART_ALWAYS_PRESENT` — see above.)
 
 ### Valid parts
 
@@ -97,7 +163,7 @@ have the concept of a port, probably shouldn't be used anywhere.
 
 ## Mutating commands take a *variable name*, not a value
 
-This trips people up. `set`, `add`, `unset`, `new` all take a variable
+This trips people up. `set`, `unset`, `add`, `new` all take a variable
 name (like `lappend`, `dict set`):
 
 ```tcl
@@ -107,7 +173,7 @@ reuri query set u limit 10          ;# u is now http://example.com/api/v1?limit=
 reuri query add u tag foo           ;#   ?limit=10&tag=foo
 reuri query add u tag bar           ;#   ?limit=10&tag=foo&tag=bar (duplicates ok)
 reuri query unset u tag             ;#   ?limit=10
-reuri set u query {}                ;# pass {} to remove a part entirely
+reuri unset u query                 ;# removes the query entirely
 ```
 
 `reuri set $u part value` (with `$` — passing the value, not the var
@@ -154,13 +220,19 @@ URI, throwing `REURI CONFLICT`:
 - Setting a rootless path (`reuri set u path bar`) on a URI that already
   has a host. Use `/bar` instead.
 
-### Removing a part
+### Removing a part vs setting present-empty (0.15+)
 
-Pass an empty string to clear: `reuri set u host {}` removes the
-authority; `reuri set u port {}` removes the port; `reuri set u
-fragment {}` strips the fragment. For query params, use `reuri query
-unset u name1 name2 ...` (removes all instances) or `reuri set u query
-{}` (removes the entire query).
+Two distinct operations:
+
+| action | command | effect on `u = /x?a=b` |
+|---|---|---|
+| remove the query | `reuri unset u query` | `/x` (no `?`) |
+| set an empty query | `reuri set u query {}` | `/x?` (empty but present) |
+
+Same distinction for `host`, `port`, `userinfo`, `fragment`. For
+`scheme` there's no empty-vs-absent (scheme must have at least one
+character if present). For `path`, `unset` resets to empty since path
+can't be absent.
 
 ## Percent-encoding — pick the right mode
 
@@ -297,13 +369,106 @@ Superset of Tcl `lindex`:
   the decoded content. This is **stricter than the parser**: most other
   commands accept raw Unicode `>=0x80` and auto-encode it on output.
 - `reuri normalize $uri` — canonical form: lowercases scheme + host,
-  resolves redundant percent-encodings, drops trailing `?`/`#` on empty
-  parts, encodes Unicode, etc. **Does not** strip scheme-default ports
-  (e.g. `:80` for `http`); strip those manually with `reuri set u port {}`
-  if you want.
-- `reuri exists $uri part` — returns 1 if `part` is set in the URI.
-  Note: `host` returns 0 for `http://:81` (port-only authority) but
-  `hosttype` returns 1 (with value `none`).
+  resolves redundant percent-encodings, encodes Unicode, etc. **Preserves
+  empty components** per RFC 3986 §6.2.3 — it does *not* strip a trailing
+  `?`, `#`, `:`, or `//` with empty authority. It also does **not** strip
+  scheme-default ports (e.g. `:80` for `http`); if you want either kind
+  of collapsing for a particular application, do it explicitly (e.g.
+  `reuri unset u query` / `reuri unset u port`).
+- `reuri exists $uri part` — returns 1 if `part` is present (empty or
+  not), 0 if absent. `path` always returns 1.
+
+## Migrating from 0.14.x to 0.15+
+
+0.15 made reuri strictly RFC-3986-compliant: empty components are now
+preserved (were previously collapsed to absent), and path is always
+present (was sometimes reported absent). If you have code targeting
+0.14.x or earlier, audit for these patterns:
+
+### 1. `reuri set u part ""` no longer clears
+
+In 0.14.x, passing an empty string to `reuri set` cleared the part. In
+0.15+, it sets the part to a present-empty component. To clear, use the
+new `reuri unset`.
+
+```tcl
+# 0.14.x — clears the query
+reuri set u query ""
+
+# 0.15+ — one of these, depending on intent:
+reuri unset u query        ;# clear (most old code wants this)
+reuri set u query {}       ;# set an explicit empty query (new, rarely wanted)
+```
+
+Same replacement for `host`, `port`, `userinfo`, `fragment`. For `path`,
+there is no "absent" state: use `reuri unset u path` (same effect as
+`reuri set u path ""`) to reset to empty.
+
+### 2. Defaults for `path` now raise
+
+Because path is always present, `reuri get $u path <default>` and
+`reuri extract $u path <default>` raise `REURI PART_ALWAYS_PRESENT`.
+Old code that relied on a default when parsing authority-only URIs
+like `http://host` needs to be updated:
+
+```tcl
+# 0.14.x — default of "/" kicked in for http://host
+set path [reuri extract $url path /]
+
+# 0.15+ — get an empty string and substitute manually
+set path [reuri extract $url path]
+if {$path eq ""} {set path /}
+```
+
+### 3. `reuri exists $u path` is always 1
+
+Code that used `reuri exists $u path` to detect "has a path after the
+authority" won't work. Test the value instead:
+
+```tcl
+# 0.14.x — false for http://host
+reuri exists $u path
+
+# 0.15+ — test emptiness of the extracted value
+expr {[reuri extract $u path] ne ""}
+```
+
+### 4. `reuri exists $u host` is now 1 for authority-only URIs
+
+`http://` / `http://:81` / `http://?x=1` all have a present-empty host
+now (hosttype `hostname`). If your code checked `reuri exists $u host`
+to mean "has a usable hostname", test non-emptiness instead:
+
+```tcl
+# 0.14.x — false for http://:81
+reuri exists $u host
+
+# 0.15+ — same intent, explicit
+expr {[reuri extract $u host] ne ""}
+```
+
+### 5. `reuri query unset` on the last param leaves `?`
+
+In 0.14.x, unsetting the only remaining query param collapsed the URI
+to no query. In 0.15+ it leaves `foo?` (an explicit empty query). If
+you want the collapsed form, follow with an unset:
+
+```tcl
+# 0.14.x — /x (no ?) after unsetting the last param
+set u /x?a=1
+reuri query unset u a            ;# => /x in 0.14.x, /x? in 0.15+
+
+# 0.15+ — add an unset to collapse when empty
+reuri query unset u a
+if {[reuri extract $u query] eq ""} { reuri unset u query }
+```
+
+### 6. `file:` scheme normalization behaviour
+
+0.14.x would silently drop an empty authority from `file://` URIs
+(yielding `file:`). 0.15+ preserves `//` per the RFC. If you were
+relying on `file:///foo` normalizing to `file:/foo`, do the rewrite
+yourself.
 
 ## The `encode_query_val_eq` quirk (AWS CloudFront workaround)
 
@@ -365,6 +530,7 @@ errorCode patterns to expect (and to catch when needed):
 - `REURI PARSE_ERROR <str> <offset>` — input couldn't be parsed
 - `REURI INVALID_PART <part>` — `<part>` is not a valid part name
 - `REURI PART_NOT_SET <part>` — part isn't present and no default given
+- `REURI PART_ALWAYS_PRESENT path` — 0.15+, default passed for `path`
 - `REURI PARAM_NOT_SET <name>` — query param missing, no `-default`
 - `REURI CONFLICT` — incompatible part change (rootless+host, etc.)
 - `REURI UNBALANCED_PARAMS` — odd number of args to query new/encode/set
@@ -397,7 +563,13 @@ errorCode patterns to expect (and to catch when needed):
 9. **`reuri get $u host` is also a list when hosttype is `local`.** Use
    `reuri::path join {*}[reuri get $u host]` to flatten to a bare path
    string like `/tmp/sock`.
-10. RFC 3986's encoding rules are subtle and easy to misinterpret. This
+10. **0.15+: `reuri set u part ""` sets a present-empty part.** Use
+   `reuri unset u part` to remove it entirely. See the migration
+   section above.
+11. **0.15+: `reuri get $u path <default>` raises.** Path is always
+    present; drop the default and treat `""` as the "no significant
+    path" case.
+12. RFC 3986's encoding rules are subtle and easy to misinterpret. This
    package strives for perfect compliance with the letter of the spec,
    as specified in the grammar (modulo the unfortunate treatment of `+`
    in HTTP URL query sections forced by universal practice but which was

@@ -177,16 +177,185 @@ test reuri-5.3 {normalize}  { reuri normalize {http://[::1]:81/one/two?three=3&f
 test reuri-5.4 {normalize}  { reuri normalize {http://127.0.0.1:81/one/two?three=3&four=4#endbit} } {http://127.0.0.1:81/one/two?three=3&four=4#endbit}
 test reuri-5.5 {normalize}  { reuri normalize {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit} } {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit}
 test reuri-5.6 {normalize}  { reuri normalize {http://[v0.local:/tmp/foo.80]/one/two?three=3&four=4#endbit} } {http://[/tmp/foo.80]/one/two?three=3&four=4#endbit}
-test reuri-5.7 {normalize}  { reuri normalize {file:///one/two?three=3&four=4#endbit} } {file:/one/two?three=3&four=4#endbit}
-test reuri-5.8 {normalize}  { reuri normalize {file://foo@/one/two?three=3&four=4#endbit} } {file:/one/two?three=3&four=4#endbit}
-test reuri-5.9 {normalize}  { reuri normalize {file://:81/one/two?three=3&four=4#endbit} } {file:/one/two?three=3&four=4#endbit}
+test reuri-5.7 {normalize}  { reuri normalize {file:///one/two?three=3&four=4#endbit} } {file:///one/two?three=3&four=4#endbit}
+test reuri-5.8 {normalize}  { reuri normalize {file://foo@/one/two?three=3&four=4#endbit} } {file://foo@/one/two?three=3&four=4#endbit}
+test reuri-5.9 {normalize}  { reuri normalize {file://:81/one/two?three=3&four=4#endbit} } {file://:81/one/two?three=3&four=4#endbit}
 test reuri-5.10 {normalize} { reuri normalize {http://localhost:81/one/two#endbit} } {http://localhost:81/one/two#endbit}
 test reuri-5.11 {normalize} { reuri normalize {http://localhost:81#endbit} } {http://localhost:81#endbit}
-test reuri-5.12 {normalize} { reuri normalize {http://localhost:81?} } {http://localhost:81}
+test reuri-5.12 {normalize, empty query preserved per RFC 3986 §6.2.3} { reuri normalize {http://localhost:81?} } {http://localhost:81?}
 test reuri-5.14 {normalize} -body { reuri normalize } -returnCodes error -result {wrong # args: should be "reuri normalize uri"} -errorCode {TCL WRONGARGS}
 test reuri-5.15 {normalize} -body { reuri normalize /foo bar } -returnCodes error -result {wrong # args: should be "reuri normalize uri"} -errorCode {TCL WRONGARGS}
 test reuri-5.16 {normalize} -body { reuri normalize local\u306fhost/foo } -result local%E3%81%AFhost/foo
 test reuri-5.17 {normalize} -body { reuri normalize HtTp://f\u306foo:bar@local\u306fhost:123/foo\u306f/bar?f\u306fo=b\u306far&x=#some\u306ffrag } -result http://f%E3%81%AFoo:bar@local%E3%81%AFhost:123/foo%E3%81%AF/bar?f%E3%81%AFo=b%E3%81%AFar&x#some%E3%81%AFfrag
+test reuri-5.18 {normalize preserves empty query per RFC 3986 §6.2.3} { reuri exists [reuri normalize /a/b?] query } 1
+test reuri-6.1 {parse /a/b? has an (empty) query} { reuri exists /a/b? query } 1
+test reuri-6.2 {parse /a/b? get query returns empty string} { reuri get /a/b? query } {}
+test reuri-6.3 {query unset of last param preserves empty query} -setup {
+	set u /a/b?x=1
+} -body {
+	reuri query unset u x
+	list $u [reuri exists $u query] [reuri get $u query]
+} -cleanup {unset -nocomplain u} -result {/a/b? 1 {}}
+test reuri-6.4 {query unset of all params preserves empty query} -setup {
+	set u /a/b?x=1&y=2
+} -body {
+	reuri query unset u x y
+	list $u [reuri exists $u query]
+} -cleanup {unset -nocomplain u} -result {/a/b? 1}
+test reuri-6.5 {query unset on URI with no query stays no query} -setup {
+	set u /a/b
+} -body {
+	reuri query unset u x
+	list $u [reuri exists $u query]
+} -cleanup {unset -nocomplain u} -result {/a/b 0}
+test reuri-6.6 {query unset keeps remaining params} -setup {
+	set u /a/b?x=1&y=2
+} -body {
+	reuri query unset u x
+	list $u [reuri exists $u query] [reuri query get $u y]
+} -cleanup {unset -nocomplain u} -result {/a/b?y=2 1 2}
+test reuri-6.7 {/a/b? distinguishable from /a/b} {
+	list [reuri exists /a/b? query] [reuri exists /a/b query]
+} {1 0}
+test reuri-7.1 {set empty query sets present-empty (RFC 3986 §6.2.3)} -setup {
+	set u /x?a=b
+} -body {
+	reuri set u query {}
+	list $u [reuri exists $u query] [reuri get $u query]
+} -cleanup {unset -nocomplain u} -result {/x? 1 {}}
+test reuri-7.2 {set empty fragment sets present-empty} -setup {
+	set u /x#foo
+} -body {
+	reuri set u fragment {}
+	list $u [reuri exists $u fragment] [reuri get $u fragment]
+} -cleanup {unset -nocomplain u} -result {/x# 1 {}}
+test reuri-7.3 {unset clears the query} -setup {
+	set u /x?a=b
+} -body {
+	reuri unset u query
+	list $u [reuri exists $u query]
+} -cleanup {unset -nocomplain u} -result {/x 0}
+test reuri-7.4 {unset clears empty query too} -setup {
+	set u /x?
+} -body {
+	reuri unset u query
+	list $u [reuri exists $u query]
+} -cleanup {unset -nocomplain u} -result {/x 0}
+test reuri-7.5 {unset clears the fragment} -setup {
+	set u /x#foo
+} -body {
+	reuri unset u fragment
+	list $u [reuri exists $u fragment]
+} -cleanup {unset -nocomplain u} -result {/x 0}
+test reuri-7.6 {unset clears the port} -setup {
+	set u http://localhost:8080/foo
+} -body {
+	reuri unset u port
+	list $u [reuri exists $u port]
+} -cleanup {unset -nocomplain u} -result {http://localhost/foo 0}
+test reuri-7.7 {unset clears userinfo} -setup {
+	set u http://user:pw@localhost/foo
+} -body {
+	reuri unset u userinfo
+	list $u [reuri exists $u userinfo]
+} -cleanup {unset -nocomplain u} -result {http://localhost/foo 0}
+test reuri-7.8 {unset is a no-op when the part is already absent} -setup {
+	set u /x
+} -body {
+	reuri unset u query
+	reuri unset u fragment
+	list $u [reuri exists $u query] [reuri exists $u fragment]
+} -cleanup {unset -nocomplain u} -result {/x 0 0}
+test reuri-7.9 {unset wrong # args} -body {
+	reuri unset
+} -returnCodes error -result {wrong # args: should be "reuri unset uri part"} -errorCode {TCL WRONGARGS}
+test reuri-7.10 {unset then set empty round-trips through the same state} -setup {
+	set u /x?a=b
+} -body {
+	reuri unset u query
+	set s1 [reuri exists $u query]
+	reuri set u query {}
+	set s2 [reuri exists $u query]
+	list $s1 $u $s2
+} -cleanup {unset -nocomplain u s1 s2} -result {0 /x? 1}
+
+# RFC 3986 §6.2.3: empty host, empty port, empty path all distinct from absent
+test reuri-8.1 {host present-empty distinguishable from absent} {
+	list [reuri exists http:// host] [reuri exists http: host]
+} {1 0}
+test reuri-8.2 {http:// normalizes preserving empty authority} {
+	reuri normalize http://
+} http://
+test reuri-8.3 {port present-empty distinguishable from absent} {
+	list [reuri exists http://host: port] [reuri exists http://host port]
+} {1 0}
+test reuri-8.4 {empty port not equivalent to port 0} {
+	expr {[reuri normalize http://host:] eq [reuri normalize http://host:0]}
+} 0
+test reuri-8.5 {path always present per RFC 3986 §3.3} {
+	list \
+		[reuri exists http://host path] \
+		[reuri exists http: path] \
+		[reuri exists {} path] \
+		[reuri exists #frag path]
+} {1 1 1 1}
+test reuri-8.6 {get path never raises PART_NOT_SET} {
+	list \
+		[reuri get http://host path] \
+		[reuri get http: path] \
+		[reuri get {} path]
+} {{} {} {}}
+test reuri-8.7 {set empty host sets present-empty} -setup {
+	set u http://foo:123
+} -body {
+	reuri set u host ""
+	list $u [reuri exists $u host] [reuri get $u hosttype]
+} -cleanup {unset -nocomplain u} -result {http://:123 1 hostname}
+test reuri-8.8 {unset host removes authority} -setup {
+	set u http://foo:123/x
+} -body {
+	reuri unset u host
+	list $u [reuri exists $u host] [reuri get $u hosttype]
+} -cleanup {unset -nocomplain u} -result {http:/x 0 none}
+test reuri-8.9 {set empty port sets present-empty} -setup {
+	set u http://foo:123
+} -body {
+	reuri set u port ""
+	list $u [reuri exists $u port] [reuri get $u port]
+} -cleanup {unset -nocomplain u} -result {http://foo: 1 {}}
+test reuri-8.10 {unset port removes it} -setup {
+	set u http://foo:123
+} -body {
+	reuri unset u port
+	list $u [reuri exists $u port]
+} -cleanup {unset -nocomplain u} -result {http://foo 0}
+test reuri-8.11 {unset path resets to empty} -setup {
+	set u http://foo/bar
+} -body {
+	reuri unset u path
+	list $u [reuri exists $u path] [reuri get $u path]
+} -cleanup {unset -nocomplain u} -result {http://foo 1 {}}
+test reuri-8.12 {port 0 distinct from empty port and absent port} {
+	list \
+		[reuri normalize http://host] \
+		[reuri normalize http://host:] \
+		[reuri normalize http://host:0]
+} {http://host http://host: http://host:0}
+test reuri-8.13 {set port 0 works} -setup {
+	set u http://host
+} -body {
+	reuri set u port 0
+	list $u [reuri get $u port]
+} -cleanup {unset -nocomplain u} -result {http://host:0 0}
+test reuri-8.14 {get path with default errors: path is always present} -body {
+	reuri get http://host path /
+} -returnCodes error -result {path is always present; default value is not meaningful} -errorCode {REURI PART_ALWAYS_PRESENT path}
+test reuri-8.15 {extract path with default errors} -body {
+	reuri extract http://host path /
+} -returnCodes error -result {path is always present; default value is not meaningful} -errorCode {REURI PART_ALWAYS_PRESENT path}
+test reuri-8.16 {get path without default works} {
+	reuri get http://host path
+} {}
 
 test reuri_valid-0.1 {http://localhost}					{ reuri valid http://localhost					}		1
 test reuri_valid-0.2 {http://local%00host}				{ reuri valid http://local%00host				}		1

@@ -37,7 +37,7 @@ test $t-1.9 {} {*}[{*}$std http://foo]		-body { reuri set u userinfo {x y}		} -r
 
 set t	uri_set_host
 test $t-1.1    {} {*}[{*}$std]	-body { list [reuri set u host bar]						[reuri get $u hosttype]	} -result {http://bar hostname}
-test $t-1.2    {} {*}[{*}$std]	-body { list [reuri set u host {}]						[reuri get $u hosttype]	} -result {http: none}
+test $t-1.2    {} {*}[{*}$std]	-body { list [reuri set u host {}]						[reuri get $u hosttype]	} -result {http:// hostname}
 test $t-1.3    {} {*}[{*}$std]	-body { list [reuri set u host 127.0.0.1]				[reuri get $u hosttype]	} -result {http://127.0.0.1 ipv4}
 test $t-1.4    {} {*}[{*}$std]	-body { list [reuri set u host {[::1]}]					[reuri get $u hosttype]	} -result {{http://[::1]} ipv6}
 test $t-1.5    {} {*}[{*}$std]	-body { list [reuri set u host {[/tmp/bar]}]			[reuri get $u hosttype]	} -result {{http://[/tmp/bar]} local}
@@ -67,8 +67,8 @@ test $t-1.20.4 {} {*}[{*}$std]	-body { reuri set u host {[/tmp/bar}			} -errorCo
 test $t-1.20.5 {} {*}[{*}$std]	-body { reuri set u host {[v0.local:/tmp/bar}	} -errorCode {REURI PARSE {\[v0.local:/tmp/bar} 18}  -result {Failed to parse host at ofs 18}
 test $t-1.20.6 {} {*}[{*}$std]	-body { reuri set u host {[/tmp/b] }			} -errorCode {REURI PARSE {\[/tmp/b\] } 8}           -result {Failed to parse host at ofs 8}
 test $t-1.20.7 {} {*}[{*}$std]	-body { reuri set u host {[v0.local:/tmp/b] }	} -errorCode {REURI PARSE {\[v0.local:/tmp/b\] } 17} -result {Failed to parse host at ofs 17}
-test $t-1.21   {} {*}[{*}$std http://foo:123]	-body { reuri set u host {}		} -result http:
-test $t-1.22   {} {*}[{*}$std http://foo:123/x]	-body { reuri set u host {}		} -result http:/x
+test $t-1.21   {} {*}[{*}$std http://foo:123]	-body { reuri set u host {}		} -result http://:123
+test $t-1.22   {} {*}[{*}$std http://foo:123/x]	-body { reuri set u host {}		} -result http://:123/x
 test $t-1.23   {} {*}[{*}$std http:x]	-body { reuri set u host foo	} -errorCode {REURI CONFLICT} -result {Can't add a host: path is rootless}	;# convert rootless path to absolute?? resolve according to context?
 test $t-1.24   {} {*}[{*}$std x]		-body { reuri set u host foo	} -errorCode {REURI CONFLICT} -result {Can't add a host: path is rootless}	;# convert rootless path to absolute?? resolve according to context?
 
@@ -76,7 +76,7 @@ set t	uri_set_port
 test $t-1.1 {} {*}[{*}$std http://foo]		-body { reuri set u port 8080	} -result http://foo:8080
 test $t-1.2 {} {*}[{*}$std http://foo]		-body { reuri set u port 80		} -result http://foo:80		;# The RFC says implementations shouldn't include the port if it's the default for the scheme, but I can't find a list anywhere
 test $t-1.3 {} {*}[{*}$std http://foo:123]	-body { reuri set u port 80		} -result http://foo:80
-test $t-1.4 {} {*}[{*}$std http://foo:123]	-body { reuri set u port {}		} -result http://foo
+test $t-1.4 {} {*}[{*}$std http://foo:123]	-body { reuri set u port {}		} -result http://foo:
 test $t-1.5 {} {*}[{*}$std http://foo:123]	-body { reuri set u port 1080	} -result http://foo:1080
 test $t-2.1 {} {*}[{*}$std]	-body { reuri set u port smtp		} -returnCodes error -result {Failed to parse port at ofs 0} -errorCode {REURI PARSE smtp 0}
 test $t-2.2 {} {*}[{*}$std]	-body { reuri set u port 1\0		} -returnCodes error -result {Failed to parse port at ofs 1} -errorCode "REURI PARSE 1\0 1"
@@ -119,8 +119,8 @@ test $t-1.4  {} {*}[{*}$std /x]				-body { reuri set u query foo=bar&a		} -resul
 test $t-1.5  {} {*}[{*}$std /x]				-body { reuri set u query foo==bar&a	} -result /x?foo==bar&a
 test $t-1.6  {} {*}[{*}$std /x]				-body { reuri set u query a&a&a			} -result /x?a&a&a
 test $t-1.7  {} {*}[{*}$std /x?a=b]			-body { reuri set u query foo			} -result /x?foo
-test $t-1.8  {} {*}[{*}$std /x?a=b]			-body { reuri set u query {}			} -result /x
-test $t-1.9  {} {*}[{*}$std /x?a=b#endbit]	-body { reuri set u query {}			} -result /x#endbit
+test $t-1.8  {} {*}[{*}$std /x?a=b]			-body { reuri set u query {}			} -result /x?
+test $t-1.9  {} {*}[{*}$std /x?a=b#endbit]	-body { reuri set u query {}			} -result /x?#endbit
 test $t-1.10 {} {*}[{*}$std /x?a=b#endbit]	-body { reuri set u query ==foo==		} -result /x?==foo==#endbit
 test $t-1.11 {} {*}[{*}$std /x]				-body { reuri set u query bar?			} -result /x?bar?
 test $t-1.12 {} {*}[{*}$std /x]				-body { reuri set u query bar#			} -errorCode {REURI PARSE bar# 3} -result {Failed to parse query at ofs 3}
@@ -140,8 +140,8 @@ set t	uri_set_fragment
 test $t-1.1  {} {*}[{*}$std /x]		-body { reuri set u fragment foo		} -result /x#foo
 test $t-1.2  {} {*}[{*}$std {}]		-body { reuri set u fragment foo		} -result #foo
 test $t-1.3  {} {*}[{*}$std /x#old]	-body { reuri set u fragment foo		} -result /x#foo
-test $t-1.4  {} {*}[{*}$std /x#old]	-body { reuri set u fragment {}			} -result /x
-test $t-1.5  {} {*}[{*}$std /x]		-body { reuri set u fragment {}			} -result /x
+test $t-1.4  {} {*}[{*}$std /x#old]	-body { reuri set u fragment {}			} -result /x#
+test $t-1.5  {} {*}[{*}$std /x]		-body { reuri set u fragment {}			} -result /x#
 test $t-1.6  {} {*}[{*}$std /x]		-body { reuri set u fragment #bar		} -result /x#%23bar
 test $t-1.7  {} {*}[{*}$std /x]		-body { reuri set u fragment ?bar		} -result /x#?bar
 test $t-1.8  {} {*}[{*}$std /x]		-body { reuri set u fragment &bar		} -result /x#&bar

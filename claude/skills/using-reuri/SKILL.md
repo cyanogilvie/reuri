@@ -530,6 +530,61 @@ Bench numbers (microseconds per op, illustrative):
 | Encode a 5-param query | — | 1.3 | 15 |
 | Validate a URI | 0.04 | 0.09 | 45+ |
 
+## Calling reuri from jitc-compiled code
+
+reuri exports a C API (see `reuriDecls.h`). To call it from code
+compiled and loaded at runtime with [jitc](https://github.com/cyanogilvie/jitc),
+declare the dependency in the cdef and just call the functions —
+don't set up stubs. jitc code is ephemeral and always runs in the
+same process as the already-loaded reuri, so direct linking is the
+simplest model:
+
+```tcl
+package require reuri
+package require jitc
+
+set cdef [list package [list reuri [package present reuri]] {*}{
+    code {
+        OBJCMD(get_query) {
+            int       code = TCL_OK;
+            Tcl_Obj*  val  = NULL;
+            enum {A_cmd, A_URL, A_objc};
+            CHECK_ARGS_LABEL(finally, code, "url");
+            TEST_OK_LABEL(finally, code,
+                Reuri_URIObjGetPart(interp, objv[A_URL],
+                                    REURI_QUERY, NULL, &val));
+            Tcl_SetObjResult(interp, val);
+        finally:
+            replace_tclobj(&val, NULL);
+            return code;
+        }
+    }
+}]
+
+jitc::capply $cdef get_query http://localhost/foo?baz=quux&a=b
+# => baz quux a b
+```
+
+Key points:
+
+- **`[list reuri [package present reuri]]`** — floats the version with
+  whatever's loaded. Don't hardcode `{reuri 0.16.0}` in the cdef.
+- **No `-DUSE_REURI_STUBS=1`.** jitc's `package {reuri ...}` directive
+  drives `tcc_add_library(tcc, [reuri::pkgconfig get library])`, which
+  now correctly resolves to the on-disk filename of the in-memory
+  library (e.g. `tcl9reuri` on a Tcl 9 build). ld.so dedups by
+  filename, so the jitc-compiled dll.so calls into the already-
+  initialised reuri — no second copy loaded, no stubs indirection
+  needed.
+- **Include `<reuri.h>` is not required** — jitc adds the right
+  `-I` for the reuri includedir and the `#include <reuri.h>` is
+  implicit via the package integration.
+- **Versions older than 0.16.0 had a bug** where `library` reported
+  the compile-time project name (`reuri`) rather than the actual
+  file (`libtcl9reuri.so` on Tcl 9 builds). If you see an
+  `Invalid read` / segfault at the first reuri call from jitc
+  code, upgrade to 0.16.0+.
+
 ## Exceptions
 
 errorCode patterns to expect (and to catch when needed):

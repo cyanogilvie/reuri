@@ -540,10 +540,10 @@ same process as the already-loaded reuri, so direct linking is the
 simplest model:
 
 ```tcl
-package require reuri
 package require jitc
 
-set cdef [list package [list reuri [package present reuri]] {*}{
+set cdef {
+    package {reuri 0.13}
     code {
         OBJCMD(get_query) {
             int       code = TCL_OK;
@@ -559,7 +559,7 @@ set cdef [list package [list reuri [package present reuri]] {*}{
             return code;
         }
     }
-}]
+}
 
 jitc::capply $cdef get_query http://localhost/foo?baz=quux&a=b
 # => baz quux a b
@@ -567,21 +567,25 @@ jitc::capply $cdef get_query http://localhost/foo?baz=quux&a=b
 
 Key points:
 
-- **`[list reuri [package present reuri]]`** — floats the version with
-  whatever's loaded. Don't hardcode `{reuri 0.16.0}` in the cdef.
-- **No `-DUSE_REURI_STUBS=1`.** jitc's `package {reuri ...}` directive
-  drives `tcc_add_library(tcc, [reuri::pkgconfig get library])`, which
-  now correctly resolves to the on-disk filename of the in-memory
-  library (e.g. `tcl9reuri` on a Tcl 9 build). ld.so dedups by
-  filename, so the jitc-compiled dll.so calls into the already-
-  initialised reuri — no second copy loaded, no stubs indirection
-  needed.
-- **Include `<reuri.h>` is not required** — jitc adds the right
-  `-I` for the reuri includedir and the `#include <reuri.h>` is
-  implicit via the package integration.
-- **Versions older than 0.16.0 had a bug** where `library` reported
-  the compile-time project name (`reuri`) rather than the actual
-  file (`libtcl9reuri.so` on Tcl 9 builds). If you see an
+- **The `package {reuri <minver>}` directive handles loading** — the
+  containing script doesn't have to `package require reuri` first.
+  jitc runs `package require reuri <minver>` itself; if an already-
+  loaded reuri satisfies the constraint it's used as-is, otherwise
+  jitc loads one.  Declare the minimum version your code actually
+  needs (e.g. `0.13` for the core API, `0.15` if you depend on the
+  RFC-3986 empty-vs-absent behaviour).
+- **No `-DUSE_REURI_STUBS=1`.** jitc's `package` directive drives
+  `tcc_add_library(tcc, [reuri::pkgconfig get library])`, which
+  resolves to the on-disk filename of the in-memory library (e.g.
+  `tcl9reuri` on a Tcl 9 build). ld.so dedups by filename, so the
+  jitc-compiled dll.so calls into the already-initialised reuri —
+  no second copy loaded, no stubs indirection needed.
+- **`#include <reuri.h>` is automatic** — jitc adds the right
+  `-I` for the reuri includedir and the header include is implicit
+  via the package integration.
+- **reuri < 0.16.0 had a bug** where `reuri::pkgconfig get library`
+  reported the compile-time project name (`reuri`) rather than the
+  actual file (`libtcl9reuri.so` on Tcl 9 builds). If you see an
   `Invalid read` / segfault at the first reuri call from jitc
   code, upgrade to 0.16.0+.
 

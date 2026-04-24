@@ -4,13 +4,12 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 }
 
 tcltest::loadTestedCommands
-package require reuri
 
 tcltest::testConstraint haveJitc [expr {![catch {
 	package require jitc
 }]}]
 
-set cdef [list package [list reuri [package require reuri]] {*}{
+set cdef [list package [list reuri [package present reuri]] {*}{
 	options {-Wall -Werror}
 	code {
 		enum { S_PARAM, S_VAL, S_DEF, S_IDX, S_TRUE, S_FALSE, S_PARAMS, S_size };

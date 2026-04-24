@@ -4,7 +4,6 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 }
 
 tcltest::loadTestedCommands
-package require reuri
 
 set t	uri_exists
 test $t-1.1 {scheme, true}		{ reuri exists http://localhost					scheme		}	1

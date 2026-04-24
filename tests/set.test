@@ -4,7 +4,6 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 }
 
 tcltest::loadTestedCommands
-package require reuri
 
 set std	{apply {{{init http://foo}} {list -setup [list set u $init] -cleanup {unset -nocomplain u}}}}
 

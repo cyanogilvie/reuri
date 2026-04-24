@@ -7,6 +7,7 @@ Tcl_HashTable	g_intreps;
 TCL_DECLARE_MUTEX(g_config_mutex)
 Tcl_Obj*		g_packagedir = NULL;
 Tcl_Obj*		g_includedir = NULL;
+Tcl_Obj*		g_library = NULL;
 int				g_config_refcount = 0;
 static Tcl_Config cfg[] = {
 	{"libdir,runtime",			REURI_LIBRARY_PATH_INSTALL},	// Overwritten by _setdir, must be first
@@ -615,6 +616,7 @@ finally:
 }
 
 //>>>
+#if 0
 void tcl_stacktrace(Tcl_Interp* interp) //<<<
 {
 	int		code = TCL_OK;
@@ -666,6 +668,7 @@ apply {{} {
 }
 
 //>>>
+#endif
 // Internal API >>>
 // Stubs API <<<
 int Reuri_URIObjGetPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part part, Tcl_Obj* defaultPtr, Tcl_Obj** valuePtrPtr) //<<<
@@ -734,7 +737,7 @@ int Reuri_URIObjExtractPart(Tcl_Interp* interp, Tcl_Obj* uriPtr, enum reuri_part
 		case REURI_PATH:		p = uri->path ? uri->path : (l ? l->empty : NULL);	break;
 		case REURI_QUERY:		p = uri->query;					break;
 		case REURI_FRAGMENT:	p = uri->fragment;				break;
-		case REURI_HOSTTYPE:	p = l->hosttype[uri->hosttype];	break;
+		case REURI_HOSTTYPE:	p = l ? l->hosttype[uri->hosttype] : Tcl_NewStringObj(reuri_hosttype_str[uri->hosttype], -1);	break;
 		default: THROW_ERROR_LABEL(finally, code, "Invalid part");
 	}
 
@@ -1317,7 +1320,7 @@ static int UriObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* co
 				struct uri*	uri_ir = NULL;
 				uri = Tcl_ObjGetVar2(interp, objv[A_URI], NULL, 0);
 				if (!uri) replace_tclobj(&uri, Tcl_NewObj());
-				TEST_OK_LABEL(query_finally, code, ReuriGetURIFromObj(interp, uri, &uri_ir));
+				TEST_OK_LABEL(finally, code, ReuriGetURIFromObj(interp, uri, &uri_ir));
 				TEST_OK_LABEL(finally, code, Reuri_GetPartFromObj(interp, objv[A_PART], &part));
 				TEST_OK_LABEL(finally, code, Reuri_URIObjSet(interp, uri, part, objv[A_VALUE], &res));
 				replace_tclobj(&res, Tcl_ObjSetVar2(interp, objv[A_URI], NULL, res, TCL_LEAVE_ERR_MSG));
@@ -2238,6 +2241,27 @@ static int _setdir(Tcl_Interp* interp) //<<<
 		cfg[0].value = Tcl_GetString(g_packagedir);		// Under global ref
 		cfg[1].value = Tcl_GetString(g_includedir);		// Under global ref
 		cfg[2].value = Tcl_GetString(g_packagedir);		// Under global ref
+
+#ifdef PKG_LIB_FILE
+		// Advertise the on-disk link-name of this in-memory copy, not the
+		// compile-time project_name().  Callers that compile code against
+		// this library (e.g. jitc) then produce a DT_NEEDED matching the
+		// file ld.so has already mapped, letting the dynamic linker dedup
+		// rather than loading a second, uninitialised copy from the
+		// install tree.  Derives from PKG_LIB_FILE (e.g. libtcl9reuri.so)
+		// by stripping the "lib" prefix and the first extension dot.
+		{
+			const char*	base = PKG_LIB_FILE;
+			const char*	slash = strrchr(base, '/');
+			if (slash) base = slash + 1;
+			const char*	name = (strncmp(base, "lib", 3) == 0) ? base + 3 : base;
+			const char*	dot  = strchr(name, '.');
+			Tcl_Size	len  = dot ? (Tcl_Size)(dot - name) : (Tcl_Size)strlen(name);
+			if (len > 0)
+				replace_tclobj(&g_library, Tcl_NewStringObj(name, len));
+		}
+		if (g_library) cfg[6].value = Tcl_GetString(g_library);
+#endif
 	}
 
 	Tcl_RegisterConfig(interp, PACKAGE_NAME, cfg, "utf-8");
@@ -2429,6 +2453,7 @@ DLLEXPORT int Reuri_Unload(Tcl_Interp* interp, int flags) //<<<
 	if (g_config_refcount <= 0) {
 		replace_tclobj(&g_packagedir, NULL);
 		replace_tclobj(&g_includedir, NULL);
+		replace_tclobj(&g_library, NULL);
 	}
 	Tcl_MutexUnlock(&g_config_mutex); //>>>
 	if (g_config_refcount <= 0) {

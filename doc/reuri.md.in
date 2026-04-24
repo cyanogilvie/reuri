@@ -357,6 +357,14 @@ it names the range of elements starting from the index on the left to the index 
 right, inclusive.  So "0..end" is all of the elements, and "end..1" is all but the first,
 in reverse order.
 
+A range iterates in whichever direction its resolved endpoints land — the
+*written* direction is not consulted.  So a range like "1..end" on a
+single-element list resolves to "from=1, to=0" and silently descends, yielding
+indices 1, 0 (one out-of-range element plus the sole element) rather than an
+empty list.  Likewise "5..end" on a three-element list descends 5, 4, 3, 2
+rather than clipping to empty.  If you want *lrange*-style "empty when
+out-of-bounds" semantics, guard on the list length before indexing.
+
 An index may also be a list of comma separated indices or index ranges, which names
 each element from each of the indices or index ranges.  So "1,2,4" refers to the
 second, third and fifth elements, and "end..0,1,-1" refers to all of the elements
@@ -605,107 +613,63 @@ finally:
 ## BUILDING
 
 Besides Tcl, this package requires the `dedup` package:
-https://github.com/cyanogilvie/dedup.  The primary build system is now `meson`, it will
-find `dedup` using it's pkg-config file, use the `PKG_CONFIG_PATH` environment variable
-to point meson to it (and Tcl) if they're installed in a nonstandard location.
-
-The legacy autotools build system will attempt to
-autodetect the location of the installed dedup, if the target Tcl's tclsh can
-load the package.  If for some reason this doesn't work (or you are cross compiling
-or for some other reason can't execute the target tclsh on the build machine), supply
-the `--with-dedup` configure option with the path to the dedupConfig.sh file from the
-installed dedup package.
+https://github.com/cyanogilvie/dedup.  Meson finds `dedup` via its pkg-config
+file — set `PKG_CONFIG_PATH` to point meson at it (and Tcl) if they're
+installed in a nonstandard location.
 
 Currently Tcl 9.0 is supported, at least Tcl 8.7 is required, but if needed polyfills
 could be built to support 8.6.
 
 ### From a Release Tarball
 
-Download and extract [the release](https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz), then build with meson, or in the standard TEA autotools way:
+Download and extract [the release](https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@-@PACKAGE_VERSION@.tar.xz), then build with meson:
 
 ```sh
-wget https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz
-tar xf @PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz
-cd @PACKAGE_NAME@@PACKAGE_VERSION@
+wget https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@-@PACKAGE_VERSION@.tar.xz
+tar xf @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.xz
+cd @PACKAGE_NAME@-@PACKAGE_VERSION@
 
-# meson
 meson setup builddir --buildtype=release
 meson install -C builddir
-
-# autotools
-./configure
-make
-sudo make install
 ```
 
 ### From the Git Sources
 
-Fetch [the code](https://github.com/cyanogilvie/@PACKAGE_NAME@) and submodules recursively, then build in the standard autoconf / TEA way:
+Fetch [the code](https://github.com/cyanogilvie/@PACKAGE_NAME@) and submodules recursively, then build with meson:
 
 ```sh
 git clone --recurse-submodules https://github.com/cyanogilvie/@PACKAGE_NAME@
 cd @PACKAGE_NAME@
 
-# meson
 meson setup builddir --buildtype=release
 meson install -C builddir
-
-# autotools
-autoconf
-./configure
-make
-sudo make install
 ```
 
 ### In a Docker Build
 
 Build from a specified release version, avoiding layer pollution and only adding the installed package without documentation to the image, and strip debug symbols, minimising image size:
 
-Meson:
 ```dockerfile
 WORKDIR /tmp/@PACKAGE_NAME@
-RUN wget https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz -O - | tar xz --strip-components=1 && \
+RUN wget https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@-@PACKAGE_VERSION@.tar.xz -O - | tar xJ --strip-components=1 && \
     meson setup builddir --buildtype=release && \
     meson install -C builddir && \
     strip /usr/local/lib/lib@PACKAGE_NAME@*.so && \
     cd .. && rm -rf @PACKAGE_NAME@
 ```
 
-Autotools:
-```dockerfile
-WORKDIR /tmp/@PACKAGE_NAME@
-RUN wget https://github.com/cyanogilvie/@PACKAGE_NAME@/releases/download/v@PACKAGE_VERSION@/@PACKAGE_NAME@@PACKAGE_VERSION@.tar.gz -O - | tar xz --strip-components=1 && \
-    ./configure; make test install-binaries install-libraries && \
-    strip /usr/local/lib/lib@PACKAGE_NAME@*.so && \
-    cd .. && rm -rf @PACKAGE_NAME@
-```
-
-For any of the build methods you may need to pass `--with-tcl /path/to/tcl/lib` to `configure` if your Tcl install is somewhere nonstandard.
-
 ### Testing
 
 It's a good idea to run the test suite after building:
 
-Meson:
 ```sh
 meson test -C builddir
 ```
 
-Autotools:
-```sh
-make test
-```
+And maybe also the memory checker `valgrind` (requires that Tcl and this package are built with suitable memory debugging flags, like `-Dbuildtype=debug -Db_sanitize=address` — or use a PURIFY-enabled Tcl runtime):
 
-And maybe also the memory checker `valgrind` (requires that Tcl and this package are built with suitable memory debugging flags, like `CFLAGS="-DPURIFY -Og" --enable-symbols`):
-
-Meson:
 ```sh
 meson test -C builddir --wrapper 'valgrind --keep-debuginfo=yes --track-origins=yes --trace-children=yes'
-```
-
-Autotools:
-```sh
-make valgrind
 ```
 
 ## USING WITH CLAUDE CODE

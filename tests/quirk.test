@@ -4,7 +4,6 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 }
 
 tcltest::loadTestedCommands
-package require reuri
 
 test reuri_quirk-0.1 {missing quirk name}		-body {reuri::quirk}								-returnCodes error -result {wrong # args: should be "reuri::quirk quirk ?val?"} -errorCode {TCL WRONGARGS}
 test reuri_quirk-0.2 {too many args}			-body {reuri::quirk encode_query_val_eq 0 foo}		-returnCodes error -result {wrong # args: should be "reuri::quirk encode_query_val_eq ?enabled?"} -errorCode {TCL WRONGARGS}

@@ -4,7 +4,6 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 }
 
 tcltest::loadTestedCommands
-package require reuri
 
 set t	query_values
 test $t-1.0.0 {empty}			{ reuri::query values {} foo					} {}

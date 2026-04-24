@@ -360,6 +360,13 @@ Superset of Tcl `lindex`:
 - Comma-separated lists: `1,3,end`, `0..2,end`
 - Out-of-range elements yield empty strings (for `get`) or `0` (for `exists`)
 
+> **Gotcha**: a range `a..b` iterates in whichever direction the *resolved*
+> endpoints land — the written direction is not consulted. `1..end` on a
+> length-1 list resolves to `from=1, to=0`, so it silently descends and yields
+> `{{} /}` rather than an empty list. Same for `5..end` on a short list —
+> descends through OOB indices. If you want `lrange`-style "empty when
+> out-of-bounds" semantics, guard on `llength` first.
+
 ## Validation
 
 - `reuri valid $uri` — strict RFC 3986 check on the *literal source

@@ -8,13 +8,6 @@
 *.gcov
 *~
 core
-Makefile
-autom4te.cache
-config.log
-config.status
-configure
-pkgIndex.tcl
-doc/reuri.n
 tags
 memdebug.sh
 optimised.sh
@@ -27,12 +20,6 @@ parsers/
 prof/
 local/
 build/
-generic/reuri.h
-generic/reuriDecls.h
-generic/reuriStubInit.c
-reuriConfig.sh
-Makefile.teabase
-doc/.build
 subprojects/re2c-*
 subprojects/packagecache
 subprojects/.wraplock

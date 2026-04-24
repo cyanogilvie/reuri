@@ -4,12 +4,10 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 }
 
 tcltest::loadTestedCommands
-#package require reuri
 package require jitc
 
 test jitc_integration-1.1 {Use c API from jitc} -setup { #<<<
-	set cdef	{
-		package	{reuri 0.13.1}
+	set cdef	[list package [list reuri [package present reuri]] {*}{
 		code {
 			OBJCMD(get_query) {
 				int				code = TCL_OK;
@@ -18,7 +16,7 @@ test jitc_integration-1.1 {Use c API from jitc} -setup { #<<<
 				enum {A_cmd, A_URL, A_objc};
 				CHECK_ARGS_LABEL(finally, code, "url");
 
-				TEST_OK_LABEL(finally, code, Reuri_URIObjGetPart(interp, objv[A_URL], REURI_QUERY, NULL, &val)); 
+				TEST_OK_LABEL(finally, code, Reuri_URIObjGetPart(interp, objv[A_URL], REURI_QUERY, NULL, &val));
 
 				Tcl_SetObjResult(interp, val);
 
@@ -27,7 +25,7 @@ test jitc_integration-1.1 {Use c API from jitc} -setup { #<<<
 				return code;
 			}
 		}
-	}
+	}]
 } -body {
 	jitc::capply $cdef get_query http://localhost/foo/bar?baz=quux&a=b
 } -cleanup {

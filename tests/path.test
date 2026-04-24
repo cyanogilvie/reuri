@@ -4,7 +4,6 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 }
 
 tcltest::loadTestedCommands
-package require reuri
 
 set allprint_ascii	{}	;# String of all non-control-character ascii
 set allprint		{}	;# String of all non-control-characters <= 0xff

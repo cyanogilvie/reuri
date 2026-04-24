@@ -57,12 +57,11 @@ jobs:
 
     - name: Build reuri
       run: |
-        autoconf
-        PKG_CONFIG_PATH=/opt/tcl9.0/lib/pkgconfig ./configure --with-tcl=/opt/tcl9.0/lib --enable-testmode
-        make
+        PKG_CONFIG_PATH=/opt/tcl9.0/lib/pkgconfig meson setup builddir -Dtestmode=true
+        meson compile -C builddir
 
     - name: Run tests
-      run: make test 2>&1 | tee /tmp/test_results.log
+      run: meson test -C builddir --print-errorlogs 2>&1 | tee /tmp/test_results.log
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -70,23 +69,14 @@ jobs:
         name: test-results
         path: /tmp/test_results.log
 
-    - name: Build reuri (meson)
-      run: |
-        PKG_CONFIG_PATH=/opt/tcl9.0/lib/pkgconfig meson setup builddir -Dtestmode=true
-        meson compile -C builddir
-
-    - name: Run tests (meson)
-      run: meson test -C builddir --print-errorlogs
-
     - name: Create distribution
-      run: |
-        make dist
+      run: meson dist -C builddir --no-tests
 
     - name: Upload distribution artifact
       uses: actions/upload-artifact@v4
       with:
         name: release-tarball
-        path: /tmp/dist/reuri*.tar.gz
+        path: builddir/meson-dist/reuri-*.tar.xz
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
@@ -95,5 +85,5 @@ jobs:
         draft: false
         prerelease: false
         files: |
-          /tmp/dist/reuri*.tar.gz
+          builddir/meson-dist/reuri-*.tar.xz
         generate_release_notes: true

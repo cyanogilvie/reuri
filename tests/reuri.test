@@ -4,7 +4,6 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 }
 
 tcltest::loadTestedCommands
-package require reuri
 
 set allchars_raw		{}
 set allchars_path		{}
@@ -164,8 +163,7 @@ test reuri-2.3 {Get all parts} -setup { #<<<
 #>>>
 test reuri-3.1 {Interp cleanup} -body { #<<<
 	interp create reuri-3.1
-	interp eval reuri-3.1 [list set auto_path $::auto_path]
-	interp eval reuri-3.1 {package require reuri}
+	interp eval reuri-3.1 {load {} Reuri}
 	interp delete reuri-3.1
 	return -level 0 ok
 } -result ok

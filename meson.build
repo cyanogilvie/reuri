@@ -1,5 +1,5 @@
 project('reuri', 'c',
-  version:          '0.16.0',
+  version:          '0.16.1',
   default_options:  ['c_std=c17', 'warning_level=3', 'werror=true'],
   meson_version:    '>=1.3.0',
 )
@@ -129,6 +129,20 @@ configure_file(
   configuration:  pc_conf,
   install_dir:    tcl_dep.get_variable('libdir') / 'pkgconfig',
 )
+
+# Override-dependency for meson subproject consumers. Mirrors the
+# tcl_pkg_path variable shipped in the .pc file so that a downstream
+# `dependency('reuri', fallback: ['reuri', 'reuri_dep']).get_variable('tcl_pkg_path')`
+# returns the right directory regardless of whether reuri was found
+# via pkg-config or rebuilt from source as a subproject.
+fs = import('fs')
+reuri_dep = declare_dependency(
+  variables: {
+    'tcl_pkg_path': fs.parent(pkg_so.full_path()),
+    'version':      meson.project_version(),
+  },
+)
+meson.override_dependency(meson.project_name(), reuri_dep)
 
 # Test config
 test_conf = configuration_data()

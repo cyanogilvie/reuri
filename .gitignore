@@ -20,6 +20,6 @@ parsers/
 prof/
 local/
 build/
-subprojects/re2c-*
-subprojects/packagecache
-subprojects/.wraplock
+/subprojects/*/
+/subprojects/packagecache
+/subprojects/.wraplock

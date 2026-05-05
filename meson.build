@@ -1,5 +1,5 @@
 project('reuri', 'c',
-  version:          '0.16.1',
+  version:          '0.16.2',
   default_options:  ['c_std=c17', 'warning_level=3', 'werror=true'],
   meson_version:    '>=1.3.0',
 )
@@ -52,24 +52,10 @@ lexer_index = custom_target('lexer_index',
 )
 # re2c lexer generation >>>
 
-# Stubs generation
-deps += declare_dependency(
-  sources: custom_target('genstubs',
-    output: ['reuriStubInit.c', 'reuriDecls.h'],
-    command: [
-      build_tclsh,
-      meson.project_source_root() / 'teabase/tools/genStubs.tcl',
-      meson.project_build_root(),
-      meson.project_source_root() / 'generic/reuri.decls',
-    ],
-    install: true,
-    install_dir: [false, pkg_dir],
-  ),
-)
-
 # Dedup dependency (stubs)
 dedup_dep = dependency('dedup')
 deps += dedup_dep
+tea_test_deps += dedup_dep
 
 pkg_sources = files(
   'generic/reuri.c',
@@ -82,6 +68,9 @@ pkg_sources += [lexer_parse, lexer_index]
 if get_option('testmode')
   pkg_sources += files('generic/testmode.c')
 endif
+
+teaconf_files = files('generic/reuri.h.in')
+tea_genstubs  = files('generic/reuri.decls', 'generic/reuriStubLib.c')
 
 # Package config values compiled into binary
 conf.set_quoted('REURI_LIBRARY_PATH_INSTALL', pkg_dir)
@@ -99,23 +88,6 @@ conf.set_quoted('REURI_BUILD_STUB_LIB_SPEC', '-L' + meson.project_build_root() /
 
 subdir('teabase')
 
-# Public header
-configure_file(
-  configuration:  teaconf,
-  input:          'generic/reuri.h.in',
-  output:         '@BASENAME@',
-  install_dir:    pkg_dir,
-)
-
-# Build and install stubs library for dependent extensions
-stubs_lib = static_library(meson.project_name() + 'stub',
-  'generic/reuriStubLib.c',
-  dependencies: deps,
-  include_directories: inc,
-  install: true,
-  install_dir: pkg_dir,
-)
-
 # Generate relocatable pkg-config file
 pc_conf = configuration_data()
 pc_conf.set('PACKAGE_NAME', meson.project_name())
@@ -128,6 +100,8 @@ configure_file(
   output:         meson.project_name() + '.pc',
   configuration:  pc_conf,
   install_dir:    tcl_dep.get_variable('libdir') / 'pkgconfig',
+  install:        true,
+  install_tag:    meson.is_subproject() ? 'deps' : 'runtime',
 )
 
 # Override-dependency for meson subproject consumers. Mirrors the

@@ -1,5 +1,5 @@
 project('reuri', 'c',
-  version:          '0.16.2',
+  version:          '0.16.3',
   default_options:  ['c_std=c17', 'warning_level=3', 'werror=true'],
   meson_version:    '>=1.3.0',
 )
@@ -109,8 +109,11 @@ configure_file(
 # `dependency('reuri', fallback: ['reuri', 'reuri_dep']).get_variable('tcl_pkg_path')`
 # returns the right directory regardless of whether reuri was found
 # via pkg-config or rebuilt from source as a subproject.
-fs = import('fs')
 reuri_dep = declare_dependency(
+  link_with:            stubs_lib,
+  sources:              genstubs[1],
+  include_directories:  inc,
+  compile_args:         '-DUSE_REURI_STUBS=1',
   variables: {
     'tcl_pkg_path': fs.parent(pkg_so.full_path()),
     'version':      meson.project_version(),

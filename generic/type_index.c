@@ -320,7 +320,8 @@ int Idx_Resolve(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** 
 				&& numType == TCL_NUMBER_INT) {
 			replace_tclobj(&res, indexObj);
 			*type = IDX_SINGLE;
-			goto done;
+			replace_tclobj(elementsPtrPtr, res);
+			goto finally;
 		}
 	}
 #endif
@@ -354,7 +355,6 @@ int Idx_Resolve(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** 
 		*type = IDX_RANGE;
 	}
 
-done:
 	replace_tclobj(elementsPtrPtr, res);
 
 finally:

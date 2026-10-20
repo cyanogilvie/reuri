@@ -1,4 +1,4 @@
-#include "reuriInt.h"
+#include <reuriInt.h>
 
 TCL_DECLARE_MUTEX(g_intreps_mutex)
 int				g_intreps_refcount = 0;

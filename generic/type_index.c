@@ -1,5 +1,5 @@
-#include "reuriInt.h"
-#include "tip445.h"
+#include <reuriInt.h>
+#include <tip445.h>
 
 /* Intrep:
  *	ptrAndLongRep.ptr:		struct parse_idx_cx*

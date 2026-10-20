@@ -14,8 +14,8 @@ enum idx_type {
 }
 #endif
 
-int Idx_PickFromList(Tcl_Interp* interp, Tcl_Obj* listObj, Tcl_Obj* indexObj, Tcl_Obj** picked);
-int Idx_Exists(Tcl_Interp* interp, size_t length, Tcl_Obj* indexObj, Tcl_Obj** exists);
-int Idx_Resolve(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** elementsPtrPtr, enum idx_type* type);
-int Idx_IndexType(Tcl_Interp* interp, Tcl_Obj* indexObj, enum idx_type* type);
+MODULE_SCOPE int Idx_PickFromList(Tcl_Interp* interp, Tcl_Obj* listObj, Tcl_Obj* indexObj, Tcl_Obj** picked);
+MODULE_SCOPE int Idx_Exists(Tcl_Interp* interp, size_t length, Tcl_Obj* indexObj, Tcl_Obj** exists);
+MODULE_SCOPE int Idx_Resolve(Tcl_Interp* interp, Tcl_Obj* indexObj, size_t length, Tcl_Obj** elementsPtrPtr, enum idx_type* type);
+MODULE_SCOPE int Idx_IndexType(Tcl_Interp* interp, Tcl_Obj* indexObj, enum idx_type* type);
 #endif

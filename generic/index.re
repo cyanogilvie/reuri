@@ -1,4 +1,4 @@
-#include "reuriInt.h"
+#include <reuriInt.h>
 
 /*!types:re2c*/
 /*!i nclude:re2c "parse.h"*/

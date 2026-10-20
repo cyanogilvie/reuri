@@ -1,4 +1,4 @@
-#include "reuriInt.h"
+#include <reuriInt.h>
 #ifdef TESTMODE
 
 static int TestObjCmd(ClientData cdata, Tcl_Interp* interp, int objc, Tcl_Obj* const objv[]) //<<<

@@ -5,9 +5,11 @@
 #	include <config.h>
 #endif
 
-#include "reuri.h"
-#include "polyfill.h"
-#include "tclstuff.h"
+#include <reuri.h>
+#include <tip445.h>
+#include <idx.h>
+#include <polyfill.h>
+#include <tclstuff.h>
 #include <dedup.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -190,7 +192,7 @@ enum reuri_pathtype Reuri_PathType(Tcl_Obj* pathPtr);
 // type_uri_part.c internal API >>>
 // index.re internal API <<<
 int parse_index(Tcl_Interp* interp, const char* str, struct parse_idx_cx** indexPtrPtr);
-int IdxGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_cx** index);
+MODULE_SCOPE int IdxGetIndexFromObj(Tcl_Interp* interp, Tcl_Obj* indexObj, struct parse_idx_cx** index);
 // index.re internal API >>>
 // stack.c internal API <<<
 struct stack_entry {

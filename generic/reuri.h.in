@@ -4,8 +4,6 @@
 typedef int Tcl_Size;
 #endif
 
-#include "idx.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -69,7 +67,7 @@ extern const char* ReuriInitializeStubs(Tcl_Interp* interp);
 #define Reuri_InitStubs(interp)	Tcl_PkgRequire((interp), "@PACKAGE_NAME@", "@PACKAGE_VERSION@", 0)
 #endif
 
-#include "reuriDecls.h"
+#include <reuriDecls.h>
 
 static inline Tcl_Obj* Reuri_PercentDecodeObj(Tcl_Obj* in)
 {

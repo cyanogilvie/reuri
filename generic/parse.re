@@ -1,6 +1,6 @@
 // Based on https://re2c.org/examples/c/submatch/example_uri_rfc3986.html
 
-#include "reuriInt.h"
+#include <reuriInt.h>
 
 // Case ranges is strictly a c23 thing, but gcc and clang support it long before that
 #if defined(__GNUC__)

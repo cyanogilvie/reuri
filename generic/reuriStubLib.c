@@ -7,7 +7,7 @@
 #define USE_TCL_STUBS 1
 #define USE_REURI_STUBS 1
 
-#include "reuri.h"
+#include <reuri.h>
 
 MODULE_SCOPE const ReuriStubs*	reuriStubsPtr;
 const ReuriStubs*				reuriStubsPtr = NULL;
